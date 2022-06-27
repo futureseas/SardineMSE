@@ -1,0 +1,473 @@
+---
+title: "Sardine MSE Result Notes"
+author: "Robert Wildermuth"
+date: "7/26/2021"
+output: 
+  pdf_document:
+    toc: true
+    toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+library(tidyverse)
+library(r4ss)
+library(ss3sim)
+library(hablar) # just so I can convert a column data type
+source("plot_comp_sampling.R")
+source("plot_index_sampling.R")
+
+source("age1plusDiagPlots.R")
+source("FmsyDiagPlots.R")
+source("recrDiagPlots.R")
+source("catchDiagPlots.R")
+source("compDiagPlots.R")
+source("bDiagPlots.R")
+```
+
+# Evaluation of sardine cohort growth operating model
+
+The following notes document the results of applying a 6 year projection to Peter Kuriyama's cohort growth Stock Synthesis model for Pacific sardine using {SSMSE}. The separate runs progress from a self test to applying additional sampling error in the SSMSE sampling module.
+
+## Self test with only acoustic-trawl index specified
+
+```{r OMselftest}
+# read in SSMSE results summary
+tsSumry <- read.csv("C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMandEM/cohortGrowthselftest/results_ts_cohortGrowthselftest.csv")
+
+# Get rid of duplicated SSB years
+tsSumry <- na.omit(tsSumry)
+
+# bring in simulated data for each iteration to plot with OM and EM vals
+simDat <- data.frame()
+for(i in c(2,4:9)){
+  itDat <- SS_readdat(file = paste0("C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMandEM/cohortGrowthselftest/",
+                           i, "/cohortGrowthOMandEM_EM_2024/data.ss_new"),
+                      version = "3.30")[["CPUE"]] %>%
+            filter(index == 4) %>%
+            mutate(iteration = i,
+                   model_run = "cohortGrowthselftest_data")
+
+  simDat <- rbind(simDat, itDat)
+}
+  
+# simDat <- SS_readdat(file = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMandEM/cohortGrowthselftest/2/cohortGrowthOMandEM_EM_2024/data.ss_new",
+#                       version = "3.30")[["CPUE"]] %>%
+#             filter(index == 4) %>%
+#             mutate(#iteration = i,
+#                    model_run = "cohortGrowthselftest_data")
+
+# plots of simulated and estimated biomass trends per iteration
+ggplot2::ggplot(data = subset(tsSumry, model_run %in% c("0_estimate_cohort_growh_OM",  
+                                                      "cohortGrowthOMandEM_EM_2020",
+                                                      "cohortGrowthOMandEM_EM_2021",
+                                                      "cohortGrowthOMandEM_EM_2022",
+                                                      "cohortGrowthOMandEM_EM_2023",
+                                                      "cohortGrowthOMandEM_EM_2024")), 
+                ggplot2::aes(x = year, y = SpawnBio)) +
+  ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+  geom_point(data = simDat, mapping = aes(x = year, y = obs), shape = 4, color = "grey") +
+  ggplot2::geom_line(ggplot2::aes(linetype = as.character(iteration), color = model_run))+
+  ggplot2::scale_color_manual(values = c("#D65F00", rep("black", 4), "blue")) +
+  ggplot2::scale_linetype_manual(values = rep("solid", 50)) +
+  ggplot2::guides(linetype = FALSE) +
+  ggplot2::facet_wrap(. ~ iteration) +
+  ggplot2::theme_classic()
+
+# plot of OM and EM and simulated data
+indexPlot <- plot_index_sampling(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMandEM/cohortGrowthselftest")
+# !!RW: sampled_dataset are different among iterations
+
+indexPlot # !RW: only getting last three iterations, but gets the point across 
+```
+
+### Summary plots of terminal year estimates
+```{r}
+termYr <- tsSumry %>% filter(model_run %in% c("0_estimate_cohort_growh_OM", 
+                                              "cohortGrowthOMandEM_EM_init") | # or keep end years
+                             year == as.numeric(regmatches(model_run, 
+                                                           gregexpr("[[:digit:]]+", model_run))))
+
+termYr <- termYr %>% mutate(model_run = as.character(model_run),
+                            model_run = case_when(!model_run %in% c("0_estimate_cohort_growh_OM", 
+                                                                    "cohortGrowthOMandEM_EM_init") ~"cohortGrowthOMandEM_EM_term",
+                                                  TRUE ~ model_run))
+
+ggplot2::ggplot(data = termYr, 
+                ggplot2::aes(x = year, y = SpawnBio)) +
+  ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+  geom_point(data = simDat, mapping = aes(x = year, y = obs), shape = 4, color = "grey") +
+  ggplot2::geom_line(ggplot2::aes(linetype = as.character(iteration), color = model_run))+
+  ggplot2::scale_color_manual(values = c("#D65F00", "black", rep("blue", 5))) +
+  ggplot2::scale_linetype_manual(values = rep("solid", 50)) +
+  ggplot2::guides(linetype = FALSE) +
+  ggplot2::facet_wrap(. ~ iteration) +
+  ggplot2::theme_classic()
+
+relSSB_EMtoOM <- termYr %>% select(model_run, year, iteration, SpawnBio) %>%
+                    pivot_wider(id_cols = c(year, iteration),
+                                names_from = model_run, values_from = SpawnBio) %>%
+                    rename(cohort_growth_OM = "0_estimate_cohort_growh_OM") %>%
+                    mutate(diffSSB = case_when(is.na(cohortGrowthOMandEM_EM_term) ~ cohortGrowthOMandEM_EM_init - cohort_growth_OM,
+                                               !is.na(cohortGrowthOMandEM_EM_term) ~ cohortGrowthOMandEM_EM_term - cohort_growth_OM))
+
+relSSB_EMtoOM <- relSSB_EMtoOM %>% full_join(y = simDat, by = c("year", "iteration")) %>%
+                    mutate(diffDat = obs - cohort_growth_OM)
+
+ggplot(data = relSSB_EMtoOM, aes(x = year, y = diffSSB)) +
+  ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+  geom_hline(yintercept = 0, color = "black") +
+  geom_point(mapping = aes(x = year, y = diffDat), shape = 4, color = "grey") +
+  ggplot2::geom_line(ggplot2::aes(linetype = as.character(iteration), color = 2))+
+  #ggplot2::scale_color_manual(values = c("#D65F00", "black", rep("blue", 5))) +
+  ggplot2::scale_linetype_manual(values = rep("solid", 50)) +
+  ggplot2::guides(linetype = FALSE) +
+  ggplot2::facet_wrap(. ~ iteration) +
+  ggplot2::theme_classic()
+```
+
+### Plots of length and age composition
+```{r}
+# plot_comp_sampling(dir = "C:/Users/rwildermuth/Documents/FutureSeas/SardineMSE/cohortGrowthOMandEM/cohortGrowthselftest", comp_type = "agecomp")
+# !!!Error: The comp database from the operating model has no rows, so must not have been any historical data in the OM.
+
+outputSS <- SS_output(
+  dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMandEM/cohortGrowthselftest/2/cohortGrowthOMandEM_EM_2024",
+  dir.mcmc = NULL,
+  repfile = "Report.sso",
+  compfile = "CompReport.sso")
+
+SSplotComps(replist = outputSS, kind = "LEN")
+
+SSplotComps(replist = outputSS, kind = "AGE") # nothing happens
+
+# Try using r4ss supporting function
+tmp <- SSMethod.TA1.8(fit = outputSS, type = "len", 
+                      fleet = 4, fleetnames = outputSS[["FleetNames"]], datonly = FALSE, 
+                                  printit = FALSE)
+# doesn't show compositions by length
+
+unique(outputSS[["lendbase"]]$Yr) # doesn't have data from projection years (2020-2024)
+FleetNames <- outputSS[["FleetNames"]]
+
+# try using ss3sim::get_compfit
+# RW: function doesn't exist in the package? but it's in the index...
+# get_compfit(report.file = outputSS, name = "len_comp_fit_table")
+
+# run_SSMSE uses expected values for OM catch, so use these in figs
+# RW: 'lendbase' only has observed years from historical time series
+# termLenComps <- outputSS[["lendbase"]] %>% filter(Fleet == which(FleetNames == "AT_Survey")) %>%
+#                   select(Yr, Seas, Fleet, Bin, Exp)
+
+# Plot terminal age and length comps for OM and EM by iteration
+termLenComps <- data.frame()
+termAgeComps <- data.frame()
+
+for(i in c(2,4:9)){
+  outputSS <- SS_output(dir = paste0( "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMandEM/cohortGrowthselftest/", 
+                                     i, "/cohortGrowthOMandEM_EM_2024"),
+                        dir.mcmc = NULL,
+                        repfile = "Report.sso",
+                        compfile = "CompReport.sso", verbose = FALSE, printstats = FALSE)
+  
+  EMLenComps <- outputSS[["batlen"]] %>% filter(Yr == 2024, Seas == 2, `Beg/Mid` == "B") %>%
+                  pivot_longer(cols = c("6", "6.5", "7", "7.5", "8", "8.5", "9", "9.5", "10", "10.5", 
+                                        "11", "11.5", "12", "12.5", "13", "13.5", "14", "14.5", "15", "15.5",
+                                        "16", "16.5", "17", "17.5", "18", "18.5", "19", "19.5", "20", "20.5",
+                                        "21", "21.5", "22", "22.5", "23", "23.5", "24", "24.5", "25", "25.5", 
+                                        "26", "26.5", "27", "27.5", "28", "28.5", "29", "29.5", "30"),
+                               names_to = "Bin", values_to = "Biomass") %>%
+                  mutate(Bin = as.numeric(Bin),
+                         model_run = "cohortGrowthOMandEM_EM_2024",
+                         iteration = i)
+
+  EMAgeComps <- outputSS[["batage"]] %>% filter(Yr == 2024, Seas == 2, `Beg/Mid` == "B") %>%
+                  pivot_longer(cols = c("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"),
+                               names_to = "Age", values_to = "Biomass") %>%
+                  mutate(Age = as.numeric(Age),
+                         model_run = "cohortGrowthOMandEM_EM_2024",
+                         iteration = i)
+  
+  OMoutputSS <- SS_output(dir = paste0( "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMandEM/cohortGrowthselftest/", 
+                                       i, "/0_estimate_cohort_growh_OM"),
+                          dir.mcmc = NULL,
+                          repfile = "Report.sso",
+                          compfile = "CompReport.sso", verbose = FALSE, printstats = FALSE)
+
+  OMLenComps <- OMoutputSS[["batlen"]] %>% filter(Yr == 2024, Seas == 2, `Beg/Mid` == "B") %>%
+                  pivot_longer(cols = c("6", "6.5", "7", "7.5", "8", "8.5", "9", "9.5", "10", "10.5", 
+                                        "11", "11.5", "12", "12.5", "13", "13.5", "14", "14.5", "15", "15.5",
+                                        "16", "16.5", "17", "17.5", "18", "18.5", "19", "19.5", "20", "20.5",
+                                        "21", "21.5", "22", "22.5", "23", "23.5", "24", "24.5", "25", "25.5", 
+                                        "26", "26.5", "27", "27.5", "28", "28.5", "29", "29.5", "30"),
+                               names_to = "Bin", values_to = "Biomass") %>%
+                  mutate(Bin = as.numeric(Bin),
+                         model_run = "0_estimate_cohort_growh_OM",
+                         iteration = i)
+  OMAgeComps <- OMoutputSS[["batage"]] %>% filter(Yr == 2024, Seas == 2, `Beg/Mid` == "B") %>%
+                  pivot_longer(cols = c("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"),
+                               names_to = "Age", values_to = "Biomass") %>%
+                  mutate(Age = as.numeric(Age),
+                         model_run = "0_estimate_cohort_growh_OM",
+                         iteration = i)
+  termAgeComps <- rbind(termAgeComps, EMAgeComps, OMAgeComps)
+  termLenComps <- rbind(termLenComps, EMLenComps, OMLenComps)
+}
+
+# RW: no composition data for last year because none provided in 'sample_struct_list' for run_SSMSE()
+ggplot(termLenComps, mapping = aes(x = Bin, y = Biomass)) +
+  geom_col() +
+  facet_grid(cols = vars(model_run), rows = vars(iteration))
+
+
+ggplot(termAgeComps, mapping = aes(x = Age, y = Biomass)) +
+  geom_col() +
+  facet_grid(cols = vars(model_run), rows = vars(iteration))
+```
+
+## Generalized functions applied to Self Test with AT only
+
+Make some generalized functions to apply to different scenarios
+```{r cohortSelfTest}
+ 
+bDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMandEM",
+          scenario = "cohortGrowthselftest",
+          termYr = 2024, surveyInx = 4)
+
+compDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMandEM",
+              scenario = "cohortGrowthselftest",
+              termYr = 2024)
+
+# pull recruitment from summary dq
+recrDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMandEM",
+              scenario = "cohortGrowthselftest", termYr = 2024)
+
+#TotCatch_ in ss_summary.sso? or outputSS[["catch"]]
+# outputSS <- SS_output(
+#   dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMandEM/cohortGrowthselftest/2/cohortGrowthOMandEM_EM_2024",
+#   dir.mcmc = NULL,
+#   repfile = "Report.sso",
+#   compfile = "CompReport.sso", verbose = FALSE, printstats = FALSE)
+# 
+# catSmry <- outputSS[["catch"]] %>% group_by(Yr) %>%
+#               # summarize totoal catch within year
+#               dplyr::summarize(obsCat = sum(Obs),
+#                                expCat = sum(Exp))
+
+catchDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMandEM",
+              scenario = "cohortGrowthselftest", termYr = 2024)
+
+FmsyDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMandEM",
+              scenario = "cohortGrowthselftest", termYr = 2024)
+
+#SmryBio_ in ss_summary.sso? or outputSS[["timeseries"]]
+# these aren't equal. SpawnBio matches between these files, but not outputSS[["timeseries"]]$Bio_smry
+
+# outputSS[["timeseries"]] %>% select(Yr, Era, Seas, Bio_smry, `SmryBio_SX:1_GP:1`, SpawnBio)
+
+age1plusDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMandEM",
+                  scenario = "cohortGrowthselftest", termYr = 2024)
+
+```
+
+## Self-test with acoustic-trawl and age and length comps specified in projection period
+
+```{r OMself_wComps}
+bDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMandEM",
+          scenario = "cohortGrowthself_compNsamp",
+          termYr = 2024, surveyInx = 4)
+
+compDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMandEM",
+              scenario = "cohortGrowthself_compNsamp",
+              termYr = 2024, surveyInx = 4)
+
+recrDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMandEM",
+              scenario = "cohortGrowthself_compNsamp", termYr = 2024)
+
+catchDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMandEM",
+              scenario = "cohortGrowthself_compNsamp", termYr = 2024)
+
+FmsyDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMandEM",
+              scenario = "cohortGrowthself_compNsamp", termYr = 2024)
+
+age1plusDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMandEM",
+              scenario = "cohortGrowthself_compNsamp", termYr = 2024)
+
+```
+
+## Test with AT and comp data and fixed parameter EM
+
+```{r fixedEM_wComps}
+bDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMfixedParamsEM",
+          scenario = "cohortGrowth_compNsamp",
+          termYr = 2024, surveyInx = 4)
+
+compDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMfixedParamsEM",
+              scenario = "cohortGrowth_compNsamp",
+              termYr = 2024, surveyInx = 4)
+
+recrDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMfixedParamsEM",
+              scenario = "cohortGrowth_compNsamp", termYr = 2024)
+
+catchDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMfixedParamsEM",
+              scenario = "cohortGrowth_compNsamp", termYr = 2024)
+
+FmsyDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMfixedParamsEM",
+              scenario = "cohortGrowth_compNsamp", termYr = 2024)
+
+age1plusDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMfixedParamsEM",
+              scenario = "cohortGrowth_compNsamp", termYr = 2024)
+
+# Look at growth and selectivity parameters
+# outputSS <- SS_output(dir = file.path("C:/Users/rwildermuth/Documents/FutureSeas/SardineMSE/cohortGrowthOMfixedParamsEM",
+#                                       "cohortGrowth_compNsamp", 1, "0_estimate_cohort_growh_OM"),
+#                       dir.mcmc = NULL,
+#                       repfile = "Report.sso",
+#                       compfile = "CompReport.sso", verbose = FALSE, printstats = FALSE)
+# SS_plots(outputSS, plot = c(1, 2, 16, 17, 20, 25, 26))
+# 
+# outputEM <- SS_output(dir = file.path("C:/Users/rwildermuth/Documents/FutureSeas/SardineMSE/cohortGrowthOMfixedParamsEM",
+#                                       "cohortGrowth_compNsamp", 1, "cohortGrowthOMfixedParamsEM_EM_2024"),
+#                       dir.mcmc = NULL,
+#                       repfile = "Report.sso",
+#                       compfile = "CompReport.sso", verbose = FALSE, printstats = FALSE)
+# SS_plots(outputEM, plot = c(1, 2, 16, 17, 20, 25, 26))
+```
+
+## Constant growth OM with AT and comp data and fixed parameter EM
+
+```{r constOMandEM_wComps}
+bDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/constGrowthOMfixedParamsEM",
+          scenario = "constGrowth_compNsamp",
+          termYr = 2024, surveyInx = 4)
+
+compDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/constGrowthOMfixedParamsEM",
+              scenario = "constGrowth_compNsamp",
+              termYr = 2024, surveyInx = 4)
+
+recrDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/constGrowthOMfixedParamsEM",
+              scenario = "constGrowth_compNsamp", termYr = 2024)
+
+catchDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/constGrowthOMfixedParamsEM",
+              scenario = "constGrowth_compNsamp", termYr = 2024)
+
+FmsyDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/constGrowthOMfixedParamsEM",
+              scenario = "constGrowth_compNsamp", termYr = 2024)
+
+age1plusDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/constGrowthOMfixedParamsEM",
+              scenario = "constGrowth_compNsamp", termYr = 2024)
+
+```
+
+## Sample size test with cohort growth OM model
+
+```{r sampleSizeTest}
+age1plusDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMfixedParamsEM",
+                  scenario = "5pctAnnChangeNsamp10Model", termYr = 2028)
+
+age1plusDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMfixedParamsEM",
+                  scenario = "5pctAnnChangeNsamp20Model", termYr = 2028)
+
+age1plusDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMfixedParamsEM",
+                  scenario = "5pctAnnChangeNsamp40Model", termYr = 2028)
+
+age1plusDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/cohortGrowthOMfixedParamsEM",
+                  scenario = "5pctAnnChangeNsamp100Model", termYr = 2028)
+```
+
+## Marginal compositions OM and fixed selectivity EM with high data quality
+```{r margComps_highDatQual}
+bDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/margCompsOMfixedSelexEM",
+          scenario = "margComps_highDatQual",
+          termYr = 2028, surveyInx = 4)
+
+compDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/margCompsOMfixedSelexEM",
+              scenario = "margComps_highDatQual",
+              termYr = 2028, surveyInx = 4)
+
+recrDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/margCompsOMfixedSelexEM",
+              scenario = "margComps_highDatQual", termYr = 2028)
+
+catchDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/margCompsOMfixedSelexEM",
+              scenario = "margComps_highDatQual", termYr = 2028)
+
+FmsyDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/margCompsOMfixedSelexEM",
+              scenario = "margComps_highDatQual", termYr = 2028)
+
+age1plusDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/scenarioRuns/margCompsOMfixedSelexEM",
+              scenario = "margComps_highDatQual", termYr = 2028)
+```
+
+## Self test of constant growth and selectivity as OM and EM with moderate data quality starting 2001 applying HCR1
+```{r constGrowth2001OMandEM_RandRecHCR1}
+bDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios",
+          scenario = "constGrowth2001OMandEM_RandRecHCR1",
+          termYr = 2028, surveyInx = 4)
+
+compDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios",
+              scenario = "constGrowth2001OMandEM_RandRecHCR1",
+              termYr = 2028, surveyInx = 4)
+
+recrDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios",
+              scenario = "constGrowth2001OMandEM_RandRecHCR1", termYr = 2028)
+
+catchDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios",
+              scenario = "constGrowth2001OMandEM_RandRecHCR1", termYr = 2028)
+
+FmsyDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios",
+              scenario = "constGrowth2001OMandEM_RandRecHCR1", termYr = 2028)
+
+age1plusDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios",
+              scenario = "constGrowth2001OMandEM_RandRecHCR1", termYr = 2028)
+```
+
+## Self test of constant growth and selectivity as OM and EM with moderate data quality starting 2005 applying EM
+```{r constGrowth2005OMandEM_RandRecEM}
+bDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios",
+          scenario = "constGrowth2005OMandEM_RandRecEM",
+          termYr = 2028, surveyInx = 4)
+
+compDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios",
+              scenario = "constGrowth2005OMandEM_RandRecEM",
+              termYr = 2028, surveyInx = 4)
+
+recrDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios",
+              scenario = "constGrowth2005OMandEM_RandRecEM", termYr = 2028)
+
+catchDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios",
+              scenario = "constGrowth2005OMandEM_RandRecEM", termYr = 2028)
+
+FmsyDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios",
+              scenario = "constGrowth2005OMandEM_RandRecEM", termYr = 2028)
+
+age1plusDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios",
+              scenario = "constGrowth2005OMandEM_RandRecEM", termYr = 2028)
+```
+
+## Constant growth and selectivity in 2001 for OM and 2005 for EM with moderate data quality applying HCR1
+```{r constGrowth2001OM_constGrowth2005EM_RandRecHCR1}
+bDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios",
+          scenario = "constGrowth2001OM_constGrowth2005EM_RandRecHCR1",
+          termYr = 2028, surveyInx = 4)
+
+compDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios",
+              scenario = "constGrowth2001OM_constGrowth2005EM_RandRecHCR1",
+              termYr = 2028, surveyInx = 4)
+
+recrDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios",
+              scenario = "constGrowth2001OM_constGrowth2005EM_RandRecHCR1", termYr = 2028)
+
+catchDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios",
+              scenario = "constGrowth2001OM_constGrowth2005EM_RandRecHCR1", termYr = 2028)
+
+FmsyDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios",
+              scenario = "constGrowth2001OM_constGrowth2005EM_RandRecHCR1", termYr = 2028)
+
+age1plusDiagPlots(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios",
+              scenario = "constGrowth2001OM_constGrowth2005EM_RandRecHCR1", termYr = 2028)
+
+# try fit to mean comp length metric from r4ss
+```

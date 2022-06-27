@@ -1,0 +1,830 @@
+SardineMSE: Management strategy evaluation of Pacific sardine Stock
+Synthesis assessment
+================
+Robert Wildermuth
+5/10/2022
+
+-   [SardineMSE](#sardinemse)
+-   [An example of SardineMSE
+    workflow](#an-example-of-sardinemse-workflow)
+    -   [Set up the sampling and operating model
+        scenario](#set-up-the-sampling-and-operating-model-scenario)
+    -   [Calculate performance and plot
+        diagnostics](#calculate-performance-and-plot-diagnostics)
+
+# SardineMSE
+
+Management strategy evaluation of Pacific sardine Stock Synthesis
+assessment
+
+# An example of SardineMSE workflow
+
+## Set up the sampling and operating model scenario
+
+``` r
+library(dplyr)
+```
+
+    ## Warning: package 'dplyr' was built under R version 4.1.3
+
+    ## 
+    ## Attaching package: 'dplyr'
+
+    ## The following objects are masked from 'package:stats':
+    ## 
+    ##     filter, lag
+
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     intersect, setdiff, setequal, union
+
+``` r
+library(r4ss)
+library(foreach) #if using run_parallel = TRUE
+```
+
+    ## Warning: package 'foreach' was built under R version 4.1.3
+
+``` r
+library(doParallel) #if using run_parallel = TRUE
+```
+
+    ## Warning: package 'doParallel' was built under R version 4.1.3
+
+    ## Loading required package: iterators
+
+    ## Warning: package 'iterators' was built under R version 4.1.3
+
+    ## Loading required package: parallel
+
+``` r
+# # 
+library(SSMSE) 
+packageVersion("SSMSE")
+```
+
+    ## [1] '0.2.5'
+
+``` r
+library(RColorBrewer)
+
+source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/age1plusDiagPlots.R")
+source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/GetSumryOutput.R")
+```
+
+    ## -- Attaching packages --------------------------------------- tidyverse 1.3.1 --
+
+    ## v ggplot2 3.3.5     v purrr   0.3.4
+    ## v tibble  3.1.6     v stringr 1.4.0
+    ## v tidyr   1.2.0     v forcats 0.5.1
+    ## v readr   2.1.1
+
+    ## Warning: package 'tidyr' was built under R version 4.1.3
+
+    ## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
+    ## x purrr::accumulate() masks foreach::accumulate()
+    ## x dplyr::filter()     masks stats::filter()
+    ## x dplyr::lag()        masks stats::lag()
+    ## x purrr::when()       masks foreach::when()
+
+``` r
+source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/CalcPerformance.R")
+source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/CalcTermTS.R")
+
+# directory for MSE output
+# NOTE: This must be an external directory
+mseOutputPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
+
+# Operating Model - Research Model ----------------------------------------
+
+# directory for OM SS code
+# NOTE: This must be a SS model that has been run
+OMmodelPath <- "scenarioModels/start2001/constGrowth"
+
+EMmodelPath <- "scenarioModels/start2005/constantGrowth"
+# EM starter.ss file must indicate init values are to be pulled from control.ss file, not ss.par
+
+# Define Observation Model ------------------------------------------------
+# Run test of marginal comps OM
+datfile <- SS_readdat(file = paste0(OMmodelPath, "/data.ss"), version = "3.30")
+```
+
+    ## Char version is  3.30 
+    ## Numeric version is  3.3
+
+    ## Running SS_readdat_3.30
+
+    ## SS_readdat_3.30 - read version = 3.30
+
+    ## use_meanbodywt (0/1): 0
+
+    ## N_lbinspop:
+
+    ## use_lencomp (0/1): 1
+
+    ## N_lbins: 39
+
+    ## N_agebins: 9
+
+    ## use_MeanSize_at_Age_obs (0/1): 0
+
+    ## N_environ_variables: 0
+
+    ## Read of data file complete. Final value = 999
+
+``` r
+# define an index for the Acoustic-Trawl survey as in Desiree's code
+#specify number of years of MSE loop
+nyrs <- 20
+
+#specify the start year of data inputs
+yrsrt <- datfile$endyr +1
+
+#specify the end year of data inputs
+yrend <- datfile$endyr + nyrs
+
+#sample_struct$CPUE = sample_struct$CPUE[1:nyrs,]
+CPUE <- data.frame(Yr= yrsrt:yrend,
+                   Seas= 1,
+                   FltSvy = 4,
+                   SE = 0.5)
+
+#specify the number of catch fleets
+ncdat <- 3
+
+catch <- data.frame(Yr = rep(c(yrsrt:yrend),ncdat), 
+                    Seas = c(rep(1,nyrs),rep(2,nyrs)),
+                    FltSvy = c(rep(1,nyrs*2),rep(2,nyrs*2),rep(3,nyrs*2)),
+                    SE = 0.05)
+#specify the number of lengthcomp surveys
+nldat <- 4
+lencomp <- data.frame(Yr = rep(c(yrsrt:yrend),nldat), 
+                     Seas = c(rep(1,nyrs),rep(4,nyrs),rep(10,nyrs),rep(4,nyrs)),
+                     FltSvy = c(rep(4,nyrs),rep(1,nyrs),rep(2,nyrs),rep(3,nyrs)),
+                     Sex = rep(0,nyrs*nldat),
+                     Part = rep(0,nyrs*nldat),
+                     Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
+
+#for age comps same surveys as as lcomps
+nadat <- 4
+agecomp <- data.frame(Yr = rep(c(yrsrt:yrend),nadat), 
+                     Seas = c(rep(1,nyrs),rep(4,nyrs),rep(10,nyrs),rep(4,nyrs)),
+                     FltSvy = c(rep(4,nyrs),rep(1,nyrs),rep(2,nyrs),rep(3,nyrs)),
+                     Sex = rep(0,nyrs*nadat),
+                     Part = rep(0,nyrs*nadat),
+                     Ageerr = c(rep(4,nyrs),rep(4,nyrs),rep(4,nyrs),rep(4,nyrs)),
+                     Lbin_lo = c(rep(-1,nyrs),rep(-1,nyrs),rep(-1,nyrs),rep(-1,nyrs)),
+                     Lbin_hi = c(rep(-1,nyrs),rep(-1,nyrs),rep(-1,nyrs),rep(-1,nyrs)),
+                     Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
+
+sample_struct <- list(catch = catch, CPUE = CPUE, lencomp = lencomp, agecomp = agecomp)
+sample_struct_list <- list("sardineMSEexample_RandRec_HCR5" = sample_struct)
+
+# figure out the recruitment deviation input ---------------
+
+# define scenario name
+scenName <- "sardineMSEexample_RandRec_HCR5"
+iters <- 3
+
+# ### use random recdevs with sd same as to historical
+template_mod_change <- create_future_om_list(example_type = "model_change")
+rec_dev_specify <- template_mod_change[[1]]
+rec_dev_specify$pars <- "rec_devs"
+rec_dev_specify$scen <- c("replicate", "all") # note: could change this to c("random", "all") if did not want to replicate the same recdevs sequences across scenarios
+rec_dev_specify$input$first_yr_averaging <- datfile$styr
+rec_dev_specify$input$last_yr_averaging <- 2019
+rec_dev_specify$input$last_yr_orig_val <- 2019
+rec_dev_specify$input$first_yr_final_val <- 2020
+rec_dev_specify$input$ts_param <- "sd"
+rec_dev_specify$input$value <- NA
+
+rand_dev_list <- list(rec_dev_specify)
+```
+
+Run the MSE
+
+``` r
+# NOTE: This takes a while to run
+out <- run_SSMSE(scen_name_vec = scenName, # name of the scenario
+                 out_dir_scen_vec = mseOutputPath, # directory in which to run the scenario
+                 iter_vec = c(iters), # run with 5 iterations for now
+                 OM_name_vec = NULL, # specify directories instead
+                 OM_in_dir_vec = OMmodelPath, # OM files
+                 EM_name_vec = "exampleSardineMSE", # Can't have number in name for summary diagnostics to work
+                 EM_in_dir_vec = EMmodelPath, # EM files
+                 MS_vec = "MS_sar_hcr5_018",       # The management strategy is specified in the custom function
+                 custom_MS_source = "R/MS_sar_hcr5_018.R", # file location of the MS function
+                 use_SS_boot_vec = TRUE, # use the SS bootstrap module for sampling
+                 nyrs_vec = nyrs,        # Years to project OM forward
+                 nyrs_assess_vec = 1, # Years between assessments
+                 future_om_list =  rand_dev_list, # envt_dev_list, #
+                 run_parallel = TRUE, # Run iterations in parallel
+                 sample_struct_list = sample_struct_list, # How to sample data for running the EM.
+                 seed = 12349) #Set a fixed integer seed that allows replication
+```
+
+    ## Previous iterations found in folder for scenario sardineMSEexample_RandRec_HCR5. First iteration folder will be 7.
+
+    ## Completed all iterations for scenario sardineMSEexample_RandRec_HCR5
+
+    ## Completed all SSMSE scenarios
+
+Run code to summarize MSE output
+
+``` r
+sumry <- SSMSE_summary_all(dir = mseOutputPath, scenarios = scenName, 
+                           run_parallel = TRUE)
+```
+
+    ## Warning in SSMSE_summary_all(dir = mseOutputPath, scenarios = scenName, :
+    ## run_parallel is TRUE, but will take much longer than running in serial because
+    ## the scenario files already exist. Skipping parallel processing. If you wish to
+    ## create new scenario files please delete them and rerun SSMSE_summary_all.
+
+    ## Extracting results from 1 scenarios
+
+    ## Warning in ss3sim::get_results_all(directory = dir, user_scenarios =
+    ## scenarios, : SSMSE_scalar.csv already exists and overwrite_files = FALSE, so a
+    ## new file was not written.
+
+    ## Warning in ss3sim::get_results_all(directory = dir, user_scenarios =
+    ## scenarios, : SSMSE_ts.csv already exists and overwrite_files = FALSE, so a new
+    ## file was not written.
+
+    ## Warning in ss3sim::get_results_all(directory = dir, user_scenarios =
+    ## scenarios, : SSMSE_dq.csv already exists and overwrite_files = FALSE, so a new
+    ## file was not written.
+
+``` r
+smryOutputList <- GetSumryOutput(dirSSMSE = mseOutputPath, scenarios = scenName)
+```
+
+    ## Rows: 1650 Columns: 12
+
+    ## -- Column specification --------------------------------------------------------
+    ## Delimiter: ","
+    ## chr  (2): model_run, scenario
+    ## dbl (10): Value.SSB, Value.Recr, Value.SPRratio, Value.F, Value.Bratio, Valu...
+    ## 
+    ## i Use `spec()` to retrieve the full column specification for this data.
+    ## i Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+## Calculate performance and plot diagnostics
+
+``` r
+performanceList <- CalcPerformance(smryOutputList)
+```
+
+    ## `summarise()` has grouped output by 'iteration'. You can override using the
+    ## `.groups` argument.
+    ## `summarise()` has grouped output by 'model_run', 'iteration'. You can override
+    ## using the `.groups` argument.
+    ## `summarise()` has grouped output by 'model_run', 'iteration', 'scenario'. You
+    ## can override using the `.groups` argument.
+    ## `summarise()` has grouped output by 'model_run', 'iteration', 'scenario'. You
+    ## can override using the `.groups` argument.
+    ## `summarise()` has grouped output by 'year', 'model_run', 'iteration'. You can
+    ## override using the `.groups` argument.
+    ## `summarise()` has grouped output by 'model_run', 'iteration'. You can override
+    ## using the `.groups` argument.
+
+    ## Warning in min(All_exp_mean): no non-missing arguments to min; returning Inf
+
+    ## `summarise()` has grouped output by 'model_run', 'iteration'. You can override
+    ## using the `.groups` argument.
+
+    ## Warning in min(All_exp_mean): no non-missing arguments to min; returning Inf
+
+    ## `summarise()` has grouped output by 'model_run', 'iteration'. You can override
+    ## using the `.groups` argument.
+
+``` r
+metricsTbl <- performanceList$perfomanceMetrics
+# parse out HCR and recruitment scenario
+metricsTbl <- metricsTbl %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                                    recScen = sub(pattern = "HCR.*","", scenario)) %>%
+                mutate(recScen = sub(pattern = ".*EM_","", recScen))
+metricsTbl
+```
+
+    ## # A tibble: 3 x 22
+    ## # Groups:   iteration [3]
+    ##   iteration scenario     nonconvg  nYrs frqNonConvg model_run  yrsN closuresFreq
+    ##       <int> <chr>           <int> <dbl>       <dbl> <chr>     <int>        <dbl>
+    ## 1         1 sardineMSEe~        3    20        0.15 annualGr~    20         0.75
+    ## 2         3 sardineMSEe~        3    20        0.15 annualGr~    20         0.8 
+    ## 3         2 sardineMSEe~       NA    NA       NA    annualGr~    20         1   
+    ## # ... with 14 more variables: collapseFreq <dbl>, bonanzaFreq <dbl>,
+    ## #   meanB1plus <dbl>, meanCollapseSever <dbl>, closure <lgl>,
+    ## #   rebuildLengthMax <int>, bonanza <lgl>, bonanzaLengthMax <int>,
+    ## #   meanCatch <dbl>, sdCatch <dbl>, minAge <dbl>, minLen <dbl>, HCR <chr>,
+    ## #   recScen <chr>
+
+Investigate convergence
+
+``` r
+hcrPal <- brewer.pal(10, "Set3")[-2]
+
+# plot convergence frequency
+metricsTbl %>% filter(HCR != "HCR0") %>%
+  ggplot(aes(x = HCR, y = frqNonConvg)) +
+  geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
+  facet_wrap(~recScen) + 
+  theme_minimal() +
+  scale_fill_manual(values = hcrPal)
+```
+
+    ## Warning: Removed 1 rows containing non-finite values (stat_ydensity).
+
+![](README_files/figure-gfm/convergence-1.png)<!-- -->
+
+``` r
+# get terminal estimates of these values for timeseries plots
+termTS <- CalcTermTS(smryOutputList) %>% 
+              mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                               recScen = sub(pattern = "HCR.*","", scenario)) %>%
+              mutate(recScen = sub(pattern = ".*OM_","", recScen))
+```
+
+    ## `summarise()` has grouped output by 'year', 'model_run', 'iteration'. You can
+    ## override using the `.groups` argument.
+
+``` r
+omName <- grep("_OM", smryOutputList$tsSmry$model_run, 
+                 fixed = TRUE, value = TRUE)[1]
+
+convrgCheck <- smryOutputList$sclSmry %>% 
+                  select(max_grad, model_run, iteration, scenario) %>%
+                  mutate(emYear = as.numeric(regmatches(model_run,
+                                                        gregexpr("[[:digit:]]+", 
+                                                                 model_run))),
+                         HCR = sub(pattern = ".*Rec","", scenario),
+                         recScen = sub(pattern = "HCR.*","", scenario)) %>%
+                  mutate(recScen = sub(pattern = ".*OM_","", recScen))  
+
+hcrs <- unique(termTS$HCR)
+
+cnvrgTS <- smryOutputList$tsSmry %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                                   recScen = sub(pattern = "HCR.*","", scenario)) %>%
+      mutate(recScen = sub(pattern = ".*OM_","", recScen)) %>%
+      left_join(y = convrgCheck, by = c("iteration", "model_run", "scenario", "HCR", "recScen")) %>%
+      mutate(plotGroup = case_when(model_run == omName ~ "OM",
+                                   max_grad > 0.01 ~ "non-convrg",
+                                   max_grad < 0.01 ~ "convrg"))
+
+for(hcr in 1:length(hcrs)){
+  print(cnvrgTS %>% filter(HCR == hcrs[hcr], Seas == 1) %>%
+      ggplot(aes(x = year, y = log(Bio_smry))) +
+      ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+      ggplot2::geom_hline(yintercept = log(50000), color = "red") +
+      ggplot2::geom_line(aes(linetype = model_run, color = plotGroup))+
+      ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+      ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+      ggplot2::guides(linetype = "none") +
+      facet_grid(rows = vars(iteration), cols = vars(plotGroup)) +
+      ggplot2::theme_classic() + theme(legend.position="none") +
+      labs(title = hcrs[hcr]))
+}
+```
+
+![](README_files/figure-gfm/convergence-2.png)<!-- -->
+
+Plot timeseries
+
+``` r
+# NOTE: The *DiagPlots are older and can only be used for looking at single 
+#       scenarios and only plot terminal year assessment estimates. Better to 
+#       use output from CalcTermTS().
+meanAge1Plus <- age1plusDiagPlots(dir = mseOutputPath, scenario = scenName, termYr = 2038)
+```
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, initName), dir.mcmc = NULL, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/7/exampleSardineMSE_EM_init/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, initName), dir.mcmc = NULL, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/7/exampleSardineMSE_EM_2020/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/7/exampleSardineMSE_EM_2021/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/7/exampleSardineMSE_EM_2022/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/7/exampleSardineMSE_EM_2023/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/7/exampleSardineMSE_EM_2024/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/7/exampleSardineMSE_EM_2025/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/7/exampleSardineMSE_EM_2026/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/7/exampleSardineMSE_EM_2027/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/7/exampleSardineMSE_EM_2028/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/7/exampleSardineMSE_EM_2029/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/7/exampleSardineMSE_EM_2030/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/7/exampleSardineMSE_EM_2031/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/7/exampleSardineMSE_EM_2032/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/7/exampleSardineMSE_EM_2033/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/7/exampleSardineMSE_EM_2034/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/7/exampleSardineMSE_EM_2035/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/7/exampleSardineMSE_EM_2036/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/7/exampleSardineMSE_EM_2037/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/7/exampleSardineMSE_EM_2038/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, omName), dir.mcmc = NULL, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/7/constGrowth_OM/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, omName), dir.mcmc = NULL, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, initName), dir.mcmc = NULL, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/8/exampleSardineMSE_EM_init/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, initName), dir.mcmc = NULL, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/8/exampleSardineMSE_EM_2020/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/8/exampleSardineMSE_EM_2021/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/8/exampleSardineMSE_EM_2022/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/8/exampleSardineMSE_EM_2023/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/8/exampleSardineMSE_EM_2024/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/8/exampleSardineMSE_EM_2025/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/8/exampleSardineMSE_EM_2026/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/8/exampleSardineMSE_EM_2027/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/8/exampleSardineMSE_EM_2028/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/8/exampleSardineMSE_EM_2029/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/8/exampleSardineMSE_EM_2030/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/8/exampleSardineMSE_EM_2031/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/8/exampleSardineMSE_EM_2032/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/8/exampleSardineMSE_EM_2033/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/8/exampleSardineMSE_EM_2034/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/8/exampleSardineMSE_EM_2035/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/8/exampleSardineMSE_EM_2036/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/8/exampleSardineMSE_EM_2037/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/8/exampleSardineMSE_EM_2038/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, omName), dir.mcmc = NULL, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/8/constGrowth_OM/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, omName), dir.mcmc = NULL, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, initName), dir.mcmc = NULL, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/9/exampleSardineMSE_EM_init/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, initName), dir.mcmc = NULL, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/9/exampleSardineMSE_EM_2020/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/9/exampleSardineMSE_EM_2021/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/9/exampleSardineMSE_EM_2022/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/9/exampleSardineMSE_EM_2023/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/9/exampleSardineMSE_EM_2024/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/9/exampleSardineMSE_EM_2025/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/9/exampleSardineMSE_EM_2026/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/9/exampleSardineMSE_EM_2027/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/9/exampleSardineMSE_EM_2028/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/9/exampleSardineMSE_EM_2029/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/9/exampleSardineMSE_EM_2030/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/9/exampleSardineMSE_EM_2031/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/9/exampleSardineMSE_EM_2032/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/9/exampleSardineMSE_EM_2033/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/9/exampleSardineMSE_EM_2034/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/9/exampleSardineMSE_EM_2035/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/9/exampleSardineMSE_EM_2036/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/9/exampleSardineMSE_EM_2037/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/9/exampleSardineMSE_EM_2038/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, grep(y, termNames, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, omName), dir.mcmc = NULL, : Some stats skipped because the .cor file not found:C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/sardineMSEexample_RandRec_HCR5/9/constGrowth_OM/ss.cor
+
+    ## Warning in SS_output(dir = file.path(dir, scenario, i, omName), dir.mcmc = NULL, : covar file contains the warning
+    ##      'Variances are 0.0 for first two elements, so do not write '
+    ##   input 'covar' changed to FALSE.
+
+``` r
+# Plot of relative error with tick marks along x-axis where EM didn't converge
+meanAge1Plus[[2]] + geom_rug(data = subset(convrgCheck, max_grad > 0.01), 
+                             mapping = aes(x = emYear),
+                             sides = "b", inherit.aes = FALSE)
+```
+
+    ## Warning: Removed 12 row(s) containing missing values (geom_path).
+
+![](README_files/figure-gfm/timeseries-1.png)<!-- -->
+
+``` r
+# plot summary of recruitment trajectories
+termTS %>% filter(model_run == omName) %>%
+  select(Value.Recr, year, model_run, iteration, scenario, HCR, recScen) %>%
+  group_by(year, scenario, HCR, recScen) %>%
+  summarize(meanRec = mean(Value.Recr),
+            lowRec = quantile(Value.Recr, probs = 0.1, na.rm = TRUE),
+            hiRec = quantile(Value.Recr, probs = 0.9, na.rm = TRUE)) %>%
+  ggplot(aes(x = year, y = meanRec)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = lowRec, ymax = hiRec, alpha = 0.3)) +
+  facet_grid(rows = vars(HCR), cols = vars(recScen)) +
+  theme_minimal()
+```
+
+    ## `summarise()` has grouped output by 'year', 'scenario', 'HCR'. You can override
+    ## using the `.groups` argument.
+
+![](README_files/figure-gfm/timeseries-2.png)<!-- -->
+
+``` r
+# Look at timeseries of B0 and account for non-convergence
+smryOutputList$sclSmry %>% mutate(emYear = as.numeric(regmatches(model_run,
+                                                        gregexpr("[[:digit:]]+", 
+                                                                 model_run))),
+                         HCR = sub(pattern = ".*Rec","", scenario),
+                         recScen = sub(pattern = "HCR.*","", scenario)) %>%
+  mutate(recScen = sub(pattern = ".*EM_","", recScen))  %>%
+  filter(model_run != omName, HCR != "HCR0", max_grad < 0.01) %>%
+  ggplot(aes(x = emYear, y = log(SSB_Unfished))) +
+  geom_line(ggplot2::aes(linetype = as.character(iteration), color = HCR))+
+    ggplot2::scale_linetype_manual(values = rep("solid", 100)) +
+  ggplot2::guides(linetype = "none") +
+    ggplot2::facet_grid(rows = vars(HCR), cols = vars(recScen)) +
+    ggplot2::theme_classic() + 
+  labs(x = "Year", y = "B0 (Unfished SSB)")
+```
+
+    ## Warning: Removed 3 row(s) containing missing values (geom_path).
+
+![](README_files/figure-gfm/timeseries-3.png)<!-- -->

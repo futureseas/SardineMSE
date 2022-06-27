@@ -1,0 +1,1591 @@
+---
+title: "Detail on Management Strategy Application"
+author: "Robert Wildermuth"
+date: "6/6/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+library(tidyverse)
+library(r4ss)
+library(ss3sim)
+library(hablar)
+library(SSMSE)
+library(reshape2)
+source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/bDiagPlots.R")
+source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/compDiagPlots.R")
+source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/recrDiagPlots.R")
+source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/catchDiagPlots.R")
+source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/age1plusDiagPlots.R")
+
+library(RColorBrewer)
+source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/GetSumryOutput.R")
+source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/CalcPerformance.R")
+source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/CalcTermTS.R")
+source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/PlotEMAnnualEsts.R")
+```
+
+# Compare effects on error with different sample uncertainties for h=0.6
+```{r}
+mseDir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
+
+scenarios <- c("MidSteepShortALKfix_RandRecHCR2",
+               "MidSteepShortALKfixNewSamp_RandRecHCR2",
+               "MidSteepShortALKfixMidN_RandRecHCR2",
+               "MidSteepShortALKfixHiN_RandRecHCR2")
+
+smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
+                                 scenarios = scenarios)
+
+# get terminal estimates of these values for timeseries plots
+termTS <- CalcTermTS(smryOutputList) %>% 
+              mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                               recScen = sub(pattern = "HCR.*","", scenario)) %>%
+              mutate(recScen = sub(pattern = ".*OM_","", recScen))
+
+omName <- grep("_OM", smryOutputList$tsSmry$model_run, 
+                 fixed = TRUE, value = TRUE)
+
+convrgCheck <- smryOutputList$sclSmry %>% #filter(!model_run %in% omName) %>%
+                  select(max_grad, model_run, iteration, scenario) %>%
+                  mutate(emYear = as.numeric(regmatches(model_run,
+                                                        gregexpr("[[:digit:]]+", 
+                                                                 model_run))),
+                         HCR = sub(pattern = ".*Rec","", scenario),
+                         recScen = sub(pattern = "HCR.*","", scenario)) %>%
+                  mutate(recScen = sub(pattern = ".*OM_","", recScen),
+                         emYear = case_when(grepl("_init", model_run, fixed = TRUE) ~ 2019,
+                                            TRUE ~ emYear))  
+
+hcrs <- unique(termTS$HCR)
+#exIters <- sample(termTS$iteration, size = 4)
+
+cnvrgTS <- smryOutputList$tsSmry %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                                   recScen = sub(pattern = "HCR.*","", scenario)) %>%
+      mutate(recScen = sub(pattern = ".*OM_","", recScen)) %>%
+      left_join(y = convrgCheck, by = c("iteration", "model_run", "scenario", "HCR", "recScen")) %>%
+      mutate(plotGroup = case_when(model_run %in% omName ~ "OM",
+                                   max_grad > 0.01 ~ "non-convrg",
+                                   max_grad < 0.01 ~ "convrg"))
+
+# for(mr in 1:length(scenarios)){
+#   print(cnvrgTS %>% filter(scenario == scenarios[mr], Seas == 1) %>%
+#       ggplot(aes(x = year, y = log(Bio_smry))) +
+#       ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+#       ggplot2::geom_hline(yintercept = log(50000), color = "red") +
+#       ggplot2::geom_line(aes(linetype = model_run, color = plotGroup))+
+#       ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+#       ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+#       ggplot2::guides(linetype = "none") +
+#       facet_grid(rows = vars(iteration), cols = vars(plotGroup)) +
+#       ggplot2::theme_classic() + theme(legend.position="none") +
+#       labs(title = scenarios[mr]))
+# }
+# 
+# for(mr in 1:length(scenarios)){
+#   print(cnvrgTS %>% filter(scenario == scenarios[mr], Seas == 1) %>%
+#       ggplot(aes(x = year, y = rec_dev)) +
+#       ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+#       ggplot2::geom_hline(yintercept = 0, color = "gray") +
+#       ggplot2::geom_line(aes(linetype = model_run, color = plotGroup))+
+#       ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+#       ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+#       ggplot2::guides(linetype = "none") +
+#       facet_grid(rows = vars(iteration), cols = vars(plotGroup)) +
+#       ggplot2::theme_classic() + theme(legend.position="none") +
+#       labs(title = scenarios[mr]))
+# }
+
+performanceList <- CalcPerformance(smryOutputList)
+
+metricsTbl <- performanceList$perfomanceMetrics
+
+# parse out HCR and recruitment scenario
+metricsTbl <- metricsTbl %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                                    recScen = sub(pattern = "HCR.*","", scenario)) %>%
+                mutate(recScen = sub(pattern = ".*OM_","", recScen))
+
+metricsTbl
+```
+All iterations and scenarios converge for up to 20 yrs
+
+```{r}
+age1PlusBio <- smryOutputList$tsSmry %>% filter(Seas == 1) %>%
+                  select(year, Bio_smry, model_run, iteration, scenario) %>%
+                  mutate(plotGroup = case_when(grepl("_OM", model_run, fixed = TRUE) ~ "OM",
+                                               TRUE ~ "EM"))
+
+age1PlusRE <- age1PlusBio %>% filter(plotGroup != "OM")
+age1PlusRE <- age1PlusRE %>% pivot_wider(names_from = "plotGroup", values_from = "Bio_smry") %>%
+                  left_join(y = convrgCheck, 
+                            by = c("model_run", "iteration", "scenario")) %>%
+                  full_join(y = subset(age1PlusBio, subset = plotGroup == "OM"), 
+                            by = c("iteration", "scenario", "year")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"),
+                         emRE = (EM - Bio_smry)/Bio_smry * 100)
+
+age1PlusBio <- age1PlusBio %>% left_join(y = convrgCheck, 
+                                         by = c("model_run", "iteration", "scenario")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"))
+
+for(mr in 1:length(scenarios)){
+  print(age1PlusBio %>% filter(scenario == scenarios[mr], plotGroup != "simData") %>%
+    ggplot(aes(x = year, y = log(Bio_smry))) +
+    ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+      geom_hline(yintercept = log(150000), color = "red") +
+    ggplot2::geom_line(ggplot2::aes(linetype = as.character(model_run), color = plotGroup))+
+      ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+    ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+    ggplot2::guides(linetype = "none") +
+     ggplot2::facet_grid(rows = vars(iteration)) +
+    ggplot2::theme_classic() +
+  labs(title = scenarios[mr]))
+}
+
+# Plot relative errors of biomass over time
+age1PlusRE %>% #filter(HCR != "HCR0", emYear < 2024) %>%
+  mutate(scenario = gsub("_", "\n", scenario, fixed = TRUE)) %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(model_run.x), color = convrg))+
+    scale_color_manual(values = c("black", "blue", "#D65F00")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(scenario)) +
+    theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)") + 
+    ylim(-100, 100)
+
+age1PlusRE %>% filter(HCR != "HCR0", emYear < 2024, convrg != "non-convrg") %>%
+  mutate(scenario = gsub("MidSteepShort", "", scenario, fixed = TRUE)) %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(scenario), color = scenario))+
+    scale_color_manual(values = c("black", "blue", "darkgreen", "orange", "grey")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    # guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(emYear)) +
+    theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)") 
+
+# age1PlusRE %>% filter(HCR != "HCR0", grepl("ALKfix", scenario, fixed = TRUE)) %>%
+#   mutate(scenario = gsub("_", "\n", scenario, fixed = TRUE)) %>%
+#     ggplot(aes(x = year, y = emRE)) +
+#     geom_vline(xintercept = 2019, color = "gray") +
+#     geom_hline(yintercept = 0, color = "gray") +
+#     geom_line(aes(linetype = as.character(model_run.x), color = convrg))+
+#     scale_color_manual(values = c("black", "blue", "#D65F00")) +
+#     scale_linetype_manual(values = rep("solid", 51)) +
+#     guides(linetype = "none") +
+#     facet_grid(rows = vars(iteration), cols = vars(scenario)) +
+#     theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)")
+
+# Recruitment error
+recs <- smryOutputList$dqSmry %>% #filter(Seas == 1) %>%
+                  select(year, Value.Recr, model_run, iteration, scenario) %>%
+                  mutate(plotGroup = case_when(grepl("_OM", model_run, fixed = TRUE) ~ "OM",
+                                               TRUE ~ "EM"))
+
+recRE <- recs %>% filter(plotGroup != "OM")
+recRE <- recRE %>% pivot_wider(names_from = "plotGroup", values_from = "Value.Recr") %>%
+                  left_join(y = convrgCheck, 
+                            by = c("model_run", "iteration", "scenario")) %>%
+                  full_join(y = subset(recs, subset = plotGroup == "OM"), 
+                            by = c("iteration", "scenario", "year")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"),
+                         emRE = (EM - Value.Recr)/Value.Recr * 100)
+
+# Plot relative errors of rec devs over time
+recRE %>% filter(HCR != "HCR0", emYear < 2024, convrg != "non-convrg") %>%
+  mutate(scenario = gsub("MidSteepShort", "", scenario, fixed = TRUE)) %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(scenario), color = scenario))+
+    scale_color_manual(values = c("black", "blue", "darkgreen", "orange", "grey")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    # guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(emYear)) +
+    theme_classic() + labs(title = "Relative Error of Recruitment (%)") + 
+    ylim(-100, 100)
+
+age1PlusRE %>% filter(emRE < -50) %>% 
+  group_by(scenario) %>%
+  summarize(numBelowneg50 = n())
+
+age1PlusRE %>% mutate(scenario = gsub("MidSteepShort", "", scenario, fixed = TRUE)) %>%
+  ggplot(aes(x = emRE)) +
+  geom_vline(xintercept = c(-50,-25,0,25,50), color = "gray") +
+  geom_histogram() +
+  facet_grid(rows = vars(iteration), cols = vars(scenario)) +
+  theme_classic()
+```
+
+## Interpretation
+* No issues with convergence within 20 yrs for any sampling scenario. 
+* Model/HCR combo allow for population to crash (OM below red line) and recover
+* Overall general positive bias of the EM across scenarios (mode shifted to right in last plot)
+* Positive bias when extant biomass is low, and negative bias after stock recovery
+* High sampling (HiN) led to much lower relative errors, though not perfect fit to OM, with very few errors > |25|%
+* Low sampling resulted in general negative bias in projection period
+  + Mid/Low sampling (NewSamp) showed this too, but error progressed to 0 after more data added.
+* Mid/Low sampling (NewSamp) allows for some realistic error but estimates improve over time
+
+# Compare effects on error with different sample uncertainties for h=0.3
+```{r}
+mseDir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
+
+scenarios <- c("origMSEwALKfix_RandRecHCR2",
+               "MidSteepShortALKfixNewSamp_RandRecHCR2",
+               "LowSteepShortALKfixMidN_RandRecHCR2",
+               "LowSteepShortALKfixNewSamp_RandRecHCR2")
+
+smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
+                                 scenarios = scenarios)
+
+# get terminal estimates of these values for timeseries plots
+termTS <- CalcTermTS(smryOutputList) %>% 
+              mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                               recScen = sub(pattern = "HCR.*","", scenario)) %>%
+              mutate(recScen = sub(pattern = ".*OM_","", recScen))
+
+omName <- grep("_OM", smryOutputList$tsSmry$model_run, 
+                 fixed = TRUE, value = TRUE)
+
+convrgCheck <- smryOutputList$sclSmry %>% #filter(!model_run %in% omName) %>%
+                  select(max_grad, model_run, iteration, scenario) %>%
+                  mutate(emYear = as.numeric(regmatches(model_run,
+                                                        gregexpr("[[:digit:]]+", 
+                                                                 model_run))),
+                         HCR = sub(pattern = ".*Rec","", scenario),
+                         recScen = sub(pattern = "HCR.*","", scenario)) %>%
+                  mutate(recScen = sub(pattern = ".*OM_","", recScen),
+                         emYear = case_when(grepl("_init", model_run, fixed = TRUE) ~ 2019,
+                                            TRUE ~ emYear))  
+
+hcrs <- unique(termTS$HCR)
+#exIters <- sample(termTS$iteration, size = 4)
+
+cnvrgTS <- smryOutputList$tsSmry %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                                   recScen = sub(pattern = "HCR.*","", scenario)) %>%
+      mutate(recScen = sub(pattern = ".*OM_","", recScen)) %>%
+      left_join(y = convrgCheck, by = c("iteration", "model_run", "scenario", "HCR", "recScen")) %>%
+      mutate(plotGroup = case_when(model_run %in% omName ~ "OM",
+                                   max_grad > 0.01 ~ "non-convrg",
+                                   max_grad < 0.01 ~ "convrg"))
+
+# for(mr in 1:length(scenarios)){
+#   print(cnvrgTS %>% filter(scenario == scenarios[mr], Seas == 1) %>%
+#       ggplot(aes(x = year, y = log(Bio_smry))) +
+#       ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+#       ggplot2::geom_hline(yintercept = log(50000), color = "red") +
+#       ggplot2::geom_line(aes(linetype = model_run, color = plotGroup))+
+#       ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+#       ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+#       ggplot2::guides(linetype = "none") +
+#       facet_grid(rows = vars(iteration), cols = vars(plotGroup)) +
+#       ggplot2::theme_classic() + theme(legend.position="none") +
+#       labs(title = scenarios[mr]))
+# }
+# 
+# for(mr in 1:length(scenarios)){
+#   print(cnvrgTS %>% filter(scenario == scenarios[mr], Seas == 1) %>%
+#       ggplot(aes(x = year, y = rec_dev)) +
+#       ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+#       ggplot2::geom_hline(yintercept = 0, color = "gray") +
+#       ggplot2::geom_line(aes(linetype = model_run, color = plotGroup))+
+#       ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+#       ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+#       ggplot2::guides(linetype = "none") +
+#       facet_grid(rows = vars(iteration), cols = vars(plotGroup)) +
+#       ggplot2::theme_classic() + theme(legend.position="none") +
+#       labs(title = scenarios[mr]))
+# }
+
+performanceList <- CalcPerformance(smryOutputList)
+
+metricsTbl <- performanceList$perfomanceMetrics
+
+# parse out HCR and recruitment scenario
+metricsTbl <- metricsTbl %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                                    recScen = sub(pattern = "HCR.*","", scenario)) %>%
+                mutate(recScen = sub(pattern = ".*OM_","", recScen))
+
+metricsTbl
+```
+All iterations and scenarios converge for up to 20 yrs
+
+```{r}
+age1PlusBio <- smryOutputList$tsSmry %>% filter(Seas == 1) %>%
+                  select(year, Bio_smry, model_run, iteration, scenario) %>%
+                  mutate(plotGroup = case_when(grepl("_OM", model_run, fixed = TRUE) ~ "OM",
+                                               TRUE ~ "EM"))
+
+age1PlusRE <- age1PlusBio %>% filter(plotGroup != "OM")
+age1PlusRE <- age1PlusRE %>% pivot_wider(names_from = "plotGroup", values_from = "Bio_smry") %>%
+                  left_join(y = convrgCheck, 
+                            by = c("model_run", "iteration", "scenario")) %>%
+                  full_join(y = subset(age1PlusBio, subset = plotGroup == "OM"), 
+                            by = c("iteration", "scenario", "year")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"),
+                         emRE = (EM - Bio_smry)/Bio_smry * 100)
+
+age1PlusBio <- age1PlusBio %>% left_join(y = convrgCheck, 
+                                         by = c("model_run", "iteration", "scenario")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"))
+
+for(mr in 1:length(scenarios)){
+  print(age1PlusBio %>% filter(scenario == scenarios[mr], plotGroup != "simData") %>%
+    ggplot(aes(x = year, y = log(Bio_smry))) +
+    ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+      geom_hline(yintercept = log(150000), color = "red") +
+    ggplot2::geom_line(ggplot2::aes(linetype = as.character(model_run), color = plotGroup))+
+      ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+    ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+    ggplot2::guides(linetype = "none") +
+     ggplot2::facet_grid(rows = vars(iteration)) +
+    ggplot2::theme_classic() +
+  labs(title = scenarios[mr]))
+}
+
+# Plot relative errors of biomass over time
+age1PlusRE %>% #filter(HCR != "HCR0", emYear < 2024) %>%
+  mutate(scenario = gsub("_", "\n", scenario, fixed = TRUE)) %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(model_run.x), color = convrg))+
+    scale_color_manual(values = c("black", "blue", "#D65F00")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(scenario)) +
+    theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)") + 
+    ylim(-100, 100)
+
+age1PlusRE %>% filter(HCR != "HCR0", emYear < 2024, convrg != "non-convrg") %>%
+  #mutate(scenario = gsub("MidSteepShort", "", scenario, fixed = TRUE)) %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(scenario), color = scenario))+
+    scale_color_manual(values = c("black", "blue", "darkgreen", "orange", "grey")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    # guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(emYear)) +
+    theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)") 
+
+# age1PlusRE %>% filter(HCR != "HCR0", grepl("ALKfix", scenario, fixed = TRUE)) %>%
+#   mutate(scenario = gsub("_", "\n", scenario, fixed = TRUE)) %>%
+#     ggplot(aes(x = year, y = emRE)) +
+#     geom_vline(xintercept = 2019, color = "gray") +
+#     geom_hline(yintercept = 0, color = "gray") +
+#     geom_line(aes(linetype = as.character(model_run.x), color = convrg))+
+#     scale_color_manual(values = c("black", "blue", "#D65F00")) +
+#     scale_linetype_manual(values = rep("solid", 51)) +
+#     guides(linetype = "none") +
+#     facet_grid(rows = vars(iteration), cols = vars(scenario)) +
+#     theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)")
+
+# Recruitment error
+recs <- smryOutputList$dqSmry %>% #filter(Seas == 1) %>%
+                  select(year, Value.Recr, model_run, iteration, scenario) %>%
+                  mutate(plotGroup = case_when(grepl("_OM", model_run, fixed = TRUE) ~ "OM",
+                                               TRUE ~ "EM"))
+
+recRE <- recs %>% filter(plotGroup != "OM")
+recRE <- recRE %>% pivot_wider(names_from = "plotGroup", values_from = "Value.Recr") %>%
+                  left_join(y = convrgCheck, 
+                            by = c("model_run", "iteration", "scenario")) %>%
+                  full_join(y = subset(recs, subset = plotGroup == "OM"), 
+                            by = c("iteration", "scenario", "year")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"),
+                         emRE = (EM - Value.Recr)/Value.Recr * 100)
+
+# Plot relative errors of rec devs over time
+recRE %>% filter(HCR != "HCR0", emYear < 2024, convrg != "non-convrg") %>%
+  #mutate(scenario = gsub("MidSteepShort", "", scenario, fixed = TRUE)) %>%
+  mutate(scenario = gsub("_", "\n", scenario, fixed = TRUE)) %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(scenario), color = scenario))+
+    scale_color_manual(values = c("black", "blue", "darkgreen", "orange", "grey")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    # guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(emYear)) +
+    theme_classic() + labs(title = "Relative Error of Recruitment (%)") + 
+    ylim(-100, 100)
+
+age1PlusRE %>% filter(emRE < -50) %>% 
+  group_by(scenario) %>%
+  summarize(numBelowneg50 = n())
+
+age1PlusRE %>% mutate(scenario = gsub("_", "\n", scenario, fixed = TRUE)) %>%
+  ggplot(aes(x = emRE)) +
+  geom_vline(xintercept = c(-50,-25,0,25,50), color = "gray") +
+  geom_histogram() +
+  facet_grid(rows = vars(iteration), cols = vars(scenario)) +
+  theme_classic()
+```
+
+## Interpretation
+* Steepness of h=0.3 has higher spread of biomass estimation error
+  + Peak of error surrounding transition from historical to projection periods, with high frequency of errors > 50%
+  + Greater frequency overall of small errors close to 0%
+  + Better estimation of initial conditions than h=0.6 model
+* Some tendency for positive bias across sampling scenarios
+  + Low sampling (CPUE CV=0.5, Nsamp = 20) leaves potential for high error rates (> 50%) in projection period
+
+# Look at original analysis w/ corrected ALK tolerance compared to h=0.6
+```{r}
+mseDir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
+
+scenarios <- c("origMSEwALKfix_RandRecHCR2",
+               "MidSteepShortALKfix_RandRecHCR2")
+
+smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
+                                 scenarios = scenarios)
+
+# get terminal estimates of these values for timeseries plots
+termTS <- CalcTermTS(smryOutputList) %>% 
+              mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                               recScen = sub(pattern = "HCR.*","", scenario)) %>%
+              mutate(recScen = sub(pattern = ".*OM_","", recScen))
+
+omName <- grep("_OM", smryOutputList$tsSmry$model_run, 
+                 fixed = TRUE, value = TRUE)
+
+convrgCheck <- smryOutputList$sclSmry %>% #filter(!model_run %in% omName) %>%
+                  select(max_grad, model_run, iteration, scenario) %>%
+                  mutate(emYear = as.numeric(regmatches(model_run,
+                                                        gregexpr("[[:digit:]]+", 
+                                                                 model_run))),
+                         HCR = sub(pattern = ".*Rec","", scenario),
+                         recScen = sub(pattern = "HCR.*","", scenario)) %>%
+                  mutate(recScen = sub(pattern = ".*OM_","", recScen),
+                         emYear = case_when(grepl("_init", model_run, fixed = TRUE) ~ 2019,
+                                            TRUE ~ emYear))  
+
+hcrs <- unique(termTS$HCR)
+#exIters <- sample(termTS$iteration, size = 4)
+
+cnvrgTS <- smryOutputList$tsSmry %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                                   recScen = sub(pattern = "HCR.*","", scenario)) %>%
+      mutate(recScen = sub(pattern = ".*OM_","", recScen)) %>%
+      left_join(y = convrgCheck, by = c("iteration", "model_run", "scenario", "HCR", "recScen")) %>%
+      mutate(plotGroup = case_when(model_run %in% omName ~ "OM",
+                                   max_grad > 0.01 ~ "non-convrg",
+                                   max_grad < 0.01 ~ "convrg"))
+
+# for(mr in 1:length(scenarios)){
+#   print(cnvrgTS %>% filter(scenario == scenarios[mr], Seas == 1) %>%
+#       ggplot(aes(x = year, y = log(Bio_smry))) +
+#       ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+#       ggplot2::geom_hline(yintercept = log(50000), color = "red") +
+#       ggplot2::geom_line(aes(linetype = model_run, color = plotGroup))+
+#       ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+#       ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+#       ggplot2::guides(linetype = "none") +
+#       facet_grid(rows = vars(iteration), cols = vars(plotGroup)) +
+#       ggplot2::theme_classic() + theme(legend.position="none") +
+#       labs(title = scenarios[mr]))
+# }
+# 
+# for(mr in 1:length(scenarios)){
+#   print(cnvrgTS %>% filter(scenario == scenarios[mr], Seas == 1) %>%
+#       ggplot(aes(x = year, y = rec_dev)) +
+#       ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+#       ggplot2::geom_hline(yintercept = 0, color = "gray") +
+#       ggplot2::geom_line(aes(linetype = model_run, color = plotGroup))+
+#       ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+#       ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+#       ggplot2::guides(linetype = "none") +
+#       facet_grid(rows = vars(iteration), cols = vars(plotGroup)) +
+#       ggplot2::theme_classic() + theme(legend.position="none") +
+#       labs(title = scenarios[mr]))
+# }
+```
+
+```{r}
+age1PlusBio <- smryOutputList$tsSmry %>% filter(Seas == 1) %>%
+                  select(year, Bio_smry, model_run, iteration, scenario) %>%
+                  mutate(plotGroup = case_when(grepl("_OM", model_run, fixed = TRUE) ~ "OM",
+                                               TRUE ~ "EM"))
+
+age1PlusRE <- age1PlusBio %>% filter(plotGroup != "OM")
+age1PlusRE <- age1PlusRE %>% pivot_wider(names_from = "plotGroup", values_from = "Bio_smry") %>%
+                  left_join(y = convrgCheck, 
+                            by = c("model_run", "iteration", "scenario")) %>%
+                  full_join(y = subset(age1PlusBio, subset = plotGroup == "OM"), 
+                            by = c("iteration", "scenario", "year")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"),
+                         emRE = (EM - Bio_smry)/Bio_smry * 100)
+
+age1PlusBio <- age1PlusBio %>% left_join(y = convrgCheck, 
+                                         by = c("model_run", "iteration", "scenario")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"))
+
+for(mr in 1:length(scenarios)){
+  print(age1PlusBio %>% filter(scenario == scenarios[mr], plotGroup != "simData") %>%
+    ggplot(aes(x = year, y = log(Bio_smry))) +
+    ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+    ggplot2::geom_line(ggplot2::aes(linetype = as.character(model_run), color = plotGroup))+
+      ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+    ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+    ggplot2::guides(linetype = "none") +
+     ggplot2::facet_grid(rows = vars(iteration)) +
+    ggplot2::theme_classic() +
+  labs(title = scenarios[mr]))
+}
+
+# Plot relative errors of biomass over time
+age1PlusRE %>% #filter(HCR != "HCR0", emYear < 2024) %>%
+  mutate(scenario = gsub("_", "\n", scenario, fixed = TRUE)) %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(model_run.x), color = convrg))+
+    scale_color_manual(values = c("black", "blue", "#D65F00")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(scenario)) +
+    theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)") + 
+    ylim(-100, 100)
+
+age1PlusRE %>% filter(HCR != "HCR0", emYear < 2024, convrg != "non-convrg") %>%
+  #mutate(scenario = gsub("constGrow2001OM_", "", scenario, fixed = TRUE)) %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(scenario), color = scenario))+
+    scale_color_manual(values = c("black", "blue", "darkgreen", "orange", "grey")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    # guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(emYear)) +
+    theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)") 
+
+# age1PlusRE %>% filter(HCR != "HCR0", grepl("ALKfix", scenario, fixed = TRUE)) %>%
+#   mutate(scenario = gsub("_", "\n", scenario, fixed = TRUE)) %>%
+#     ggplot(aes(x = year, y = emRE)) +
+#     geom_vline(xintercept = 2019, color = "gray") +
+#     geom_hline(yintercept = 0, color = "gray") +
+#     geom_line(aes(linetype = as.character(model_run.x), color = convrg))+
+#     scale_color_manual(values = c("black", "blue", "#D65F00")) +
+#     scale_linetype_manual(values = rep("solid", 51)) +
+#     guides(linetype = "none") +
+#     facet_grid(rows = vars(iteration), cols = vars(scenario)) +
+#     theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)")
+
+# Recruitment error
+recs <- smryOutputList$dqSmry %>% #filter(Seas == 1) %>%
+                  select(year, Value.Recr, model_run, iteration, scenario) %>%
+                  mutate(plotGroup = case_when(grepl("_OM", model_run, fixed = TRUE) ~ "OM",
+                                               TRUE ~ "EM"))
+
+recRE <- recs %>% filter(plotGroup != "OM")
+recRE <- recRE %>% pivot_wider(names_from = "plotGroup", values_from = "Value.Recr") %>%
+                  left_join(y = convrgCheck, 
+                            by = c("model_run", "iteration", "scenario")) %>%
+                  full_join(y = subset(recs, subset = plotGroup == "OM"), 
+                            by = c("iteration", "scenario", "year")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"),
+                         emRE = (EM - Value.Recr)/Value.Recr * 100)
+
+# Plot relative errors of rec devs over time
+recRE %>% filter(HCR != "HCR0", emYear < 2024, convrg != "non-convrg") %>%
+  #mutate(scenario = gsub("constGrow2001OM_", "", scenario, fixed = TRUE)) %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(scenario), color = scenario))+
+    scale_color_manual(values = c("black", "blue", "darkgreen", "orange", "grey")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    # guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(emYear)) +
+    theme_classic() + labs(title = "Relative Error of Recruitment (%)") + 
+    ylim(-100, 100)
+
+age1PlusRE %>% filter(emRE > 50)
+```
+
+# Compare corrected ALK tolerance with different sampling, also h=0.3 vs h=0.6
+```{r}
+mseDir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
+
+scenarios <- c("constGrow2001OM_MidSteepALKfixLowN_RandRecHCR2fore1yr",
+              "constGrow2001OM_MidSteepALKfix_RandRecHCR2fore1yr",
+              "constGrow2001OM_LowSteepALKfix_RandRecHCR2fore1yr")
+
+smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
+                                 scenarios = scenarios)
+
+# get terminal estimates of these values for timeseries plots
+termTS <- CalcTermTS(smryOutputList) %>% 
+              mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                               recScen = sub(pattern = "HCR.*","", scenario)) %>%
+              mutate(recScen = sub(pattern = ".*OM_","", recScen))
+
+omName <- grep("_OM", smryOutputList$tsSmry$model_run, 
+                 fixed = TRUE, value = TRUE)
+
+convrgCheck <- smryOutputList$sclSmry %>% #filter(!model_run %in% omName) %>%
+                  select(max_grad, model_run, iteration, scenario) %>%
+                  mutate(emYear = as.numeric(regmatches(model_run,
+                                                        gregexpr("[[:digit:]]+", 
+                                                                 model_run))),
+                         HCR = sub(pattern = ".*Rec","", scenario),
+                         recScen = sub(pattern = "HCR.*","", scenario)) %>%
+                  mutate(recScen = sub(pattern = ".*OM_","", recScen),
+                         emYear = case_when(grepl("_init", model_run, fixed = TRUE) ~ 2019,
+                                            TRUE ~ emYear))  
+
+hcrs <- unique(termTS$HCR)
+#exIters <- sample(termTS$iteration, size = 4)
+
+cnvrgTS <- smryOutputList$tsSmry %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                                   recScen = sub(pattern = "HCR.*","", scenario)) %>%
+      mutate(recScen = sub(pattern = ".*OM_","", recScen)) %>%
+      left_join(y = convrgCheck, by = c("iteration", "model_run", "scenario", "HCR", "recScen")) %>%
+      mutate(plotGroup = case_when(model_run %in% omName ~ "OM",
+                                   max_grad > 0.01 ~ "non-convrg",
+                                   max_grad < 0.01 ~ "convrg"))
+
+# for(mr in 1:length(scenarios)){
+#   print(cnvrgTS %>% filter(scenario == scenarios[mr], Seas == 1) %>%
+#       ggplot(aes(x = year, y = log(Bio_smry))) +
+#       ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+#       ggplot2::geom_hline(yintercept = log(50000), color = "red") +
+#       ggplot2::geom_line(aes(linetype = model_run, color = plotGroup))+
+#       ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+#       ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+#       ggplot2::guides(linetype = "none") +
+#       facet_grid(rows = vars(iteration), cols = vars(plotGroup)) +
+#       ggplot2::theme_classic() + theme(legend.position="none") +
+#       labs(title = scenarios[mr]))
+# }
+# 
+# for(mr in 1:length(scenarios)){
+#   print(cnvrgTS %>% filter(scenario == scenarios[mr], Seas == 1) %>%
+#       ggplot(aes(x = year, y = rec_dev)) +
+#       ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+#       ggplot2::geom_hline(yintercept = 0, color = "gray") +
+#       ggplot2::geom_line(aes(linetype = model_run, color = plotGroup))+
+#       ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+#       ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+#       ggplot2::guides(linetype = "none") +
+#       facet_grid(rows = vars(iteration), cols = vars(plotGroup)) +
+#       ggplot2::theme_classic() + theme(legend.position="none") +
+#       labs(title = scenarios[mr]))
+# }
+```
+
+```{r}
+age1PlusBio <- smryOutputList$tsSmry %>% filter(Seas == 1) %>%
+                  select(year, Bio_smry, model_run, iteration, scenario) %>%
+                  mutate(plotGroup = case_when(grepl("_OM", model_run, fixed = TRUE) ~ "OM",
+                                               TRUE ~ "EM"))
+
+age1PlusRE <- age1PlusBio %>% filter(plotGroup != "OM")
+age1PlusRE <- age1PlusRE %>% pivot_wider(names_from = "plotGroup", values_from = "Bio_smry") %>%
+                  left_join(y = convrgCheck, 
+                            by = c("model_run", "iteration", "scenario")) %>%
+                  full_join(y = subset(age1PlusBio, subset = plotGroup == "OM"), 
+                            by = c("iteration", "scenario", "year")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"),
+                         emRE = (EM - Bio_smry)/Bio_smry * 100)
+
+age1PlusBio <- age1PlusBio %>% left_join(y = convrgCheck, 
+                                         by = c("model_run", "iteration", "scenario")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"))
+
+for(mr in 1:length(scenarios)){
+  print(age1PlusBio %>% filter(scenario == scenarios[mr], plotGroup != "simData") %>%
+    ggplot(aes(x = year, y = log(Bio_smry))) +
+    ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+    ggplot2::geom_line(ggplot2::aes(linetype = as.character(model_run), color = plotGroup))+
+      ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+    ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+    ggplot2::guides(linetype = "none") +
+     ggplot2::facet_grid(rows = vars(iteration)) +
+    ggplot2::theme_classic() +
+  labs(title = scenarios[mr]))
+}
+
+# Plot relative errors of biomass over time
+age1PlusRE %>% #filter(HCR != "HCR0", emYear < 2024) %>%
+  mutate(scenario = gsub("_", "\n", scenario, fixed = TRUE)) %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(model_run.x), color = convrg))+
+    scale_color_manual(values = c("black", "blue", "#D65F00")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(scenario)) +
+    theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)") + 
+    ylim(-100, 100)
+
+age1PlusRE %>% filter(HCR != "HCR0", emYear < 2024, convrg != "non-convrg") %>%
+  mutate(scenario = gsub("constGrow2001OM_", "", scenario, fixed = TRUE)) %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(scenario), color = scenario))+
+    scale_color_manual(values = c("black", "blue", "darkgreen", "orange", "grey")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    # guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(emYear)) +
+    theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)") 
+
+# age1PlusRE %>% filter(HCR != "HCR0", grepl("ALKfix", scenario, fixed = TRUE)) %>%
+#   mutate(scenario = gsub("_", "\n", scenario, fixed = TRUE)) %>%
+#     ggplot(aes(x = year, y = emRE)) +
+#     geom_vline(xintercept = 2019, color = "gray") +
+#     geom_hline(yintercept = 0, color = "gray") +
+#     geom_line(aes(linetype = as.character(model_run.x), color = convrg))+
+#     scale_color_manual(values = c("black", "blue", "#D65F00")) +
+#     scale_linetype_manual(values = rep("solid", 51)) +
+#     guides(linetype = "none") +
+#     facet_grid(rows = vars(iteration), cols = vars(scenario)) +
+#     theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)")
+
+# Recruitment error
+recs <- smryOutputList$dqSmry %>% #filter(Seas == 1) %>%
+                  select(year, Value.Recr, model_run, iteration, scenario) %>%
+                  mutate(plotGroup = case_when(grepl("_OM", model_run, fixed = TRUE) ~ "OM",
+                                               TRUE ~ "EM"))
+
+recRE <- recs %>% filter(plotGroup != "OM")
+recRE <- recRE %>% pivot_wider(names_from = "plotGroup", values_from = "Value.Recr") %>%
+                  left_join(y = convrgCheck, 
+                            by = c("model_run", "iteration", "scenario")) %>%
+                  full_join(y = subset(recs, subset = plotGroup == "OM"), 
+                            by = c("iteration", "scenario", "year")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"),
+                         emRE = (EM - Value.Recr)/Value.Recr * 100)
+
+# Plot relative errors of rec devs over time
+recRE %>% filter(HCR != "HCR0", emYear < 2024, convrg != "non-convrg") %>%
+  mutate(scenario = gsub("constGrow2001OM_", "", scenario, fixed = TRUE)) %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(scenario), color = scenario))+
+    scale_color_manual(values = c("black", "blue", "darkgreen", "orange", "grey")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    # guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(emYear)) +
+    theme_classic() + labs(title = "Relative Error of Recruitment (%)") + 
+    ylim(-100, 100)
+```
+
+
+# Compare HCR applications when ALK tolerance is 0 with moderate survey sampling (AT Survey CV=0.25, Nsamp = 100)
+```{r}
+mseDir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
+
+scenarios <- c("constGrow2001OM_MidSteepALKfix_RandRecHCR2nofore",
+              "constGrow2001OM_MidSteepALKfix_RandRecHCR2fore1yr",
+              "constGrow2001OM_LowSteepALKfix_RandRecHCR2fore1yr",
+              "constGrow2001OM_MidSteep_RandRecHCR2nofore",
+              "constGrow2001OM_MidSteep_RandRecHCR2fore1yr")
+
+smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
+                                 scenarios = scenarios)
+
+# get terminal estimates of these values for timeseries plots
+termTS <- CalcTermTS(smryOutputList) %>% 
+              mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                               recScen = sub(pattern = "HCR.*","", scenario)) %>%
+              mutate(recScen = sub(pattern = ".*OM_","", recScen))
+
+omName <- grep("_OM", smryOutputList$tsSmry$model_run, 
+                 fixed = TRUE, value = TRUE)
+
+convrgCheck <- smryOutputList$sclSmry %>% #filter(!model_run %in% omName) %>%
+                  select(max_grad, model_run, iteration, scenario) %>%
+                  mutate(emYear = as.numeric(regmatches(model_run,
+                                                        gregexpr("[[:digit:]]+", 
+                                                                 model_run))),
+                         HCR = sub(pattern = ".*Rec","", scenario),
+                         recScen = sub(pattern = "HCR.*","", scenario)) %>%
+                  mutate(recScen = sub(pattern = ".*OM_","", recScen),
+                         emYear = case_when(grepl("_init", model_run, fixed = TRUE) ~ 2019,
+                                            TRUE ~ emYear))  
+
+hcrs <- unique(termTS$HCR)
+#exIters <- sample(termTS$iteration, size = 4)
+
+cnvrgTS <- smryOutputList$tsSmry %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                                   recScen = sub(pattern = "HCR.*","", scenario)) %>%
+      mutate(recScen = sub(pattern = ".*OM_","", recScen)) %>%
+      left_join(y = convrgCheck, by = c("iteration", "model_run", "scenario", "HCR", "recScen")) %>%
+      mutate(plotGroup = case_when(model_run %in% omName ~ "OM",
+                                   max_grad > 0.01 ~ "non-convrg",
+                                   max_grad < 0.01 ~ "convrg"))
+
+for(mr in 1:length(scenarios)){
+  print(cnvrgTS %>% filter(scenario == scenarios[mr], Seas == 1) %>%
+      ggplot(aes(x = year, y = log(Bio_smry))) +
+      ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+      ggplot2::geom_hline(yintercept = log(50000), color = "red") +
+      ggplot2::geom_line(aes(linetype = model_run, color = plotGroup))+
+      ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+      ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+      ggplot2::guides(linetype = "none") +
+      facet_grid(rows = vars(iteration), cols = vars(plotGroup)) +
+      ggplot2::theme_classic() + theme(legend.position="none") +
+      labs(title = scenarios[mr]))
+}
+
+for(mr in 1:length(scenarios)){
+  print(cnvrgTS %>% filter(scenario == scenarios[mr], Seas == 1) %>%
+      ggplot(aes(x = year, y = rec_dev)) +
+      ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+      ggplot2::geom_hline(yintercept = 0, color = "gray") +
+      ggplot2::geom_line(aes(linetype = model_run, color = plotGroup))+
+      ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+      ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+      ggplot2::guides(linetype = "none") +
+      facet_grid(rows = vars(iteration), cols = vars(plotGroup)) +
+      ggplot2::theme_classic() + theme(legend.position="none") +
+      labs(title = scenarios[mr]))
+}
+```
+
+```{r}
+age1PlusBio <- smryOutputList$tsSmry %>% filter(Seas == 1) %>%
+                  select(year, Bio_smry, model_run, iteration, scenario) %>%
+                  mutate(plotGroup = case_when(grepl("_OM", model_run, fixed = TRUE) ~ "OM",
+                                               TRUE ~ "EM"))
+
+age1PlusRE <- age1PlusBio %>% filter(plotGroup != "OM")
+age1PlusRE <- age1PlusRE %>% pivot_wider(names_from = "plotGroup", values_from = "Bio_smry") %>%
+                  left_join(y = convrgCheck, 
+                            by = c("model_run", "iteration", "scenario")) %>%
+                  full_join(y = subset(age1PlusBio, subset = plotGroup == "OM"), 
+                            by = c("iteration", "scenario", "year")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"),
+                         emRE = (EM - Bio_smry)/Bio_smry * 100)
+
+age1PlusBio <- age1PlusBio %>% left_join(y = convrgCheck, 
+                                         by = c("model_run", "iteration", "scenario")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"))
+
+for(mr in 1:length(scenarios)){
+  print(age1PlusBio %>% filter(scenario == scenarios[mr], plotGroup != "simData") %>%
+    ggplot(aes(x = year, y = log(Bio_smry))) +
+    ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+    ggplot2::geom_line(ggplot2::aes(linetype = as.character(model_run), color = plotGroup))+
+      ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+    ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+    ggplot2::guides(linetype = "none") +
+     ggplot2::facet_grid(rows = vars(iteration)) +
+    ggplot2::theme_classic() +
+  labs(title = scenarios[mr]))
+}
+
+# Plot relative errors of biomass over time
+age1PlusRE %>% filter(HCR != "HCR0", emYear < 2024) %>%
+  mutate(scenario = gsub("_", "\n", scenario, fixed = TRUE)) %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(model_run.x), color = convrg))+
+    scale_color_manual(values = c("black", "blue", "#D65F00")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(scenario)) +
+    theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)") + 
+    ylim(-100, 100)
+
+age1PlusRE %>% filter(HCR != "HCR0", emYear < 2024, convrg != "non-convrg") %>%
+  mutate(scenario = gsub("constGrow2001OM_", "", scenario, fixed = TRUE)) %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(scenario), color = scenario))+
+    scale_color_manual(values = c("black", "blue", "darkgreen", "orange", "grey")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    # guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(emYear)) +
+    theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)") 
+
+age1PlusRE %>% filter(HCR != "HCR0", grepl("ALKfix", scenario, fixed = TRUE)) %>%
+  mutate(scenario = gsub("_", "\n", scenario, fixed = TRUE)) %>%
+    ggplot(aes(x = year, y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(model_run.x), color = convrg))+
+    scale_color_manual(values = c("black", "blue", "#D65F00")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(scenario)) +
+    theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)")
+
+# Recruitment error
+recs <- smryOutputList$dqSmry %>% #filter(Seas == 1) %>%
+                  select(year, Value.Recr, model_run, iteration, scenario) %>%
+                  mutate(plotGroup = case_when(grepl("_OM", model_run, fixed = TRUE) ~ "OM",
+                                               TRUE ~ "EM"))
+
+recRE <- recs %>% filter(plotGroup != "OM")
+recRE <- recRE %>% pivot_wider(names_from = "plotGroup", values_from = "Value.Recr") %>%
+                  left_join(y = convrgCheck, 
+                            by = c("model_run", "iteration", "scenario")) %>%
+                  full_join(y = subset(recs, subset = plotGroup == "OM"), 
+                            by = c("iteration", "scenario", "year")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"),
+                         emRE = (EM - Value.Recr)/Value.Recr * 100)
+
+# Plot relative errors of rec devs over time
+recRE %>% filter(HCR != "HCR0", emYear < 2024, convrg != "non-convrg") %>%
+  mutate(scenario = gsub("constGrow2001OM_", "", scenario, fixed = TRUE)) %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(scenario), color = scenario))+
+    scale_color_manual(values = c("black", "blue", "darkgreen", "orange", "grey")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    # guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(emYear)) +
+    theme_classic() + labs(title = "Relative Error of Recruitment (%)") + 
+    ylim(-100, 100)
+```
+
+# Compare HCR applications with moderate survey sampling (AT Survey CV=0.25, Nsamp = 100)
+```{r}
+mseDir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
+
+scenarios <- c("constGrow2001OM_MidSteep_RandRecHCR2nofore",
+              "constGrow2001OM_MidSteep_RandRecHCR2fore1yr",
+              "constGrow2001OM_MidSteep_RandRecHCR2fore5yr",
+              "constGrow2001OM_MidSteep_RandRecHCR2bavg")
+
+smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
+                                 scenarios = scenarios)
+
+# get terminal estimates of these values for timeseries plots
+termTS <- CalcTermTS(smryOutputList) %>% 
+              mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                               recScen = sub(pattern = "HCR.*","", scenario)) %>%
+              mutate(recScen = sub(pattern = ".*OM_","", recScen))
+
+omName <- grep("_OM", smryOutputList$tsSmry$model_run, 
+                 fixed = TRUE, value = TRUE)
+
+convrgCheck <- smryOutputList$sclSmry %>% #filter(!model_run %in% omName) %>%
+                  select(max_grad, model_run, iteration, scenario) %>%
+                  mutate(emYear = as.numeric(regmatches(model_run,
+                                                        gregexpr("[[:digit:]]+", 
+                                                                 model_run))),
+                         HCR = sub(pattern = ".*Rec","", scenario),
+                         recScen = sub(pattern = "HCR.*","", scenario)) %>%
+                  mutate(recScen = sub(pattern = ".*OM_","", recScen),
+                         emYear = case_when(grepl("_init", model_run, fixed = TRUE) ~ 2019,
+                                            TRUE ~ emYear))  
+
+hcrs <- unique(termTS$HCR)
+#exIters <- sample(termTS$iteration, size = 4)
+
+cnvrgTS <- smryOutputList$tsSmry %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                                   recScen = sub(pattern = "HCR.*","", scenario)) %>%
+      mutate(recScen = sub(pattern = ".*OM_","", recScen)) %>%
+      left_join(y = convrgCheck, by = c("iteration", "model_run", "scenario", "HCR", "recScen")) %>%
+      mutate(plotGroup = case_when(model_run %in% omName ~ "OM",
+                                   max_grad > 0.01 ~ "non-convrg",
+                                   max_grad < 0.01 ~ "convrg"))
+
+for(mr in 1:length(scenarios)){
+  print(cnvrgTS %>% filter(scenario == scenarios[mr], Seas == 1) %>%
+      ggplot(aes(x = year, y = log(Bio_smry))) +
+      ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+      ggplot2::geom_hline(yintercept = log(50000), color = "red") +
+      ggplot2::geom_line(aes(linetype = model_run, color = plotGroup))+
+      ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+      ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+      ggplot2::guides(linetype = "none") +
+      facet_grid(rows = vars(iteration), cols = vars(plotGroup)) +
+      ggplot2::theme_classic() + theme(legend.position="none") +
+      labs(title = scenarios[mr]))
+}
+
+for(mr in 1:length(scenarios)){
+  print(cnvrgTS %>% filter(scenario == scenarios[mr], Seas == 1) %>%
+      ggplot(aes(x = year, y = rec_dev)) +
+      ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+      ggplot2::geom_hline(yintercept = 0, color = "gray") +
+      ggplot2::geom_line(aes(linetype = model_run, color = plotGroup))+
+      ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+      ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+      ggplot2::guides(linetype = "none") +
+      facet_grid(rows = vars(iteration), cols = vars(plotGroup)) +
+      ggplot2::theme_classic() + theme(legend.position="none") +
+      labs(title = scenarios[mr]))
+}
+```
+
+```{r}
+age1PlusBio <- smryOutputList$tsSmry %>% filter(Seas == 1) %>%
+                  select(year, Bio_smry, model_run, iteration, scenario) %>%
+                  mutate(plotGroup = case_when(grepl("_OM", model_run, fixed = TRUE) ~ "OM",
+                                               TRUE ~ "EM"))
+
+age1PlusRE <- age1PlusBio %>% filter(plotGroup != "OM")
+age1PlusRE <- age1PlusRE %>% pivot_wider(names_from = "plotGroup", values_from = "Bio_smry") %>%
+                  left_join(y = convrgCheck, 
+                            by = c("model_run", "iteration", "scenario")) %>%
+                  full_join(y = subset(age1PlusBio, subset = plotGroup == "OM"), 
+                            by = c("iteration", "scenario", "year")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"),
+                         emRE = (EM - Bio_smry)/Bio_smry * 100)
+
+age1PlusBio <- age1PlusBio %>% left_join(y = convrgCheck, 
+                                         by = c("model_run", "iteration", "scenario")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"))
+
+for(mr in 1:length(scenarios)){
+  print(age1PlusBio %>% filter(scenario == scenarios[mr], plotGroup != "simData") %>%
+    ggplot(aes(x = year, y = log(Bio_smry))) +
+    ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+    ggplot2::geom_line(ggplot2::aes(linetype = as.character(model_run), color = plotGroup))+
+      ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+    ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+    ggplot2::guides(linetype = "none") +
+     ggplot2::facet_grid(rows = vars(iteration)) +
+    ggplot2::theme_classic() +
+  labs(title = scenarios[mr]))
+}
+
+# Plot relative errors of biomass over time
+age1PlusRE %>% filter(HCR != "HCR0", emYear < 2024) %>%
+  mutate(scenario = gsub("_", "\n", scenario, fixed = TRUE)) %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(model_run.x), color = convrg))+
+    scale_color_manual(values = c("black", "blue", "#D65F00")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(scenario)) +
+    theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)") + 
+    ylim(-100, 100)
+
+age1PlusRE %>% filter(HCR != "HCR0", emYear < 2024, convrg != "non-convrg") %>%
+  mutate(scenario = gsub("constGrow2001OM_MidSteep_", "", scenario, fixed = TRUE)) %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(scenario), color = scenario))+
+    scale_color_manual(values = c("black", "blue", "darkgreen", "orange")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    # guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(emYear)) +
+    theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)") 
+```
+
+Investigate errors across scenarios/applications
+```{r}
+age1PlusRE %>% filter(is.na(emYear), iteration == 1, year == 2018)
+
+age1PlusRE %>% filter(emYear ==2022, iteration == 1, year == 2018)
+
+smryOutputList$tsSmry %>% filter(grepl("_2022", model_run), iteration == 1, year == 2018)
+
+age1PlusRE %>% filter(emYear ==2020, iteration == 1, year == 2020)
+
+smryOutputList$tsSmry %>% filter(grepl("_2023", model_run), iteration == 1, year == 2024)
+```
+
+# Compare HCR applications with high survey sampling (AT Survey CV=0.05, Nsamp = 1000)
+```{r}
+mseDir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
+
+scenarios <- c("constGrow2001OM_MidSteepHiN_RandRecHCR2nofore",
+              "constGrow2001OM_MidSteepHiN_RandRecHCR2fore1yr",
+              "constGrow2001OM_MidSteepHiN_RandRecHCR2fore5yr",
+              "constGrow2001OM_MidSteepHiN_RandRecHCR2bavg")
+
+smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
+                                 scenarios = scenarios)
+
+# get terminal estimates of these values for timeseries plots
+termTS <- CalcTermTS(smryOutputList) %>% 
+              mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                               recScen = sub(pattern = "HCR.*","", scenario)) %>%
+              mutate(recScen = sub(pattern = ".*OM_","", recScen))
+
+omName <- grep("_OM", smryOutputList$tsSmry$model_run, 
+                 fixed = TRUE, value = TRUE)
+
+convrgCheck <- smryOutputList$sclSmry %>% #filter(!model_run %in% omName) %>%
+                  select(max_grad, model_run, iteration, scenario) %>%
+                  mutate(emYear = as.numeric(regmatches(model_run,
+                                                        gregexpr("[[:digit:]]+", 
+                                                                 model_run))),
+                         HCR = sub(pattern = ".*Rec","", scenario),
+                         recScen = sub(pattern = "HCR.*","", scenario)) %>%
+                  mutate(recScen = sub(pattern = ".*OM_","", recScen),
+                         emYear = case_when(grepl("_init", model_run, fixed = TRUE) ~ 2019,
+                                            TRUE ~ emYear))  
+
+hcrs <- unique(termTS$HCR)
+#exIters <- sample(termTS$iteration, size = 4)
+
+cnvrgTS <- smryOutputList$tsSmry %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                                   recScen = sub(pattern = "HCR.*","", scenario)) %>%
+      mutate(recScen = sub(pattern = ".*OM_","", recScen)) %>%
+      left_join(y = convrgCheck, by = c("iteration", "model_run", "scenario", "HCR", "recScen")) %>%
+      mutate(plotGroup = case_when(model_run %in% omName ~ "OM",
+                                   max_grad > 0.01 ~ "non-convrg",
+                                   max_grad < 0.01 ~ "convrg"))
+
+for(mr in 1:length(scenarios)){
+  print(cnvrgTS %>% filter(scenario == scenarios[mr], Seas == 1) %>%
+      ggplot(aes(x = year, y = log(Bio_smry))) +
+      ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+      ggplot2::geom_hline(yintercept = log(50000), color = "red") +
+      ggplot2::geom_line(aes(linetype = model_run, color = plotGroup))+
+      ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+      ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+      ggplot2::guides(linetype = "none") +
+      facet_grid(rows = vars(iteration), cols = vars(plotGroup)) +
+      ggplot2::theme_classic() + theme(legend.position="none") +
+      labs(title = scenarios[mr]))
+}
+
+for(mr in 1:length(scenarios)){
+  print(cnvrgTS %>% filter(scenario == scenarios[mr], Seas == 1) %>%
+      ggplot(aes(x = year, y = rec_dev)) +
+      ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+      ggplot2::geom_hline(yintercept = 0, color = "gray") +
+      ggplot2::geom_line(aes(linetype = model_run, color = plotGroup))+
+      ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+      ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+      ggplot2::guides(linetype = "none") +
+      facet_grid(rows = vars(iteration), cols = vars(plotGroup)) +
+      ggplot2::theme_classic() + theme(legend.position="none") +
+      labs(title = scenarios[mr]))
+}
+```
+
+```{r}
+age1PlusBio <- smryOutputList$tsSmry %>% filter(Seas == 1) %>%
+                  select(year, Bio_smry, model_run, iteration, scenario) %>%
+                  mutate(plotGroup = case_when(grepl("_OM", model_run, fixed = TRUE) ~ "OM",
+                                               TRUE ~ "EM"))
+
+age1PlusRE <- age1PlusBio %>% filter(plotGroup != "OM")
+age1PlusRE <- age1PlusRE %>% pivot_wider(names_from = "plotGroup", values_from = "Bio_smry") %>%
+                  left_join(y = convrgCheck, 
+                            by = c("model_run", "iteration", "scenario")) %>%
+                  full_join(y = subset(age1PlusBio, subset = plotGroup == "OM"), 
+                            by = c("iteration", "scenario", "year")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"),
+                         emRE = (EM - Bio_smry)/Bio_smry * 100)
+
+age1PlusBio <- age1PlusBio %>% left_join(y = convrgCheck, 
+                                         by = c("model_run", "iteration", "scenario")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"))
+
+for(mr in 1:length(scenarios)){
+  print(age1PlusBio %>% filter(scenario == scenarios[mr], plotGroup != "simData") %>%
+    ggplot(aes(x = year, y = log(Bio_smry))) +
+    ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+    ggplot2::geom_line(ggplot2::aes(linetype = as.character(model_run), color = plotGroup))+
+      ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+    ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+    ggplot2::guides(linetype = "none") +
+     ggplot2::facet_grid(rows = vars(iteration)) +
+    ggplot2::theme_classic() +
+  labs(title = scenarios[mr]))
+}
+
+# Plot relative errors of biomass over time
+age1PlusRE %>% filter(HCR != "HCR0", emYear < 2024) %>%
+  mutate(scenario = gsub("_", "\n", scenario, fixed = TRUE)) %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(model_run.x), color = convrg))+
+    scale_color_manual(values = c("black", "blue", "#D65F00")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(scenario)) +
+    theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)") + 
+    ylim(-100, 100)
+
+age1PlusRE %>% filter(HCR != "HCR0", emYear < 2024, convrg != "non-convrg") %>%
+  mutate(scenario = gsub("constGrow2001OM_MidSteep_", "", scenario, fixed = TRUE)) %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(scenario), color = scenario))+
+    scale_color_manual(values = c("black", "blue", "darkgreen", "orange")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    # guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(emYear)) +
+    theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)") + 
+    ylim(-100, 100)
+
+# Recruitment deviation error
+recdevs <- smryOutputList$dqSmry %>% #filter(Seas == 1) %>%
+                  select(year, Value.Recr, model_run, iteration, scenario) %>%
+                  mutate(plotGroup = case_when(grepl("_OM", model_run, fixed = TRUE) ~ "OM",
+                                               TRUE ~ "EM"))
+
+recdevRE <- recdevs %>% filter(plotGroup != "OM")
+recdevRE <- recdevRE %>% pivot_wider(names_from = "plotGroup", values_from = "Value.Recr") %>%
+                  left_join(y = convrgCheck, 
+                            by = c("model_run", "iteration", "scenario")) %>%
+                  full_join(y = subset(recdevs, subset = plotGroup == "OM"), 
+                            by = c("iteration", "scenario", "year")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"),
+                         emRE = (EM - Value.Recr)/Value.Recr * 100)
+
+# Plot relative errors of rec devs over time
+recdevRE %>% filter(HCR != "HCR0", emYear < 2024, convrg != "non-convrg") %>%
+  mutate(scenario = gsub("constGrow2001OM_MidSteep_", "", scenario, fixed = TRUE)) %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(scenario), color = scenario))+
+    scale_color_manual(values = c("black", "blue", "darkgreen", "orange")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    # guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(emYear)) +
+    theme_classic() + labs(title = "Relative Error of Recruitment (%)") + 
+    ylim(-100, 100)
+```
+
+# Compare high sample runs with perfect data runs from outside SSMSE
+For each scenario (EM forecast setup and HCR formulation) copy assessment folders for 2019 and 2020 and relabel as perfDatTest_EM_20XX. Then copy data from the OM directory into the init_dat.ss file for each perfDatTest assessment and run the assessments outside R.
+## No forecast HCR application
+```{r}
+# No forecast 2019 assessment
+OMnofore_dir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/perfDatTests/constGrow2001OM_MidSteepHiN_RandRecHCR2nofore/1/constGrowthMidSteep_OM_OM"
+
+datOMnofore <- SS_readdat(file.path(OMnofore_dir, "data.ss_new"),
+                    verbose = FALSE,
+                    section = 2)
+
+EMnofore2019_dir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/perfDatTests/constGrow2001OM_MidSteepHiN_RandRecHCR2nofore/1/perfDatTest_EM_2019"
+
+datEMnofore2019 <- SS_readdat(file.path(EMnofore2019_dir, "init_dat.ss"),
+                    verbose = FALSE,
+                    section = 1)
+
+datEMnofore2019$catch <- datOMnofore$catch %>% filter(year <= 2019)
+datEMnofore2019$CPUE <- datOMnofore$CPUE %>% filter(year <= 2019) %>%
+  mutate(index = abs(index))
+datEMnofore2019$lencomp <- datOMnofore$lencomp %>% filter(Yr <= 2019) %>%
+  mutate(FltSvy = case_when(FltSvy == -3 & Seas == 10 ~ FltSvy,
+                            TRUE ~ abs(FltSvy)))
+datEMnofore2019$agecomp <- datOMnofore$agecomp %>% filter(Yr <= 2019) %>%
+  mutate(FltSvy = abs(FltSvy))
+
+SS_writedat(datlist = datEMnofore2019,
+            outfile = file.path(file.path(EMnofore2019_dir, "init_dat.ss")),
+            overwrite = TRUE,
+            verbose = FALSE)
+
+# No forecast 2020 assessment
+EMnofore2020_dir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/perfDatTests/constGrow2001OM_MidSteepHiN_RandRecHCR2nofore/1/perfDatTest_EM_2020"
+
+datEMnofore2020 <- SS_readdat(file.path(EMnofore2020_dir, "init_dat.ss"),
+                    verbose = FALSE,
+                    section = 1)
+
+datEMnofore2020$catch <- datOMnofore$catch %>% filter(year <= 2020)
+datEMnofore2020$CPUE <- datOMnofore$CPUE %>% filter(year <= 2020) %>%
+  mutate(index = abs(index))
+datEMnofore2020$lencomp <- datOMnofore$lencomp %>% filter(Yr <= 2020) %>%
+  mutate(FltSvy = case_when(FltSvy == -3 & Seas == 10 ~ FltSvy,
+                            TRUE ~ abs(FltSvy)))
+datEMnofore2020$agecomp <- datOMnofore$agecomp %>% filter(Yr <= 2020) %>%
+  mutate(FltSvy = abs(FltSvy))
+
+SS_writedat(datlist = datEMnofore2020,
+            outfile = file.path(file.path(EMnofore2020_dir, "init_dat.ss")),
+            overwrite = TRUE,
+            verbose = FALSE)
+
+# now run SS in each perfDatTest folder
+```
+
+Read in output and compare against the OM
+```{r}
+# plot comparisons
+outOMnofore <- SS_output(OMnofore_dir)
+outEMnofore2019 <- SS_output(EMnofore2019_dir)
+EMssmse2019_dir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/perfDatTests/constGrow2001OM_MidSteepHiN_RandRecHCR2nofore/1/constGrowSelfTest_EM_init"
+outEMssmse2019 <- SS_output(EMssmse2019_dir)
+
+compNoFore2019 <- SSsummarize(list(OM2019 = outOMnofore, 
+                                   EMssmse2019 = outEMssmse2019,
+                                   EMnofore2019 = outEMnofore2019))
+SSplotComparisons(compNoFore2019, legendlabels = c("OM", "SSMSE 2019", "Perf 2019"),
+                  subplots = c(2,10, 12, 13, 14))
+```
+
+```{r}
+# plot comparisons
+outEMnofore2020 <- SS_output(EMnofore2020_dir)
+EMssmse2020_dir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/perfDatTests/constGrow2001OM_MidSteepHiN_RandRecHCR2nofore/1/constGrowSelfTest_EM_2020"
+outEMssmse2020 <- SS_output(EMssmse2020_dir)
+
+compNoFore2020 <- SSsummarize(list(OM2020 = outOMnofore, 
+                                   EMssmse2020 = outEMssmse2020,
+                                   EMnofore2020 = outEMnofore2020))
+SSplotComparisons(compNoFore2020, legendlabels = c("OM", "SSMSE 2020", "Perf 2020"),
+                  subplots = c(2,10, 12, 13, 14))
+```
+
+## 5-yr average recruits w/ forecast HCR application
+```{r}
+# 5 yr recruits w/ forecast 2019 assessment
+OM5yr_dir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/perfDatTests/constGrow2001OM_MidSteepHiN_RandRecHCR2fore5yr/1/constGrowthMidSteep_OM_OM"
+
+datOM5yr <- SS_readdat(file.path(OM5yr_dir, "data.ss_new"),
+                    verbose = FALSE,
+                    section = 2)
+
+EM5yr2019_dir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/perfDatTests/constGrow2001OM_MidSteepHiN_RandRecHCR2fore5yr/1/perfDatTest_EM_2019"
+
+datEM5yr2019 <- SS_readdat(file.path(EM5yr2019_dir, "init_dat.ss"),
+                    verbose = FALSE,
+                    section = 1)
+
+datEM5yr2019$catch <- datOM5yr$catch %>% filter(year <= 2019)
+datEM5yr2019$CPUE <- datOM5yr$CPUE %>% filter(year <= 2019) %>%
+  mutate(index = abs(index))
+datEM5yr2019$lencomp <- datOM5yr$lencomp %>% filter(Yr <= 2019) %>%
+  mutate(FltSvy = case_when(FltSvy == -3 & Seas == 10 ~ FltSvy,
+                            TRUE ~ abs(FltSvy)))
+datEM5yr2019$agecomp <- datOM5yr$agecomp %>% filter(Yr <= 2019) %>%
+  mutate(FltSvy = abs(FltSvy))
+
+SS_writedat(datlist = datEM5yr2019,
+            outfile = file.path(file.path(EM5yr2019_dir, "init_dat.ss")),
+            overwrite = TRUE,
+            verbose = FALSE)
+
+# 5 yr recruits w/ forecast 2020 assessment
+EM5yr2020_dir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/perfDatTests/constGrow2001OM_MidSteepHiN_RandRecHCR2fore5yr/1/perfDatTest_EM_2020"
+
+datEM5yr2020 <- SS_readdat(file.path(EM5yr2020_dir, "init_dat.ss"),
+                    verbose = FALSE,
+                    section = 1)
+
+datEM5yr2020$catch <- datOM5yr$catch %>% filter(year <= 2020)
+datEM5yr2020$CPUE <- datOM5yr$CPUE %>% filter(year <= 2020) %>%
+  mutate(index = abs(index))
+datEM5yr2020$lencomp <- datOM5yr$lencomp %>% filter(Yr <= 2020) %>%
+  mutate(FltSvy = case_when(FltSvy == -3 & Seas == 10 ~ FltSvy,
+                            TRUE ~ abs(FltSvy)))
+datEM5yr2020$agecomp <- datOM5yr$agecomp %>% filter(Yr <= 2020) %>%
+  mutate(FltSvy = abs(FltSvy))
+
+SS_writedat(datlist = datEM5yr2020,
+            outfile = file.path(file.path(EM5yr2020_dir, "init_dat.ss")),
+            overwrite = TRUE,
+            verbose = FALSE)
+
+# now run SS in each perfDatTest folder
+```
+
+Read in output and compare against the OM
+```{r}
+# plot comparisons
+outOM5yr <- SS_output(OM5yr_dir)
+outEM5yr2019 <- SS_output(EM5yr2019_dir)
+EMssmse2019_dir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/perfDatTests/constGrow2001OM_MidSteepHiN_RandRecHCR2fore5yr/1/constGrowSelfTest_EM_init"
+outEMssmse2019 <- SS_output(EMssmse2019_dir)
+
+comp5yr2019 <- SSsummarize(list(OM2019 = outOM5yr, 
+                                   EMssmse2019 = outEMssmse2019,
+                                   EM5yr2019 = outEM5yr2019))
+SSplotComparisons(comp5yr2019, legendlabels = c("OM", "SSMSE 2019", "Perf 2019"),
+                  subplots = c(2,10, 12, 13, 14))
+```
+
+```{r}
+# plot comparisons
+outEM5yr2020 <- SS_output(EM5yr2020_dir)
+EMssmse2020_dir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/perfDatTests/constGrow2001OM_MidSteepHiN_RandRecHCR2fore5yr/1/constGrowSelfTest_EM_2020"
+outEMssmse2020 <- SS_output(EMssmse2020_dir)
+
+comp5yr2020 <- SSsummarize(list(OM2020 = outOM5yr, 
+                                   EMssmse2020 = outEMssmse2020,
+                                   EM5yr2020 = outEM5yr2020))
+SSplotComparisons(comp5yr2020, legendlabels = c("OM", "SSMSE 2020", "Perf 2020"),
+                  subplots = c(2,10, 12, 13, 14))
+```
+
+## Biomass average w/ forecast HCR application
+```{r}
+# Biomass average w/ forecast 2019 assessment
+OMbavg_dir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/perfDatTests/constGrow2001OM_MidSteepHiN_RandRecHCR2bavg/1/constGrowthMidSteep_OM_OM"
+
+datOMbavg <- SS_readdat(file.path(OMbavg_dir, "data.ss_new"),
+                    verbose = FALSE,
+                    section = 2)
+
+EMbavg2019_dir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/perfDatTests/constGrow2001OM_MidSteepHiN_RandRecHCR2bavg/1/perfDatTest_EM_2019"
+
+datEMbavg2019 <- SS_readdat(file.path(EMbavg2019_dir, "init_dat.ss"),
+                    verbose = FALSE,
+                    section = 1)
+
+datEMbavg2019$catch <- datOMbavg$catch %>% filter(year <= 2019)
+datEMbavg2019$CPUE <- datOMbavg$CPUE %>% filter(year <= 2019) %>%
+  mutate(index = abs(index))
+datEMbavg2019$lencomp <- datOMbavg$lencomp %>% filter(Yr <= 2019) %>%
+  mutate(FltSvy = case_when(FltSvy == -3 & Seas == 10 ~ FltSvy,
+                            TRUE ~ abs(FltSvy)))
+datEMbavg2019$agecomp <- datOMbavg$agecomp %>% filter(Yr <= 2019) %>%
+  mutate(FltSvy = abs(FltSvy))
+
+SS_writedat(datlist = datEMbavg2019,
+            outfile = file.path(file.path(EMbavg2019_dir, "init_dat.ss")),
+            overwrite = TRUE,
+            verbose = FALSE)
+
+# Biomass average w/ forecast 2020 assessment
+EMbavg2020_dir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/perfDatTests/constGrow2001OM_MidSteepHiN_RandRecHCR2bavg/1/perfDatTest_EM_2020"
+
+datEMbavg2020 <- SS_readdat(file.path(EMbavg2020_dir, "init_dat.ss"),
+                    verbose = FALSE,
+                    section = 1)
+
+datEMbavg2020$catch <- datOMbavg$catch %>% filter(year <= 2020)
+datEMbavg2020$CPUE <- datOMbavg$CPUE %>% filter(year <= 2020) %>%
+  mutate(index = abs(index))
+datEMbavg2020$lencomp <- datOMbavg$lencomp %>% filter(Yr <= 2020) %>%
+  mutate(FltSvy = case_when(FltSvy == -3 & Seas == 10 ~ FltSvy,
+                            TRUE ~ abs(FltSvy)))
+datEMbavg2020$agecomp <- datOMbavg$agecomp %>% filter(Yr <= 2020) %>%
+  mutate(FltSvy = abs(FltSvy))
+
+SS_writedat(datlist = datEMbavg2020,
+            outfile = file.path(file.path(EMbavg2020_dir, "init_dat.ss")),
+            overwrite = TRUE,
+            verbose = FALSE)
+
+# now run SS in each perfDatTest folder
+```
+
+Read in output and compare against the OM
+```{r}
+# plot comparisons
+outOMbavg <- SS_output(OMbavg_dir)
+outEMbavg2019 <- SS_output(EMbavg2019_dir)
+EMssmse2019_dir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/perfDatTests/constGrow2001OM_MidSteepHiN_RandRecHCR2bavg/1/constGrowSelfTest_EM_init"
+outEMssmse2019 <- SS_output(EMssmse2019_dir)
+
+compbavg2019 <- SSsummarize(list(OM2019 = outOMbavg, 
+                                   EMssmse2019 = outEMssmse2019,
+                                   EMbavg2019 = outEMbavg2019))
+SSplotComparisons(compbavg2019, legendlabels = c("OM", "SSMSE 2019", "Perf 2019"),
+                  subplots = c(2,10, 12, 13, 14))
+```
+
+```{r}
+# plot comparisons
+outEMbavg2020 <- SS_output(EMbavg2020_dir)
+EMssmse2020_dir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/perfDatTests/constGrow2001OM_MidSteepHiN_RandRecHCR2bavg/1/constGrowSelfTest_EM_2020"
+outEMssmse2020 <- SS_output(EMssmse2020_dir)
+EMalk2020_dir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/perfDatTests/constGrow2001OM_MidSteepHiN_RandRecHCR2bavg/1/perfDatTestALKat0_EM_2020"
+outEMalk2020 <- SS_output(EMalk2020_dir)
+
+compbavg2020 <- SSsummarize(list(OM2020 = outOMbavg, 
+                                   EMssmse2020 = outEMssmse2020,
+                                   EMbavg2020 = outEMbavg2020,
+                                 EMalk2020 = outEMalk2020))
+SSplotComparisons(compbavg2020, legendlabels = c("OM", "SSMSE 2020", "Perf 2020", "Perf ALK 2020"),
+                  subplots = c(2,10, 12, 13, 14))
+```
+
+Try another year w/ higher OM biomass
+```{r}
+# Biomass average w/ forecast 2020 assessment
+EMbavg2025_dir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/perfDatTests/constGrow2001OM_MidSteepHiN_RandRecHCR2bavg/1/perfDatTestALKat0_EM_2025"
+
+datEMbavg2025 <- SS_readdat(file.path(EMbavg2025_dir, "init_dat.ss"),
+                    verbose = FALSE,
+                    section = 1)
+
+datEMbavg2025$catch <- datOMbavg$catch %>% filter(year <= 2025)
+datEMbavg2025$CPUE <- datOMbavg$CPUE %>% filter(year <= 2025) %>%
+  mutate(index = abs(index))
+datEMbavg2025$lencomp <- datOMbavg$lencomp %>% filter(Yr <= 2025) %>%
+  mutate(FltSvy = case_when(FltSvy == -3 & Seas == 10 ~ FltSvy,
+                            TRUE ~ abs(FltSvy)))
+datEMbavg2025$agecomp <- datOMbavg$agecomp %>% filter(Yr <= 2025) %>%
+  mutate(FltSvy = abs(FltSvy))
+
+SS_writedat(datlist = datEMbavg2025,
+            outfile = file.path(file.path(EMbavg2025_dir, "init_dat.ss")),
+            overwrite = TRUE,
+            verbose = FALSE)
+```
+
+```{r}
+# plot comparisons
+EMssmse2025_dir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/perfDatTests/constGrow2001OM_MidSteepHiN_RandRecHCR2bavg/1/constGrowSelfTest_EM_2025"
+outEMssmse2025 <- SS_output(EMssmse2025_dir)
+EMalk2025_dir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/perfDatTests/constGrow2001OM_MidSteepHiN_RandRecHCR2bavg/1/perfDatTestALKat0_EM_2025"
+outEMalk2025 <- SS_output(EMalk2025_dir)
+
+compbavg2025 <- SSsummarize(list(OM2020 = outOMbavg, 
+                                   EMssmse2020 = outEMssmse2025,
+                                 EMalk2020 = outEMalk2025))
+SSplotComparisons(compbavg2025, legendlabels = c("OM", "SSMSE 2025", "Perf ALK 2025"),
+                  subplots = c(2,10, 12, 13, 14))
+
+compbavg2025$SpawnBio %>% mutate(emRE = ((EMalk2020 - OM2020)/ OM2020)*100)
+```
