@@ -15,40 +15,40 @@ library(r4ss)
 library(tidyverse)
 library(RColorBrewer)
 
-# source("J:/Desiree/Sardine/SardineMSE/R/GetSumryOutput.R")
-# source("J:/Desiree/Sardine/SardineMSE/R/CalcPerformance.R")
-# source("J:/Desiree/Sardine/SardineMSE/R/CalcTermTS.R")
-source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/GetSumryOutput.R")
-source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/CalcPerformance.R")
-source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/CalcTermTS.R")
+source("J:/Desiree/Sardine/SardineMSE/R/GetSumryOutput.R")
+source("J:/Desiree/Sardine/SardineMSE/R/CalcPerformance.R")
+source("J:/Desiree/Sardine/SardineMSE/R/CalcTermTS.R")
+# source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/GetSumryOutput.R")
+# source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/CalcPerformance.R")
+# source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/CalcTermTS.R")
 ```
 
 ```{r, GetResults}
 # run GetSumryOutput and CalcPerformance to get performance metrics
 
-# mseDir <- "J:/Desiree/Sardine/SardineScenarios"
-mseDir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
+mseDir <- "J:/Desiree/Sardine/SardineScenarios"
+# mseDir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
 termYr <- 2068
 
 scenarios <- c("constGrow2001OM_constGrow2005EM_RandRecHCR0",
               "constGrow2001OM_constGrow2005EM_RandRecHCR1",
               "constGrow2001OM_constGrow2005EM_RandRecHCR2",
               "constGrow2001OM_constGrow2005EM_RandRecHCR3",
-              "constGrow2001OM_constGrow2005EM_RandRecHCR4",
+              #"constGrow2001OM_constGrow2005EM_RandRecHCR4",
               "constGrow2001OM_constGrow2005EM_RandRecHCR5",
               "constGrow2001OM_constGrow2005EM_RandRecHCR6",
               "constGrow2001OM_constGrow2005EM_RandRecHCR7",
-              "constGrow2001OM_constGrow2005EM_RandRecHCR8",
+              "constGrow2001OM_constGrow2005EM_RandRecHCR8")#,
               
-              "constGrow2001OM_constGrow2005EM_ARRecHCR0",
-              "constGrow2001OM_constGrow2005EM_ARRecHCR1",
-              "constGrow2001OM_constGrow2005EM_ARRecHCR2",
-              "constGrow2001OM_constGrow2005EM_ARRecHCR3",
-              "constGrow2001OM_constGrow2005EM_ARRecHCR4",
-              "constGrow2001OM_constGrow2005EM_ARRecHCR5",
-              "constGrow2001OM_constGrow2005EM_ARRecHCR6",
-              "constGrow2001OM_constGrow2005EM_ARRecHCR7",
-              "constGrow2001OM_constGrow2005EM_ARRecHCR8")#,
+              # "constGrow2001OM_constGrow2005EM_ARRecHCR0",
+              # "constGrow2001OM_constGrow2005EM_ARRecHCR1",
+              # "constGrow2001OM_constGrow2005EM_ARRecHCR2",
+              # "constGrow2001OM_constGrow2005EM_ARRecHCR3",
+              # "constGrow2001OM_constGrow2005EM_ARRecHCR4",
+              # "constGrow2001OM_constGrow2005EM_ARRecHCR5",
+              # "constGrow2001OM_constGrow2005EM_ARRecHCR6",
+              # "constGrow2001OM_constGrow2005EM_ARRecHCR7",
+              # "constGrow2001OM_constGrow2005EM_ARRecHCR8")#,
               
               # "constGrow2001OM_constGrow2005EM_SSTRecHCR0",
               # "constGrow2001OM_constGrow2005EM_SSTRecHCR1",
@@ -91,22 +91,24 @@ scenarios <- c("constGrow2001OM_constGrow2005EM_RandRecHCR0",
               # "constGrow2001OM_constGrow2005EM_MICERecHCR8")
 
 
-  # smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
-  #                                  scenarios = scenarios)
+  smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
+                                   scenarios = scenarios)
   # saveRDS(smryOutputList, 
   #         file = file.path(mseDir, "serverRandRec_ARRec_allHCRs_results.RDS"))
-smryOutputList <- readRDS(file.path(mseDir, "serverRandRec_ARRec_allHCRs_results.RDS"))
+# smryOutputList <- readRDS(file.path(mseDir, "serverRandRec_ARRec_allHCRs_results.RDS"))
   
 performanceList <- CalcPerformance(smryOutputList)
 
 metricsTbl <- performanceList$perfomanceMetrics
                    
-
+metricsTbl
 ```
 
 #Performance Metrics
 Plot comparisons across HCR and Recruitment scenario
-```{r}
+
+## Convergence
+```{r, ConvgErr}
 # parse out HCR and recruitment scenario
 metricsTbl <- metricsTbl %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
                                     recScen = sub(pattern = "HCR.*","", scenario)) %>%
@@ -114,6 +116,19 @@ metricsTbl <- metricsTbl %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
 
 hcrPal <- brewer.pal(10, "Set3")[-2]
 
+# plot convergence frequency
+metricsTbl %>% filter(HCR != "HCR0") %>%
+  ggplot(aes(x = HCR, y = frqNonConvg)) +
+  geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
+  facet_wrap(~recScen) + 
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set3")
+
+metricsTbl %>% group_by(scenario, recScen, HCR) %>%
+  summarize(Nnonconvrg = sum(nonconvg, na.rm = TRUE))
+```
+
+```{r, Perform}
 # plot mean biomass
 metricsTbl %>% filter(recScen == "RandRec", HCR != "HCR4") %>%
   ggplot(aes(x = HCR, y = meanB1plus)) +
@@ -138,35 +153,35 @@ metricsTbl %>% ggplot(aes(x = HCR, y = collapseFreq)) +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
   facet_wrap(~recScen) + 
   theme_minimal() +
-  scale_fill_brewer(palette = "Set3")
+  scale_fill_manual(values = hcrPal) 
 
 # plot collapse severity
 metricsTbl %>% ggplot(aes(x = HCR, y = meanCollapseSever)) +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
   facet_wrap(~recScen) + 
   theme_minimal() +
-  scale_fill_brewer(palette = "Set3")
+  scale_fill_manual(values = hcrPal) 
 
 # plot bonanza frequency
 metricsTbl %>% ggplot(aes(x = HCR, y = bonanzaFreq)) +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
   facet_wrap(~recScen) + 
   theme_minimal() +
-  scale_fill_brewer(palette = "Set3")
+  scale_fill_manual(values = hcrPal) 
 
 # plot mean minimum age
 metricsTbl %>% ggplot(aes(x = HCR, y = minAge)) +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
   facet_wrap(~recScen) + 
   theme_minimal() +
-  scale_fill_brewer(palette = "Set3")
+  scale_fill_manual(values = hcrPal) 
 
 # plot mean minimum length
 metricsTbl %>% ggplot(aes(x = HCR, y = minLen)) +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
   facet_wrap(~recScen) + 
   theme_minimal() +
-  scale_fill_brewer(palette = "Set3")
+  scale_fill_manual(values = hcrPal) 
 
 # plot mean catch
 metricsTbl %>%  filter(HCR != "HCR0") %>%
@@ -185,15 +200,9 @@ metricsTbl %>%  filter(HCR != "HCR0") %>%
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
   facet_wrap(~recScen) + 
   theme_minimal() +
-  scale_fill_brewer(palette = "Set3")
+  scale_fill_manual(values = hcrPal[-1]) 
 
-# plot convergence frequency
-metricsTbl %>% filter(HCR != "HCR0") %>%
-  ggplot(aes(x = HCR, y = frqNonConvg)) +
-  geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
-  facet_wrap(~recScen) + 
-  theme_minimal() +
-  scale_fill_brewer(palette = "Set3")
+
 ```
 # Tradeoffs
 Plot tradeoffs among metrics
@@ -213,19 +222,19 @@ metricsTbl %>% ggplot(aes(x = log(meanCatch), y = closuresFreq, color = HCR)) +
   geom_point() +
   facet_wrap(~recScen) + 
   theme_minimal() +
-  scale_color_brewer(palette = "Set3")
+  scale_fill_manual(values = hcrPal) 
 
 metricsTbl %>% ggplot(aes(x = meanCatch, y = sdCatch, color = HCR)) +
   geom_point() +
   facet_wrap(~recScen) + 
   theme_minimal() +
-  scale_color_brewer(palette = "Set3")
+  scale_fill_manual(values = hcrPal) 
 
 metricsTbl %>% ggplot(aes(x = meanCatch, y = minLen, color = HCR)) +
   geom_point() +
   facet_wrap(~recScen) + 
   theme_minimal() +
-  scale_color_brewer(palette = "Set3")
+  scale_fill_manual(values = hcrPal) 
 
 ```
 
@@ -366,8 +375,10 @@ termTS %>% filter(model_run == omName, year > 2019,
   theme_minimal() +
   scale_color_manual(values = hcrPal) +
   labs(y = "Mean Age in Survey", x = "Age1+ Biomass (log-mt)")
+```
 
-
+## Convergence and Estimation Error
+```{r}
 convrgCheck <- smryOutputList$sclSmry %>% 
                   select(max_grad, model_run, iteration, scenario) %>%
                   mutate(emYear = as.numeric(regmatches(model_run,
@@ -385,7 +396,7 @@ smryOutputList$sclSmry %>% mutate(emYear = as.numeric(regmatches(model_run,
                          recScen = sub(pattern = "HCR.*","", scenario)) %>%
   mutate(recScen = sub(pattern = ".*EM_","", recScen))  %>%
   filter(model_run != omName, HCR != "HCR0", max_grad < 0.01, 
-         iteration == sample(1:100, size = 10)) %>%
+         iteration == sample(1:20, size = 10)) %>%
   ggplot(aes(x = emYear, y = log(SSB_Unfished))) +
   geom_line(ggplot2::aes(linetype = as.character(iteration), color = HCR))+
     #ggplot2::scale_color_manual(values = c("#D65F00", "blue")) +
@@ -432,7 +443,7 @@ cnvrgTS <- smryOutputList$tsSmry %>% mutate(HCR = sub(pattern = ".*Rec","", scen
                                    max_grad > 0.01 ~ "non-convrg",
                                    max_grad < 0.01 ~ "convrg"))
 
-for(hcr in 2:9){
+for(hcr in 2:length(scenarios)){
   print(cnvrgTS %>% filter(HCR == hcrs[hcr], iteration %in% exIters, Seas == 1) %>%
       ggplot(aes(x = year, y = log(Bio_smry))) +
       ggplot2::geom_vline(xintercept = 2019, color = "gray") +
@@ -446,7 +457,7 @@ for(hcr in 2:9){
       labs(title = hcrs[hcr]))
 }
 
-termTS %>% filter(model_run == omName)
+#termTS %>% filter(model_run == omName)
 
 errCompare <- cnvrgTS %>% filter(Seas == 1, model_run != omName) %>%
                 select(Bio_smry, year, model_run, iteration, scenario, HCR, recScen, emYear, plotGroup) %>%
@@ -456,19 +467,52 @@ errCompare <- cnvrgTS %>% filter(Seas == 1, model_run != omName) %>%
                   rename(age1plusOM = Bio_smry.y,
                          age1plusEM = Bio_smry.x) %>% 
                   mutate(errSmryBio = (age1plusEM - age1plusOM)/age1plusOM) %>%
-                select(age1plusEM, age1plusOM, errSmryBio, year, model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
+                select(age1plusEM, age1plusOM, errSmryBio, year, model_run.x, 
+                       iteration, scenario, HCR, recScen, plotGroup) %>%
                 group_by(model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
-                summarize(runMSE = mean(errSmryBio^2)) %>%
-                group_by(iteration, scenario, HCR, recScen, plotGroup) %>%
-                summarize(runMSE = mean(runMSE))  %>%
-                group_by(scenario, HCR, recScen, plotGroup) %>%
-                summarize(runMSE = mean(runMSE))
+                summarize(runMSE = mean(errSmryBio)) #%>%
+                # group_by(iteration, scenario, HCR, recScen, plotGroup) %>%
+                # summarize(runMSE = mean(runMSE))  %>%
+                # group_by(scenario, HCR, recScen, plotGroup) %>%
+                # summarize(runMSE = mean(runMSE))
 
-errCompare %>% filter(HCR != "HCR3") %>%
+errCompare %>% #filter(HCR != "HCR3") %>%
   ggplot(aes(x = HCR, y = runMSE, fill = plotGroup)) +
   geom_boxplot(outlier.shape = NA) +
-  facet_wrap(~recScen) +
-  coord_cartesian(ylim =  c(0, 30))
+  facet_wrap(~recScen) #+
+#  coord_cartesian(ylim =  c(0, 30))
+
+age1PlusBio <- smryOutputList$tsSmry %>% filter(Seas == 1) %>%
+                  select(year, Bio_smry, model_run, iteration, scenario) %>%
+                  mutate(plotGroup = case_when(grepl("_OM", model_run, fixed = TRUE) ~ "OM",
+                                               TRUE ~ "EM"))
+
+age1PlusRE <- age1PlusBio %>% filter(plotGroup != "OM")
+age1PlusRE <- age1PlusRE %>% pivot_wider(names_from = "plotGroup", values_from = "Bio_smry") %>%
+                  left_join(y = convrgCheck, 
+                            by = c("model_run", "iteration", "scenario")) %>%
+                  full_join(y = subset(age1PlusBio, subset = plotGroup == "OM"), 
+                            by = c("iteration", "scenario", "year")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"),
+                         emRE = (EM - Bio_smry)/Bio_smry * 100)
+
+# Plot relative errors of biomass over time
+for(hcr in 2:length(scenarios)){
+  print(age1PlusRE %>% filter(HCR == hcrs[hcr], iteration %in% exIters) %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_hline(yintercept = 0, color = "gray") +
+    geom_line(aes(linetype = as.character(model_run.x), color = convrg))+
+    scale_color_manual(values = c("black", "blue", "#D65F00")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(scenario)) +
+    theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)") + 
+    ylim(-100, 100))
+}
+
 ```
 
 Investigate rebuilding lengths

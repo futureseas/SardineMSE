@@ -1,0 +1,987 @@
+---
+title: "2001 EM convergence check"
+author: "Robert Wildermuth"
+date: "3/15/2022"
+output: 
+  pdf_document:
+    toc: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, include=FALSE}
+library(tidyverse)
+library(r4ss)
+library(ss3sim)
+library(hablar)
+library(SSMSE)
+library(reshape2)
+source("bDiagPlots.R")
+source("compDiagPlots.R")
+source("recrDiagPlots.R")
+source("catchDiagPlots.R")
+source("age1plusDiagPlots.R")
+
+library(RColorBrewer)
+source("GetSumryOutput.R")
+source("CalcPerformance.R")
+source("CalcTermTS.R")
+source("PlotEMAnnualEsts.R")
+
+mseDir <- "J:/Desiree/Sardine/SardineScenarios"
+```
+
+# EM 2001 self test compare h=0.6 and h=0.3, recruitment SD=0.5, Nsamp=100
+
+```{r}
+scenarios <- c("constGrow2001OM_selfTestMidSteep_RandRecHCR0newrecdev",
+               "constGrow2001OM_selfTestMidSteep_RandRecHCR2wfor",
+              "constGrow2001OM_selfTestLowSteep_RandRecHCR0",
+              "constGrow2001OM_selfTestLowSteep_RandRecHCR2wfor",
+              "MidSteep_RandRecHCR2nofor",
+              "constGrow2001OM_selfTestMidSteep_RandRecHCR5")
+              
+smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
+                                 scenarios = scenarios)
+
+smryOutputList$dqSmry$model_run <- sub("Steepness0dot6", "MidSteep", 
+                                       smryOutputList$dqSmry$model_run, fixed = TRUE)
+smryOutputList$sclSmry$model_run <- sub("Steepness0dot6", "MidSteep", 
+                                       smryOutputList$sclSmry$model_run, fixed = TRUE)
+smryOutputList$tsSmry$model_run <- sub("Steepness0dot6", "MidSteep", 
+                                       smryOutputList$tsSmry$model_run, fixed = TRUE)
+
+performanceList <- CalcPerformance(smryOutputList)
+
+metricsTbl <- performanceList$perfomanceMetrics
+
+# parse out HCR and recruitment scenario
+metricsTbl <- metricsTbl %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                                    recScen = sub(pattern = "HCR.*","", scenario)) %>%
+                mutate(recScen = sub(pattern = ".*OM_","", recScen))
+
+hcrPal <- brewer.pal(10, "Set3")[-2]
+
+# plot convergence frequency
+metricsTbl %>% filter(HCR != "HCR0") %>%
+  ggplot(aes(x = HCR, y = frqNonConvg)) +
+  geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
+  facet_wrap(~recScen) + 
+  theme_minimal() +
+  scale_fill_brewer(palette = hcrPal)
+
+# get terminal estimates of these values for timeseries plots
+termTS <- CalcTermTS(smryOutputList) %>% 
+              mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                               recScen = sub(pattern = "HCR.*","", scenario)) %>%
+              mutate(recScen = sub(pattern = ".*OM_","", recScen))
+
+omName <- grep("_OM", smryOutputList$tsSmry$model_run, 
+                 fixed = TRUE, value = TRUE)[1]
+
+convrgCheck <- smryOutputList$sclSmry %>% #filter(!model_run %in% omName) %>%
+                  select(max_grad, model_run, iteration, scenario) %>%
+                  mutate(emYear = as.numeric(regmatches(model_run,
+                                                        gregexpr("[[:digit:]]+", 
+                                                                 model_run))),
+                         HCR = sub(pattern = ".*Rec","", scenario),
+                         recScen = sub(pattern = "HCR.*","", scenario)) %>%
+                  mutate(recScen = sub(pattern = ".*OM_","", recScen))  
+
+hcrs <- unique(termTS$HCR)
+#exIters <- sample(termTS$iteration, size = 4)
+
+cnvrgTS <- smryOutputList$tsSmry %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                                   recScen = sub(pattern = "HCR.*","", scenario)) %>%
+      mutate(recScen = sub(pattern = ".*OM_","", recScen)) %>%
+      left_join(y = convrgCheck, by = c("iteration", "model_run", "scenario", "HCR", "recScen")) %>%
+      mutate(plotGroup = case_when(model_run == omName ~ "OM",
+                                   max_grad > 0.01 ~ "non-convrg",
+                                   max_grad < 0.01 ~ "convrg"))
+
+for(mr in 1:5){
+  print(cnvrgTS %>% filter(scenario == scenarios[mr], Seas == 1) %>%
+      ggplot(aes(x = year, y = log(Bio_smry))) +
+      ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+      ggplot2::geom_hline(yintercept = log(50000), color = "red") +
+      ggplot2::geom_line(aes(linetype = model_run, color = plotGroup))+
+      ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+      ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+      ggplot2::guides(linetype = "none") +
+      facet_grid(rows = vars(iteration), cols = vars(plotGroup)) +
+      ggplot2::theme_classic() + theme(legend.position="none") +
+      labs(title = scenarios[mr]))
+}
+
+for(mr in 1:5){
+  print(cnvrgTS %>% filter(scenario == scenarios[mr], Seas == 1) %>%
+      ggplot(aes(x = year, y = rec_dev)) +
+      ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+      ggplot2::geom_hline(yintercept = 0, color = "gray") +
+      ggplot2::geom_line(aes(linetype = model_run, color = plotGroup))+
+      ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+      ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+      ggplot2::guides(linetype = "none") +
+      facet_grid(rows = vars(iteration), cols = vars(plotGroup)) +
+      ggplot2::theme_classic() + theme(legend.position="none") +
+      labs(title = scenarios[mr]))
+}
+
+#termTS %>% filter(model_run == omName)
+
+errCompare <- cnvrgTS %>% filter(Seas == 1, model_run != omName) %>%
+                select(Bio_smry, year, model_run, iteration, scenario, HCR, recScen, emYear, plotGroup) %>%
+                inner_join(y = subset(termTS, model_run == omName), 
+                           by = c("year", "iteration", "scenario", "HCR", "recScen")) %>%
+                #filter(iteration == 1) %>%
+                  rename(age1plusOM = Bio_smry.y,
+                         age1plusEM = Bio_smry.x) %>% 
+                  mutate(errSmryBio = (age1plusEM - age1plusOM)/age1plusOM) %>%
+                select(age1plusEM, age1plusOM, errSmryBio, year, model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
+                group_by(model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
+                summarize(runMSE = mean(errSmryBio)) %>%
+                group_by(iteration, scenario, HCR, recScen, plotGroup) %>%
+                summarize(runMSE = mean(runMSE))  #%>%
+                # group_by(scenario, HCR, recScen, plotGroup) %>%
+                # summarize(runMSE = mean(runMSE))
+
+errCompare %>% #filter(HCR != "HCR3") %>%
+  ggplot(aes(x = HCR, y = runMSE, fill = plotGroup)) +
+  geom_boxplot(outlier.shape = NA) +
+  facet_wrap(~recScen) 
+
+PlotEMAnnualEsts(dirSSMSE = mseDir, scenarios = scenarios,
+                 varCol = c("SSB_Unfished", "NatM_uniform_Fem_GP_1",
+                            "L_at_Amin_Fem_GP_1", "SR_LN_R0",
+                            "SR_regime_BLK1repl_2000", "InitF_seas_2_flt_2MexCal_S2",
+                            "CV_old_Fem_GP_1"))
+
+convrgCheck %>%
+  ggplot(aes(x = emYear, y = max_grad)) +
+  geom_line(aes(linetype = scenario))+
+  scale_linetype_manual(values = rep("solid", 51)) +
+  guides(linetype = "none") +
+  facet_grid(rows = vars(recScen), cols = vars(iteration), scales = "free") +
+  theme_classic() + theme(legend.position="none")
+
+```
+Take closer look at estimated derived and parameter values
+```{r}
+# error of params 
+sclSmryAll <- NULL
+  
+for(scn in 1:length(scenarios)){
+    # read in SSMSE results summary scalars
+    sclSumry <- read.csv(file.path(mseDir, scenarios[scn], 
+                                   paste0("results_scalar_", scenarios[scn], ".csv")))
+    if(!"F_MSY" %in% names(sclSumry)){ # no catch scenarios don't have F_MSY
+      sclSumry$F_MSY <- NA
+      sclSumry$SSB_Unfished <- NA
+    }
+   
+    sclSmryAll <- bind_rows(sclSmryAll, sclSumry)
+  } # end 'scn' for-loop
+  
+  # Use parallelization t
+unique(sclSmryAll[, c("params_on_bound", "params_stuck_low", "params_stuck_high", "scenario")])
+
+parCols <- c("CV_old_Fem_GP_1", "Size_95.width_MexCal_S1_1", "CV_young_Fem_GP_1", 
+             "VonBert_K_Fem_GP_1", "SR_regime_BLK1repl_2000","L_at_Amax_Fem_GP_1",
+             "L_at_Amin_Fem_GP_1", "SR_LN_R0")
+focPars <- sclSmryAll %>% select(max_grad, parCols, 
+                              model_run, iteration, scenario) %>%
+            pivot_longer(cols = parCols, names_to = "parameter", values_to = "value")
+focParsOM <- focPars %>% filter(grepl("_OM", model_run, fixed = TRUE))
+focPars <- focPars %>% filter(!grepl("_OM", model_run, fixed = TRUE)) %>%
+              left_join(y = focParsOM, by = c("iteration", "scenario", "parameter")) %>%
+              mutate(parRE = (value.x - value.y)/value.y * 100,
+                     emYear = as.numeric(regmatches(model_run.x,
+                                                    gregexpr("[[:digit:]]+", 
+                                                              model_run.x))),
+                     convg = case_when(max_grad.x > 0.01 ~ "non-convg",
+                                       max_grad.x < 0.01 ~ "convg")) 
+
+focPars %>% ggplot(aes(x = emYear, y = value.x, color = scenario)) + 
+  #geom_line() + 
+  geom_point() + 
+  facet_grid(rows = vars(parameter), cols = vars(convg), scales = "free") + 
+  geom_hline(aes(yintercept = value.y))
+
+pairs(focPars %>% mutate(combo = paste(scenario, iteration, model_run.x, sep = "-")) %>%
+        dcast(combo ~ parameter, value.var = "value.x") %>% 
+        select(unique(focPars$parameter)))
+
+# error of summary biomass
+simDat <- smryOutputList$obsCPUE %>% mutate(scenario = sub(pattern = ".*Scenarios/","", resDir),
+                                            model_run = sub(pattern = ".*/[[:digit:]]+/","", resDir),
+                                            iteration = str_extract(resDir, "/\\d/")) %>%
+              mutate(scenario = sub(pattern = "/[[:digit:]]+/.*","", scenario),
+                     iteration = as.numeric(str_extract(iteration, "\\d")),
+                     plotGroup = "simData") %>%
+              rename(Bio_smry = obs) %>%
+              filter(!grepl("_OM", model_run, fixed = TRUE), index == 4, seas != 10) %>%
+                  select(year, Bio_smry, model_run, iteration, scenario, plotGroup)
+
+age1PlusBio <- smryOutputList$tsSmry %>% filter(Seas == 1) %>%
+                  select(year, Bio_smry, model_run, iteration, scenario) %>%
+                  mutate(plotGroup = case_when(grepl("_OM", model_run, fixed = TRUE) ~ "OM",
+                                               TRUE ~ "EM"))
+
+age1PlusRE <- age1PlusBio %>% filter(plotGroup != "OM")
+age1PlusRE <- rbind(age1PlusRE, simDat)
+age1PlusRE <- age1PlusRE %>% pivot_wider(names_from = "plotGroup", values_from = "Bio_smry") %>%
+                  left_join(y = convrgCheck, 
+                            by = c("model_run", "iteration", "scenario")) %>%
+                  full_join(y = subset(age1PlusBio, subset = plotGroup == "OM"), 
+                            by = c("iteration", "scenario", "year")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"),
+                         datRE = (simData - Bio_smry)/Bio_smry * 100,
+                         emRE = (EM - Bio_smry)/Bio_smry * 100)
+
+age1PlusBio <- rbind(age1PlusBio, simDat)
+age1PlusBio <- age1PlusBio %>% left_join(y = convrgCheck, 
+                                         by = c("model_run", "iteration", "scenario")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"))
+
+for(mr in 1:length(scenarios)){
+  print(age1PlusBio %>% filter(scenario == scenarios[mr], plotGroup != "simData") %>%
+    ggplot(aes(x = year, y = log(Bio_smry))) +
+    ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+    ggplot2::geom_line(ggplot2::aes(linetype = as.character(model_run), color = plotGroup))+
+    ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+    ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+    ggplot2::guides(linetype = "none") +
+    ggplot2::facet_grid(rows = vars(iteration), scales = "free") +
+    ggplot2::theme_classic() +
+  labs(title = scenarios[mr]))
+}
+
+# Plot relative errors of biomass over time
+age1PlusRE %>% mutate(scenario = gsub("_", "\n", scenario, fixed = TRUE)) %>% 
+  filter(HCR != "HCR0") %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_line(aes(linetype = as.character(model_run.x), color = convrg))+
+    geom_point(aes(y = datRE), shape = 4, color = "grey") +
+    scale_color_manual(values = c("black", "blue", "#D65F00")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(scenario), scales = "free") +
+    theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)")
+
+# error of catch
+simCat <- smryOutputList$obsCatch %>% mutate(scenario = sub(pattern = ".*Scenarios/","", resDir),
+                                            model_run = sub(pattern = ".*/[[:digit:]]+/","", resDir),
+                                            iteration = str_extract(resDir, "/\\d/")) %>%
+              mutate(scenario = sub(pattern = "/[[:digit:]]+/.*","", scenario),
+                     iteration = as.numeric(str_extract(iteration, "\\d")),
+                     plotGroup = "simCatch") %>%
+              group_by(year, model_run, iteration, scenario, plotGroup) %>%
+                # summarize total catch within year
+                dplyr::summarize(totCatch = sum(catch)) %>%
+              filter(!grepl("_OM", model_run, fixed = TRUE), year != -999) %>%
+                  select(year, totCatch, model_run, iteration, scenario, plotGroup)
+
+catchTS <- smryOutputList$tsSmry %>% 
+                  mutate(totCatch = retainB_1 + retainB_2 + retainB_3) %>%
+                  group_by(year, model_run, iteration, scenario) %>%
+                # summarize total catch within year
+                dplyr::summarize(totCatch = sum(totCatch)) %>%
+                  select(year, totCatch, model_run, iteration, scenario) %>%
+                  mutate(plotGroup = case_when(grepl("_OM", model_run, fixed = TRUE) ~ "OM",
+                                               TRUE ~ "EM"))
+
+catchRE <- catchTS %>% filter(plotGroup != "OM")
+catchRE <- rbind(catchRE, simCat)
+catchRE <- catchRE %>% pivot_wider(names_from = "plotGroup", values_from = "totCatch") %>%
+                  left_join(y = convrgCheck, 
+                            by = c("model_run", "iteration", "scenario")) %>%
+                  full_join(y = subset(catchTS, subset = plotGroup == "OM"), 
+                            by = c("iteration", "scenario", "year")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"),
+                         datRE = (simCatch - totCatch)/(totCatch + 0.0001) * 100, # add small amount so not div by 0
+                         emRE = (EM - totCatch)/(totCatch + 0.0001) * 100)
+
+catchTS <- rbind(catchTS, simCat)
+catchTS <- catchTS %>% left_join(y = convrgCheck, 
+                                         by = c("model_run", "iteration", "scenario")) %>%
+                  mutate(convrg = case_when(max_grad > 0.01 ~ "non-convrg",
+                                            max_grad < 0.01 ~ "convrg",
+                                            TRUE ~ "OM"))
+
+for(mr in 1:length(scenarios)){
+  print(catchTS %>% filter(scenario == scenarios[mr]) %>%
+    ggplot(aes(x = year, y = totCatch)) +
+    ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+    ggplot2::geom_line(ggplot2::aes(linetype = as.character(model_run), color = plotGroup))+
+    ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+    ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+    ggplot2::guides(linetype = "none") +
+    facet_wrap(~ iteration, scales = "free") +
+    ggplot2::theme_classic() +
+  labs(title = scenarios[mr]))
+}
+
+# Plot relative errors of biomass over time
+catchRE %>% mutate(scenario = gsub("_", "\n", scenario, fixed = TRUE)) %>%
+  filter(HCR != "HCR0") %>%
+    ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) +
+    geom_vline(xintercept = 2019, color = "gray") +
+    geom_line(aes(linetype = as.character(model_run.x), color = convrg))+
+    geom_point(aes(y = datRE), shape = 4, color = "grey") +
+    scale_color_manual(values = c("black", "blue", "#D65F00")) +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(scenario), scales = "free") +
+    theme_classic() + labs(title = "Relative Error of Catch (%)")
+```
+
+Model expects high catches for 2020 in initial EM fit (emYear 2019)
+
+Check harvest guideline from EMs
+```{r}
+# Use parallelization to pull in composition and EM data ------------------
+  # Adapted from code from Peter Kuriyama
+  
+  # set up the directories
+  # get the iterations
+  resultsDirs <- NULL
+  for(scn in 1:length(scenarios)){
+    iters <- list.dirs(file.path(mseDir, scenarios[scn]), recursive = FALSE, full.names = FALSE)
+  
+    # get the model directory names
+    runNames <- list.dirs(file.path(mseDir, scenarios[scn], iters[1]),
+                           recursive = FALSE,
+                           full.names = FALSE)
+    # remove OM folder from list
+    runNames <- runNames[-grep("_OM", runNames, fixed = TRUE)]
+    
+    #The results directories to read in
+    scnResultsDirs <- expand_grid(scenarios[scn], iters, runNames) %>% 
+                    mutate(scen = file.path(mseDir, `scenarios[scn]`, iters, runNames)) %>%
+                    pull(scen)
+    
+    resultsDirs <- c(resultsDirs, scnResultsDirs)
+  }
+  
+  
+  # extract wanted tables per directory and add data origin
+  start_time <- Sys.time()
+  ncores <- detectCores() - 2 #Leave some cores open for background stuff
+  cl <- makeCluster(ncores)
+  registerDoParallel(cl)
+  
+  resultsList <- foreach::foreach(ii = 1:length(resultsDirs),
+                                  
+                                  .packages = c("tidyverse", 'r4ss')) %dopar% {
+                                    outList <- SS_output(resultsDirs[ii], 
+                                              covar = FALSE, printstats = FALSE,
+                                              verbose = FALSE)
+                                    outList %>% magrittr::extract("sprseries") %>%
+                                      map2(.y = resultsDirs[ii], 
+                                           .f = function(x, y){x['resDir'] <- y;x})
+                                  }
+  stopCluster(cl)
+  run_time <- Sys.time() - start_time; run_time #To see how long it takes
+  
+  # summarize into single table for export
+  smryForeBio <- resultsList %>% map_dfr(magrittr::extract2, "sprseries") %>%
+                    filter(Era=="FORE") %>%
+                    mutate(scenario = sub(pattern = ".*Scenarios/","", resDir),
+                           model_run = sub(pattern = ".*/[[:digit:]]+/","", resDir),
+                           iteration = str_extract(resDir, "/\\d/")) %>%
+                    mutate(scenario = sub(pattern = "/[[:digit:]]+/.*","", scenario),
+                           iteration = as.numeric(str_extract(iteration, "\\d"))) %>%
+                    select(Yr, Bio_Smry.1, scenario, model_run, iteration)
+  
+# apply HCR as calculated in HCR_sar_hcr2.R
+  
+#upload the CalCOFI temperature timeseries
+ Ctemp=read.csv("J:/Desiree/Sardine/SardineMSE/dat/calcofi_sst_projected.csv")
+  
+ #extract the average for the three years prior to the forecast
+ #Tyr=c((EMts$Yr[1]-1),(EMts$Yr[1]-2),(EMts$Yr[1]-3))
+ #Temsy = mean(Ctemp$gfdl_sst_all[Ctemp$year %in% Tyr])#here we might need to create a separte hcr 2 function for each projection or have the GCM as an input to the function
+ smryForeBio$Temsy <- NA
+ for(i in 1:nrow(smryForeBio)){
+   smryForeBio[i, "Temsy"] <- mean(Ctemp$gfdl_sst_all[Ctemp$year %in% (smryForeBio[i, "Yr"]-3):(smryForeBio[i, "Yr"]-1)])
+ }
+ 
+ #set input to hcr
+  #Emsy = -18.46452+3.25209*Temsy-0.19723*Temsy^2+0.0041863*Temsy^3
+smryForeBio <- smryForeBio %>% mutate(Emsy = -18.46452+3.25209*Temsy-0.19723*Temsy^2+0.0041863*Temsy^3)
+  cutoff = 150000
+  distribution = 0.87
+  
+  #if biomass is less than the cutoff, the harvest guideline is set to 0, if not the current hg rule is ised
+  #HG=(BIOMASS-CUTOFF)xFRACTIONxDISTRIBUTION
+  #Note that as there are still
+  # if (bio1 < cutoff) {HG = 0 } else {HG = (bio1-cutoff)*Emsy*distribution}
+  # 
+  # #the hg is capped at a maximum catch of 200000 mt
+  # if (HG > 200000) {HG = 200000}
+
+smryForeBio <- smryForeBio %>% mutate(HG = case_when(Bio_Smry.1 < cutoff ~ 0,
+                                                     TRUE ~ (Bio_Smry.1-cutoff)*Emsy*distribution)) %>%
+                  mutate(HG = case_when(HG > 200000 ~ 200000,
+                                        TRUE ~ HG)) %>%
+                  left_join(y = subset(catchTS, subset = plotGroup == "OM"), 
+                            by = c("Yr" = "year", "scenario", "iteration")) %>%
+                  left_join(y = subset(age1PlusBio, subset = plotGroup == "OM"), 
+                            by = c("Yr" = "year", "scenario", "iteration")) %>%
+                  select(Yr, scenario, model_run.x, iteration, Bio_Smry.1, HG, Bio_smry, totCatch, HCR.y, recScen.y)
+
+smryForeBio %>% mutate(scenario = gsub("_", "\n", scenario, fixed = TRUE)) %>%
+  ggplot(aes(x = Yr, y = (totCatch - HG))) +
+  geom_vline(xintercept = 2019, color = "gray") +
+  geom_line(aes(linetype = as.character(scenario)))+
+  geom_point(aes(y = (Bio_Smry.1 - Bio_smry)/Bio_smry*100), shape = 4, color = "grey") +
+    scale_linetype_manual(values = rep("solid", 51)) +
+    guides(linetype = "none") +
+    facet_grid(rows = vars(iteration), cols = vars(scenario)) +
+    theme_classic() + labs(title = "Difference from HG and Catch w/ Biomass RE (%)")
+```
+Look at catches listed in OM data files
+```{r}
+# set up the directories
+  # get the iterations
+  omDirs <- NULL
+  for(scn in 1:length(scenarios)){
+    iters <- list.dirs(file.path(mseDir, scenarios[scn]), recursive = FALSE, full.names = FALSE)
+  
+    # get the model directory names
+    runNames <- list.dirs(file.path(mseDir, scenarios[scn], iters[1]),
+                           recursive = FALSE,
+                           full.names = FALSE)
+    # keep only OM folder from list
+    runNames <- runNames[grep("_OM", runNames, fixed = TRUE)]
+    
+    #The results directories to read in
+    scnResultsDirs <- expand_grid(scenarios[scn], iters, runNames) %>% 
+                    mutate(scen = file.path(mseDir, `scenarios[scn]`, iters, runNames)) %>%
+                    pull(scen)
+    
+    omDirs <- c(omDirs, scnResultsDirs)
+  }
+  
+  
+  # extract wanted tables per directory and add data origin
+  start_time <- Sys.time()
+  ncores <- detectCores() - 2 #Leave some cores open for background stuff
+  cl <- makeCluster(ncores)
+  registerDoParallel(cl)
+  
+ omDataList <- foreach::foreach(ii = 1:length(omDirs),
+                                  
+                                  .packages = c("tidyverse", 'r4ss')) %dopar% {
+                                    outList <- SS_readdat(file.path(omDirs[ii], "data.ss"),
+                                                          version = "3.30", verbose = FALSE)
+                                    outList %>% magrittr::extract(c("catch", "CPUE")) %>%
+                                      map2(.y = omDirs[ii], 
+                                           .f = function(x, y){x['resDir'] <- y;x})
+                                  }
+  stopCluster(cl)
+  
+  # summarize into single table for export
+  omDataCatch <- omDataList %>% map_dfr(magrittr::extract2, "catch") %>%
+                    mutate(scenario = sub(pattern = ".*Scenarios/","", resDir),
+                           model_run = sub(pattern = ".*/[[:digit:]]+/","", resDir),
+                           iteration = str_extract(resDir, "/\\d/")) %>%
+                    mutate(scenario = sub(pattern = "/[[:digit:]]+/.*","", scenario),
+                           iteration = as.numeric(str_extract(iteration, "\\d"))) %>%
+                    rename(catchDat = catch)
+  
+    cl <- makeCluster(ncores)
+  registerDoParallel(cl)
+ omDataExpList <- foreach::foreach(ii = 1:length(omDirs),
+                                  
+                                  .packages = c("tidyverse", 'r4ss')) %dopar% {
+                                    outList <- SS_readdat(file.path(omDirs[ii], "data.ss_new"),
+                                                          version = "3.30", verbose = FALSE,
+                                                          section = 2)
+                                    outList %>% magrittr::extract(c("catch", "CPUE")) %>%
+                                      map2(.y = omDirs[ii], 
+                                           .f = function(x, y){x['resDir'] <- y;x})
+                                  }
+  stopCluster(cl)
+  
+  # summarize into single table for export
+  omDataExpCatch <- omDataExpList %>% map_dfr(magrittr::extract2, "catch") %>%
+                    mutate(scenario = sub(pattern = ".*Scenarios/","", resDir),
+                           model_run = sub(pattern = ".*/[[:digit:]]+/","", resDir),
+                           iteration = str_extract(resDir, "/\\d/")) %>%
+                    mutate(scenario = sub(pattern = "/[[:digit:]]+/.*","", scenario),
+                           iteration = as.numeric(str_extract(iteration, "\\d")))%>%
+                    rename(catchExp = catch)
+  
+    cl <- makeCluster(ncores)
+registerDoParallel(cl)
+ omDataBootList <- foreach::foreach(ii = 1:length(omDirs),
+                                  
+                                  .packages = c("tidyverse", 'r4ss')) %dopar% {
+                                    outList <- SS_readdat(file.path(omDirs[ii], "data.ss_new"),
+                                                          version = "3.30", verbose = FALSE,
+                                                          section = 3)
+                                    outList %>% magrittr::extract(c("catch", "CPUE")) %>%
+                                      map2(.y = omDirs[ii], 
+                                           .f = function(x, y){x['resDir'] <- y;x})
+                                  }
+  stopCluster(cl)
+  # summarize into single table for export
+  omDataBootCatch <- omDataBootList %>% map_dfr(magrittr::extract2, "catch") %>%
+                    mutate(scenario = sub(pattern = ".*Scenarios/","", resDir),
+                           model_run = sub(pattern = ".*/[[:digit:]]+/","", resDir),
+                           iteration = str_extract(resDir, "/\\d/")) %>%
+                    mutate(scenario = sub(pattern = "/[[:digit:]]+/.*","", scenario),
+                           iteration = as.numeric(str_extract(iteration, "\\d")))%>%
+                    rename(catchBoot = catch)
+
+# need to look at conditioning data for EM runs
+cl <- makeCluster(ncores)
+registerDoParallel(cl)
+ emDataList <- foreach::foreach(ii = 1:length(resultsDirs),
+                                  
+                                  .packages = c("tidyverse", 'r4ss')) %dopar% {
+                                    outList <- SS_readdat(file.path(resultsDirs[ii], "init_dat.ss"),
+                                                          version = "3.30", verbose = FALSE)
+                                    outList %>% magrittr::extract(c("catch", "CPUE")) %>%
+                                      map2(.y = resultsDirs[ii], 
+                                           .f = function(x, y){x['resDir'] <- y;x})
+                                  }
+  stopCluster(cl)
+  # summarize into single table for export
+  emDataCatch <- emDataList %>% map_dfr(magrittr::extract2, "catch") %>%
+                    mutate(scenario = sub(pattern = ".*Scenarios/","", resDir),
+                           model_run = sub(pattern = ".*/[[:digit:]]+/","", resDir),
+                           iteration = str_extract(resDir, "/\\d/")) %>%
+                    mutate(scenario = sub(pattern = "/[[:digit:]]+/.*","", scenario),
+                           iteration = as.numeric(str_extract(iteration, "\\d")))%>%
+                    rename(catchEMInit = catch) %>%
+                    group_by(year, resDir, scenario, model_run, iteration) %>%
+                    summarize(totCatchInitDatEM = sum(catchEMInit)) %>%
+                    filter(year != -999)
+    run_time <- Sys.time() - start_time; run_time #To see how long it takes
+
+    
+omDataCatch <- omDataCatch %>% left_join(y = omDataExpCatch, 
+                                         by = c("year", "seas", "fleet", "resDir", 
+                                                "scenario", "model_run", "iteration")) %>%
+                  left_join(y = omDataBootCatch, 
+                            by = c("year", "seas", "fleet", "resDir", 
+                                   "scenario", "model_run", "iteration")) %>%
+                  group_by(year, resDir, scenario, model_run, iteration) %>%
+                  summarize(totCatchDat = sum(catchDat),
+                            totCatchExp = sum(catchExp),
+                            totCatchBoot = sum(catchBoot)) %>%
+                  filter(year != -999)
+
+# add OM catch from tsSmry
+omDataCatch <- omDataCatch %>% left_join(y = subset(catchTS, subset = plotGroup == "OM"), 
+                                         by = c("year", "scenario", "iteration")) %>% 
+                  rename(totCatchTSOM = totCatch)
+
+# add OM catch from data.ss_new file
+omDatNewCat <- smryOutputList$obsCatch %>% mutate(scenario = sub(pattern = ".*Scenarios/","", resDir),
+                                            model_run = sub(pattern = ".*/[[:digit:]]+/","", resDir),
+                                            iteration = str_extract(resDir, "/\\d/")) %>%
+              mutate(scenario = sub(pattern = "/[[:digit:]]+/.*","", scenario),
+                     iteration = as.numeric(str_extract(iteration, "\\d")),
+                     plotGroup = "OM") %>%
+              group_by(year, model_run, iteration, scenario, plotGroup) %>%
+                # summarize total catch within year
+                dplyr::summarize(totCatchDatNewOM = sum(catch)) %>%
+              filter(grepl("_OM", model_run, fixed = TRUE), year != -999) %>%
+                  select(year, totCatchDatNewOM, model_run, iteration, scenario, plotGroup)
+
+omDataCatch <- omDataCatch %>% left_join(y = omDatNewCat, 
+                                         by = c("year", "scenario", "iteration",
+                                                "model_run.x" = "model_run"))
+
+catchTS <- omDataCatch %>% left_join(y = subset(catchTS, subset = plotGroup == "EM"), 
+                          by = c("year", "iteration", "scenario",  
+                                 "recScen", "HCR")) %>% 
+              rename(totCatchEstEM = totCatch) %>%
+              left_join(y = subset(catchTS, subset = plotGroup == "simCatch"), 
+                        by = c("year", "iteration", "scenario", "emYear.y" = "emYear", 
+                               "recScen", "HCR", "model_run")) %>% 
+              rename(totCatchSimDatEM = totCatch) %>% 
+              left_join(y = emDataCatch, by = c("year", "iteration", "scenario", "model_run")) %>%
+              ungroup() %>%
+              select(year, iteration, scenario, emYear.y, recScen, HCR, max_grad.x, convrg.x,
+                     totCatchDat, totCatchDatNewOM, totCatchExp, totCatchBoot, 
+                     totCatchTSOM, totCatchInitDatEM, totCatchSimDatEM, totCatchEstEM)
+
+# Note: the HG is the catch advice provided from the HCR from the previous emYear 
+#       to be applied in 'year'
+catchTS <- catchTS %>% left_join(smryForeBio, 
+                                 by = c("year" = "Yr", "iteration", "scenario",
+                                        "recScen" = "recScen.y", "HCR" = "HCR.y")) %>%
+              rename(emForeBioSmry = Bio_Smry.1,
+                     omBioSmry = Bio_smry) %>%
+              select(year, iteration, scenario, emYear.y, recScen, HCR, max_grad.x, 
+                     convrg.x, HG, totCatchDat, totCatchDatNewOM, totCatchExp, totCatchBoot, 
+                     totCatchTSOM, totCatchInitDatEM, totCatchSimDatEM, totCatchEstEM, emForeBioSmry, omBioSmry)
+catchTS %>% filter(year %in% 2028:2032, emYear.y %in% 2028:2032,
+                   iteration == 1, scenario == scenarios[6]) %>% select(-scenario, -recScen, -HCR)
+```
+
+Check out the CPUE timeseries and EM implementation
+```{r}
+datNewCPUE <- smryOutputList$obsCPUE %>% mutate(scenario = sub(pattern = ".*Scenarios/","", resDir),
+                                            model_run = sub(pattern = ".*/[[:digit:]]+/","", resDir),
+                                            iteration = str_extract(resDir, "/\\d/")) %>%
+              mutate(scenario = sub(pattern = "/[[:digit:]]+/.*","", scenario),
+                     iteration = as.numeric(str_extract(iteration, "\\d"))) %>%
+              filter(seas == 1, index %in% c(4, -4))
+cpueTS <- datNewCPUE %>% filter(grepl("_OM", model_run, fixed = TRUE)) %>%
+              rename(cpueDatNewOM = obs) %>%
+              full_join(y = subset(datNewCPUE, subset = !grepl("_OM", model_run, fixed = TRUE)), 
+                          by = c("year", "seas", "index", "iteration", "scenario")) %>% 
+              rename(cpueDatNewEM = obs)
+
+omDataCPUE <- omDataList %>% map_dfr(magrittr::extract2, "CPUE") %>%
+                    mutate(scenario = sub(pattern = ".*Scenarios/","", resDir),
+                           model_run = sub(pattern = ".*/[[:digit:]]+/","", resDir),
+                           iteration = str_extract(resDir, "/\\d/")) %>%
+                    mutate(scenario = sub(pattern = "/[[:digit:]]+/.*","", scenario),
+                           iteration = as.numeric(str_extract(iteration, "\\d"))) %>%
+                    rename(cpueDatOM = obs) %>%
+                    filter(seas == 1, index %in% c(4, -4))
+
+omDataExpCPUE <- omDataExpList %>% map_dfr(magrittr::extract2, "CPUE") %>%
+                    mutate(scenario = sub(pattern = ".*Scenarios/","", resDir),
+                           model_run = sub(pattern = ".*/[[:digit:]]+/","", resDir),
+                           iteration = str_extract(resDir, "/\\d/")) %>%
+                    mutate(scenario = sub(pattern = "/[[:digit:]]+/.*","", scenario),
+                           iteration = as.numeric(str_extract(iteration, "\\d"))) %>%
+                    rename(cpueDatExpOM = obs) %>%
+                    filter(seas == 1, index %in% c(4, -4))
+
+omDataBootCPUE <- omDataBootList %>% map_dfr(magrittr::extract2, "CPUE") %>%
+                    mutate(scenario = sub(pattern = ".*Scenarios/","", resDir),
+                           model_run = sub(pattern = ".*/[[:digit:]]+/","", resDir),
+                           iteration = str_extract(resDir, "/\\d/")) %>%
+                    mutate(scenario = sub(pattern = "/[[:digit:]]+/.*","", scenario),
+                           iteration = as.numeric(str_extract(iteration, "\\d"))) %>%
+                    rename(cpueDatBootOM = obs) %>%
+                    filter(seas == 1, index %in% c(4, -4))
+
+emDataCPUE <- emDataList %>% map_dfr(magrittr::extract2, "CPUE") %>%
+                    mutate(scenario = sub(pattern = ".*Scenarios/","", resDir),
+                           model_run = sub(pattern = ".*/[[:digit:]]+/","", resDir),
+                           iteration = str_extract(resDir, "/\\d/")) %>%
+                    mutate(scenario = sub(pattern = "/[[:digit:]]+/.*","", scenario),
+                           iteration = as.numeric(str_extract(iteration, "\\d")))%>%
+                    rename(cpueInitEM = obs) %>%
+                    filter(seas == 1, index %in% c(4, -4))
+
+omDataCPUE <- omDataCPUE %>% left_join(y = omDataExpCPUE, 
+                                         by = c("year", "seas", "resDir", 
+                                                "scenario", "model_run", "iteration")) %>%
+                  left_join(y = omDataBootCPUE, 
+                            by = c("year", "seas",  "resDir", 
+                                   "scenario", "model_run", "iteration")) %>%
+                  full_join(y = emDataCPUE,
+                            by = c("year", "seas",  "scenario", "iteration"))
+
+cpueTS <- cpueTS %>% left_join(y = omDataCPUE, by = c("year", "seas", "scenario", 
+                                            "iteration", "model_run.y", "resDir.y")) %>%
+            select(year, scenario, iteration, model_run.y, cpueDatOM, cpueDatNewOM,
+                   cpueDatExpOM, cpueDatBootOM, cpueInitEM, cpueDatNewEM) %>%
+            mutate(emYear = as.numeric(regmatches(model_run.y,
+                                                        gregexpr("[[:digit:]]+", 
+                                                                 model_run.y))))
+#cpueTS %>% filter(!is.na(model_run.y), scenario == scenarios[6])
+cpueTS %>% filter(year %in% 2028:2032, emYear %in% 2028:2032,
+                   iteration == 1, scenario == scenarios[6]) %>%
+  arrange(year, emYear) %>% select(-scenario)
+```
+Plot AT index 4 against actual biomass and EM catch data against actual catch
+```{r}
+cpueTS$scenario <- gsub("_", "\n", cpueTS$scenario, fixed = TRUE)
+
+catchTS %>% mutate(scenario = gsub("_", "\n", scenario, fixed = TRUE)) %>% 
+  filter(iteration < 4) %>%
+  ggplot(aes(x = year, y = omBioSmry)) + # black line
+  geom_line() +
+  geom_line(data = subset(cpueTS, subset = iteration < 4),
+            mapping = aes(y = cpueInitEM, color = model_run.y)) + # pink line
+  geom_line(data = subset(cpueTS, subset = iteration < 4), 
+            mapping = aes(y = cpueDatExpOM, color = as.character(emYear))) + # teal line
+  facet_grid(rows = vars(iteration), cols = vars(scenario)) +
+  theme(legend.position = "none")
+
+
+catchTS %>% mutate(scenario = gsub("_", "\n", scenario, fixed = TRUE)) %>%
+  filter(iteration < 4) %>%
+  ggplot(aes(x = year, y = totCatchTSOM)) +
+  geom_line() + # black line
+  geom_line(aes(y = totCatchInitDatEM, color = emYear.y)) + # grey line
+  geom_line(aes(y = HG, color = emYear.y)) + # blue line
+  facet_grid(rows = vars(iteration), cols = vars(scenario)) +
+  theme(legend.position = "none") 
+
+```
+
+
+# EM 2001 self test, recruitment at SD=0.5, h=0.6, corrected sample size
+
+```{r}
+scenarios <- c("constGrow2001OM_selfTestMidSteep_RandRecHCR0",
+              "constGrow2001OM_selfTestMidSteep_RandRecHCR2",
+              "constGrow2001OM_selfTestMidSteepFixRec_RandRecHCR2")
+
+smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
+                                 scenarios = scenarios)
+
+smryOutputList$dqSmry$model_run <- sub("Steepness0dot6", "MidSteep", 
+                                       smryOutputList$dqSmry$model_run, fixed = TRUE)
+smryOutputList$sclSmry$model_run <- sub("Steepness0dot6", "MidSteep", 
+                                       smryOutputList$sclSmry$model_run, fixed = TRUE)
+smryOutputList$tsSmry$model_run <- sub("Steepness0dot6", "MidSteep", 
+                                       smryOutputList$tsSmry$model_run, fixed = TRUE)
+
+performanceList <- CalcPerformance(smryOutputList)
+
+metricsTbl <- performanceList$perfomanceMetrics
+
+# parse out HCR and recruitment scenario
+metricsTbl <- metricsTbl %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                                    recScen = sub(pattern = "HCR.*","", scenario)) %>%
+                mutate(recScen = sub(pattern = ".*OM_","", recScen))
+
+hcrPal <- brewer.pal(10, "Set3")[-2]
+
+# plot convergence frequency
+metricsTbl %>% filter(HCR != "HCR0") %>%
+  ggplot(aes(x = HCR, y = frqNonConvg)) +
+  geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
+  facet_wrap(~recScen) + 
+  theme_minimal() +
+  scale_fill_brewer(palette = hcrPal)
+
+# get terminal estimates of these values for timeseries plots
+termTS <- CalcTermTS(smryOutputList) %>% 
+              mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                               recScen = sub(pattern = "HCR.*","", scenario)) %>%
+              mutate(recScen = sub(pattern = ".*OM_","", recScen))
+
+omName <- grep("_OM", smryOutputList$tsSmry$model_run, 
+                 fixed = TRUE, value = TRUE)[1]
+
+convrgCheck <- smryOutputList$sclSmry %>% #filter(!model_run %in% omName) %>%
+                  select(max_grad, model_run, iteration, scenario) %>%
+                  mutate(emYear = as.numeric(regmatches(model_run,
+                                                        gregexpr("[[:digit:]]+", 
+                                                                 model_run))),
+                         HCR = sub(pattern = ".*Rec","", scenario),
+                         recScen = sub(pattern = "HCR.*","", scenario)) %>%
+                  mutate(recScen = sub(pattern = ".*OM_","", recScen))  
+
+hcrs <- unique(termTS$HCR)
+#exIters <- sample(termTS$iteration, size = 4)
+
+cnvrgTS <- smryOutputList$tsSmry %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                                   recScen = sub(pattern = "HCR.*","", scenario)) %>%
+      mutate(recScen = sub(pattern = ".*OM_","", recScen)) %>%
+      left_join(y = convrgCheck, by = c("iteration", "model_run", "scenario", "HCR", "recScen")) %>%
+      mutate(plotGroup = case_when(model_run == omName ~ "OM",
+                                   max_grad > 0.01 ~ "non-convrg",
+                                   max_grad < 0.01 ~ "convrg"))
+
+for(mr in 2:3){
+  print(cnvrgTS %>% filter(scenario == scenarios[mr], Seas == 1) %>%
+      ggplot(aes(x = year, y = log(Bio_smry))) +
+      ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+      ggplot2::geom_hline(yintercept = log(50000), color = "red") +
+      ggplot2::geom_line(aes(linetype = model_run, color = plotGroup))+
+      ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+      ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+      ggplot2::guides(linetype = "none") +
+      facet_grid(rows = vars(iteration), cols = vars(plotGroup)) +
+      ggplot2::theme_classic() + theme(legend.position="none") +
+      labs(title = scenarios[mr]))
+}
+
+for(mr in 2:3){
+  print(cnvrgTS %>% filter(scenario == scenarios[mr], Seas == 1) %>%
+      ggplot(aes(x = year, y = rec_dev)) +
+      ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+      ggplot2::geom_hline(yintercept = 0, color = "gray") +
+      ggplot2::geom_line(aes(linetype = model_run, color = plotGroup))+
+      ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+      ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+      ggplot2::guides(linetype = "none") +
+      facet_grid(rows = vars(iteration), cols = vars(plotGroup)) +
+      ggplot2::theme_classic() + theme(legend.position="none") +
+      labs(title = scenarios[mr]))
+}
+
+#termTS %>% filter(model_run == omName)
+
+errCompare <- cnvrgTS %>% filter(Seas == 1, model_run != omName) %>%
+                select(Bio_smry, year, model_run, iteration, scenario, HCR, recScen, emYear, plotGroup) %>%
+                inner_join(y = subset(termTS, model_run == omName), 
+                           by = c("year", "iteration", "scenario", "HCR", "recScen")) %>%
+                #filter(iteration == 1) %>%
+                  rename(age1plusOM = Bio_smry.y,
+                         age1plusEM = Bio_smry.x) %>% 
+                  mutate(errSmryBio = (age1plusEM - age1plusOM)/age1plusOM) %>%
+                select(age1plusEM, age1plusOM, errSmryBio, year, model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
+                group_by(model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
+                summarize(runMSE = mean(errSmryBio)) %>%
+                group_by(iteration, scenario, HCR, recScen, plotGroup) %>%
+                summarize(runMSE = mean(runMSE))  #%>%
+                # group_by(scenario, HCR, recScen, plotGroup) %>%
+                # summarize(runMSE = mean(runMSE))
+
+errCompare %>% #filter(HCR != "HCR3") %>%
+  ggplot(aes(x = HCR, y = runMSE, fill = plotGroup)) +
+  geom_boxplot(outlier.shape = NA) +
+  facet_wrap(~recScen) 
+
+PlotEMAnnualEsts(dirSSMSE = mseDir, scenarios = scenarios,
+                 varCol = c("SSB_Unfished", "NatM_uniform_Fem_GP_1",
+                            "L_at_Amin_Fem_GP_1", "SR_LN_R0",
+                            "SR_regime_BLK1repl_2000", "InitF_seas_2_flt_2MexCal_S2",
+                            "CV_old_Fem_GP_1"))
+
+convrgCheck %>%
+  ggplot(aes(x = emYear, y = max_grad)) +
+  geom_line(aes(linetype = scenario))+
+  scale_linetype_manual(values = rep("solid", 51)) +
+  guides(linetype = "none") +
+  facet_grid(rows = vars(recScen), cols = vars(iteration), scales = "free") +
+  theme_classic() + theme(legend.position="none")
+
+# investigate non-converged models
+omOut <- SS_output(paste0(mseDir,
+                          "/constGrow2001OM_selfTestMidSteepFixRec_RandRecHCR2/1/constGrowthSteepness0dot6_OM_OM"))
+fixedOut <- SS_output(paste0(mseDir,
+                             "/constGrow2001OM_selfTestMidSteepFixRec_RandRecHCR2/1/constGrowFixRec_EM_2035"))
+compFixed <- SSsummarize(list(OM = omOut, EM2032 = fixedOut))
+compFixed$pars$relErr <- round((compFixed$pars$EM2032 - compFixed$pars$OM)/compFixed$pars$OM, digits = 3)
+SSplotComparisons(compFixed)
+compFixed$pars
+```
+
+# OM 2001 self test, recruitment at 0.5, CV=0.25, high sample size
+
+```{r}
+
+scenarios <- c("annualGrow2001OM_selfTestSigmaR0dot5CV0dot25_RandRecHCR0",
+               "annualGrow2001OM_selfTestSigmaR0dot5CV0dot25_RandRecHCR2")
+
+smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
+                                 scenarios = scenarios)
+
+performanceList <- CalcPerformance(smryOutputList)
+
+metricsTbl <- performanceList$perfomanceMetrics
+
+# parse out HCR and recruitment scenario
+metricsTbl <- metricsTbl %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                                    recScen = sub(pattern = "HCR.*","", scenario)) %>%
+                mutate(recScen = sub(pattern = ".*selfTest_","", recScen))
+
+hcrPal <- brewer.pal(10, "Set3")[-2]
+
+# plot convergence frequency
+metricsTbl %>% filter(HCR != "HCR0") %>%
+  ggplot(aes(x = HCR, y = frqNonConvg)) +
+  geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
+  facet_wrap(~recScen) + 
+  theme_minimal() +
+  scale_fill_brewer(palette = hcrPal)
+
+# get terminal estimates of these values for timeseries plots
+termTS <- CalcTermTS(smryOutputList) %>% 
+              mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                               recScen = sub(pattern = "HCR.*","", scenario)) %>%
+              mutate(recScen = sub(pattern = ".*selfTest_","", recScen))
+
+omName <- grep("_OM", smryOutputList$tsSmry$model_run, 
+                 fixed = TRUE, value = TRUE)[1]
+
+convrgCheck <- smryOutputList$sclSmry %>% 
+                  select(max_grad, model_run, iteration, scenario) %>%
+                  mutate(emYear = as.numeric(regmatches(model_run,
+                                                        gregexpr("[[:digit:]]+", 
+                                                                 model_run))),
+                         HCR = sub(pattern = ".*Rec","", scenario),
+                         recScen = sub(pattern = "HCR.*","", scenario)) %>%
+                  mutate(recScen = sub(pattern = ".*selfTest_","", recScen))  
+
+hcrs <- unique(termTS$HCR)
+exIters <- sample(termTS$iteration, size = 4)
+
+cnvrgTS <- smryOutputList$tsSmry %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                                   recScen = sub(pattern = "HCR.*","", scenario)) %>%
+      mutate(recScen = sub(pattern = ".*selfTest_","", recScen)) %>%
+      left_join(y = convrgCheck, by = c("iteration", "model_run", "scenario", "HCR", "recScen")) %>%
+      mutate(plotGroup = case_when(model_run == omName ~ "OM",
+                                   max_grad > 0.01 ~ "non-convrg",
+                                   max_grad < 0.01 ~ "convrg"))
+
+for(hcr in 2:length(hcrs)){
+  print(cnvrgTS %>% filter(HCR == hcrs[hcr], Seas == 1) %>%
+      ggplot(aes(x = year, y = log(Bio_smry))) +
+      ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+      ggplot2::geom_hline(yintercept = log(50000), color = "red") +
+      ggplot2::geom_line(aes(linetype = model_run, color = plotGroup))+
+      ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+      ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+      ggplot2::guides(linetype = "none") +
+      facet_grid(rows = vars(iteration), cols = vars(plotGroup)) +
+      ggplot2::theme_classic() + theme(legend.position="none") +
+      labs(title = hcrs[hcr]))
+}
+
+for(hcr in 2:length(hcrs)){
+  print(cnvrgTS %>% filter(HCR == hcrs[hcr], Seas == 1) %>%
+      ggplot(aes(x = year, y = rec_dev)) +
+      ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+      ggplot2::geom_hline(yintercept = 0, color = "gray") +
+      ggplot2::geom_line(aes(linetype = model_run, color = plotGroup))+
+      ggplot2::scale_color_manual(values = c("black", "blue", "#D65F00")) +
+      ggplot2::scale_linetype_manual(values = rep("solid", 51)) +
+      ggplot2::guides(linetype = "none") +
+      facet_grid(rows = vars(iteration), cols = vars(plotGroup)) +
+      ggplot2::theme_classic() + theme(legend.position="none") +
+      labs(title = hcrs[hcr]))
+}
+
+#termTS %>% filter(model_run == omName)
+
+errCompare <- cnvrgTS %>% filter(Seas == 1, model_run != omName) %>%
+                select(Bio_smry, year, model_run, iteration, scenario, HCR, recScen, emYear, plotGroup) %>%
+                inner_join(y = subset(termTS, model_run == omName), 
+                           by = c("year", "iteration", "scenario", "HCR", "recScen")) %>%
+                #filter(iteration == 1) %>%
+                  rename(age1plusOM = Bio_smry.y,
+                         age1plusEM = Bio_smry.x) %>% 
+                  mutate(errSmryBio = (age1plusEM - age1plusOM)/age1plusOM) %>%
+                select(age1plusEM, age1plusOM, errSmryBio, year, model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
+                group_by(model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
+                summarize(runMSE = mean(errSmryBio)) %>%
+                group_by(iteration, scenario, HCR, recScen, plotGroup) %>%
+                summarize(runMSE = mean(runMSE))  #%>%
+                # group_by(scenario, HCR, recScen, plotGroup) %>%
+                # summarize(runMSE = mean(runMSE))
+
+errCompare %>% #filter(HCR != "HCR3") %>%
+  ggplot(aes(x = HCR, y = runMSE, fill = plotGroup)) +
+  geom_boxplot(outlier.shape = NA) +
+  facet_wrap(~recScen) 
+```
+

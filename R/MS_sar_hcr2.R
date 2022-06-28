@@ -145,8 +145,8 @@ MS_sar_hcr2 = function(EM_out_dir = NULL,
   
   #upload the CalCOFI temperature timeseries
  # Ctemp=read.csv("/home/desiree/Documents/COCA/Sardine/calcofi_sst_projected.csv")
- Ctemp=read.csv("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/calcofi_sst_projected.csv")
- # Ctemp=read.csv("J:/Desiree/Sardine/SardineMSE/dat/calcofi_sst_projected.csv")
+ # Ctemp=read.csv("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/calcofi_sst_projected.csv")
+ Ctemp=read.csv("J:/Desiree/Sardine/SardineMSE/dat/calcofi_sst_projected.csv")
   
  #extract the average for the three years prior to the forecast
  Tyr=c((EMts$Yr[1]-1),(EMts$Yr[1]-2),(EMts$Yr[1]-3))

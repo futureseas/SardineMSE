@@ -287,7 +287,7 @@ cat("\n \n")
 sink()
 # Summarize results -------------------------------------------------------
 
-# Summarize 1 iteration of output
+# Summarize output
 sumry <- SSMSE_summary_all(mseOutputPath,
                            scenarios = scenName, 
                            run_parallel = TRUE)
