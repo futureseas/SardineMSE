@@ -72,11 +72,11 @@
 # Sex: 1  BioPattern: 1  NatMort
  0.199 0.936 0.585 0 99 0 -2 0 0 0 0 0 0 0 # NatM_uniform_Fem_GP_1
 # Sex: 1  BioPattern: 1  Growth
- 3 30 12.8541 0 99 0 3 0 0 0 0 0 0 0 # L_at_Amin_Fem_GP_1
- 15 40 24.8415 0 99 0 3 0 0 0 0 0 0 0 # L_at_Amax_Fem_GP_1
- 0.05 0.99 0.307573 0 99 0 3 0 0 0 0 0 0 0 # VonBert_K_Fem_GP_1
- 0.05 0.5 0.105349 0 99 0 3 0 0 0 0 0 0 0 # CV_young_Fem_GP_1
- 0.01 0.1 0.0237245 0 99 0 3 0 0 0 0 0 0 0 # CV_old_Fem_GP_1
+ 3 30 13.1744 0 99 0 3 0 0 0 0 0 0 0 # L_at_Amin_Fem_GP_1
+ 15 40 25.153 0 99 0 3 0 0 0 0 0 0 0 # L_at_Amax_Fem_GP_1
+ 0.05 0.99 0.273111 0 99 0 3 0 0 0 0 0 0 0 # VonBert_K_Fem_GP_1
+ 0.05 0.5 0.11932 0 99 0 3 0 0 0 0 0 0 0 # CV_young_Fem_GP_1
+ 0.01 0.1 0.025754 0 99 0 3 0 0 0 0 0 0 0 # CV_old_Fem_GP_1
 # Sex: 1  BioPattern: 1  WtLen
  -3 3 7.5242e-06 0 99 0 -3 0 0 0 0 0 0 0 # Wtlen_1_Fem_GP_1
  -3 5 3.2332 0 99 0 -3 0 0 0 0 0 0 0 # Wtlen_2_Fem_GP_1
@@ -107,13 +107,13 @@
 0  # 0/1 to use steepness in initial equ recruitment calculation
 0  #  future feature:  0/1 to make realized sigmaR a function of SR curvature
 #_          LO            HI          INIT         PRIOR         PR_SD       PR_type      PHASE    env-var    use_dev   dev_mnyr   dev_mxyr     dev_PH      Block    Blk_Fxn #  parm_name
-             3            25       14.4668             0            99             0          1          0          0          0          0          0          0          0 # SR_LN(R0)
+             3            25       14.9331             0            99             0          1          0          0          0          0          0          0          0 # SR_LN(R0)
            0.2             1           0.6             0            99             0         -5          0          0          0          0          0          0          0 # SR_BH_steep
-             0             2           0.5             0            99             0         -3          0          0          0          0          0          0          0 # SR_sigmaR
+             0             2          1.25             0            99             0         -3          0          0          0          0          0          0          0 # SR_sigmaR
            -15            15             0             0            99             0         -1          0          0          0          0          0          1          2 # SR_regime
              0             0             0             0            99             0         -3          0          0          0          0          0          0          0 # SR_autocorr
 # timevary SR parameters
- -15 15 1.29153 0 99 0 4 # SR_regime_BLK1repl_2000
+ -15 15 0.65398 0 99 0 4 # SR_regime_BLK1repl_2000
 1 #do_recdev:  0=none; 1=devvector (R=F(SSB)+dev); 2=deviations (R=F(SSB)+dev); 3=deviations (R=R0*dev; dev2=R-f(SSB)); 4=like 3 with sum(dev2) adding penalty
 2005 # first year of main recr_devs; early devs can preceed this era
 2019 # last year of main recr_devs; forecast devs start in following year
@@ -123,11 +123,11 @@
  2 #_recdev_early_phase
  0 #_forecast_recruitment phase (incl. late recr) (0 value resets to maxphase+1)
  1 #_lambda for Fcast_recr_like occurring before endyr+1
- 1992.3   #_last_early_yr_nobias_adj_in_MPD 
- 2003.0   #_first_yr_fullbias_adj_in_MPD 
- 2017.6   #_last_yr_fullbias_adj_in_MPD 
- 2019.1   #_first_recent_yr_nobias_adj_in_MPD 
- 0.8861  #_max_bias_adj_in_MPD (1.0 to mimic pre-2009 models) (typical ~0.8; -3 sets all years to 0.0; -2 sets all non-forecast yrs w/ estimated recdevs to 1.0; -1 sets biasadj=1.0 for all yrs w/ recdevs)
+ 1987.8   #_last_early_yr_nobias_adj_in_MPD 
+ 2002.6   #_first_yr_fullbias_adj_in_MPD 
+ 2018.3   #_last_yr_fullbias_adj_in_MPD 
+ 2018.7   #_first_recent_yr_nobias_adj_in_MPD 
+ 0.9596  #_max_bias_adj_in_MPD (typical ~0.8; -3 sets all years to 0.0; -2 sets all non-forecast yrs w/ estimated recdevs to 1.0; -1 sets biasadj=1.0 for all yrs w/ recdevs)
  0 #_period of cycles in recruitment (N parms read below)
  -5 #min rec_dev
  5 #max rec_dev
@@ -140,7 +140,7 @@
 #
 # all recruitment deviations
 #  1994E 1995E 1996E 1997E 1998E 1999E 2000R 2001R 2002R 2003R 2004R 2005R 2006R 2007R 2008R 2009R 2010R 2011R 2012R 2013R 2014R 2015R 2016R 2017R 2018R 2019R 2020F
-#  -0.288697 0.372469 0.47872 0.902129 0.305911 -0.968186 -0.866061 -0.483997 2.54035 1.8061 2.35307 1.28145 1.60077 0.642868 1.67048 0.911681 -1.22678 -2.49263 -2.50412 -1.39346 -0.605812 -1.37941 -0.419554 -0.584894 -1.03107 0.181024 0
+#  -0.636849 1.0569 1.11229 1.54951 1.04094 -0.718641 -0.2627 -0.701062 2.8605 2.11879 2.71308 1.5941 1.94559 0.895758 1.96529 1.01446 -1.47592 -3.75728 -3.14924 -1.41653 -0.21983 -1.56866 -0.0769104 -0.379209 -2.32125 0.221036 0
 #
 #Fishing Mortality info 
 0.1 # F ballpark value in units of annual_F
@@ -156,9 +156,9 @@
 # F rates by fleet x season
 # Yr:  2001 2001 2002 2002 2003 2003 2004 2004 2005 2005 2006 2006 2007 2007 2008 2008 2009 2009 2010 2010 2011 2011 2012 2012 2013 2013 2014 2014 2015 2015 2016 2016 2017 2017 2018 2018 2019 2019 2020 2020
 # seas:  1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2
-# MexCal_S1 0.121371 0 0.160099 0 0.115358 0 0.074247 0 0.0388026 0 0.0625782 0 0.154062 0 0.156961 0 0.09051 0 0.0751037 0 0.159804 0 0.0226375 0 0.0505784 0 0.233706 0 0.000789554 0 0.0228411 0 0.0169078 0 0.00369478 0 0.0136769 0 0.01475 0
-# MexCal_S2 0 0.331975 0 0.351235 0 0.0962022 0 0.0666362 0 0.0845715 0 0.111184 0 0.183147 0 0.214975 0 0.184688 0 0.14769 0 0.244158 0 0.418245 0 0.446597 0 0.0855347 0 0.0145432 0 0.576366 0 0.567626 0 0.961462 0 1.39696 0 1.95
-# PNW 0.106914 0.0194159 0.239866 0.00550921 0.395598 0.0390682 0.675401 0.0211714 0.789756 0.00200435 0.301999 0 0.268426 0 0.199467 0 0.254127 0.0103193 0.384991 8.76097e-07 0.364665 0.0742517 1.07253 0.0290952 1.03019 0.0263905 0.507316 0.108568 0.00390386 9.6876e-05 0.014926 5.67301e-06 0.000130572 0.000321353 0.00095599 0.000399833 0.00113322 0.000490151 0.0015 0
+# MexCal_S1 0.209921 0 0.271499 0 0.203165 0 0.0934254 0 0.0405064 0 0.0643718 0 0.145158 0 0.15793 0 0.0900702 0 0.0838994 0 0.168573 0 0.0260284 0 0.0710613 0 0.525621 0 0.00191021 0 0.0342906 0 0.0244364 0 0.0062548 0 0.0242683 0 0.01475 0
+# MexCal_S2 0 0.476605 0 0.521701 0 0.100124 0 0.0648177 0 0.0737664 0 0.0982761 0 0.15575 0 0.196173 0 0.171711 0 0.14471 0 0.244676 0 0.472389 0 0.746185 0 0.168199 0 0.0197468 0 0.729859 0 0.768146 0 1.39312 0 4.00001 0 1.95
+# PNW 0.159807 0.0293085 0.334461 0.00780141 0.596483 0.0624551 1.30243 0.0463297 1.73779 0.00485037 0.578172 0 0.377338 0 0.254373 0 0.276865 0.0112255 0.405167 9.23396e-07 0.373016 0.0759169 1.2236 0.0340065 1.11338 0.0286387 0.497794 0.105895 0.00374682 9.32083e-05 0.0153993 5.79234e-06 0.000155978 0.000384434 0.00130429 0.000543437 0.00156612 0.000690072 0.0015 0
 #
 #_Q_setup for fleets with cpue or survey data
 #_1:  fleet number
@@ -235,36 +235,36 @@
 #
 #_          LO            HI          INIT         PRIOR         PR_SD       PR_type      PHASE    env-var    use_dev   dev_mnyr   dev_mxyr     dev_PH      Block    Blk_Fxn  #  parm_name
 # 1   MexCal_S1 LenSelex
-             0            30       10.9072             0            99             0          3          0          0          0          0          0          0          0  #  Size_inflection_MexCal_S1(1)
-             0            10      0.659909             0            99             0          3          0          0          0          0          0          0          0  #  Size_95%width_MexCal_S1(1)
+             0            30       9.90937             0            99             0          3          0          0          0          0          0          0          0  #  Size_inflection_MexCal_S1(1)
+             0            10      0.440803             0            99             0          3          0          0          0          0          0          0          0  #  Size_95%width_MexCal_S1(1)
 # 2   MexCal_S2 LenSelex
 # 3   PNW LenSelex
 # 4   AT_Survey LenSelex
 # 5   DEPM LenSelex
 # 6   TEP_all LenSelex
 # 1   MexCal_S1 AgeSelex
-           -10            11      0.999074            -1            99             0          3          0          0          0          0          0          0          0  #  AgeSel_P1_MexCal_S1(1)
-           -10            11      2.68726            -1            99             0          3          0          0          0          0          0          0          0  #  AgeSel_P2_MexCal_S1(1)
-           -10            15      0.627321            -1            99             0          3          0          0          0          0          0          0          0  #  AgeSel_P3_MexCal_S1(1)
-           -10            11       -1.53257            -1            99             0          3          0          0          0          0          0          0          0  #  AgeSel_P4_MexCal_S1(1)
-           -10            11     -0.484538            -1            99             0          3          0          0          0          0          0          0          0  #  AgeSel_P5_MexCal_S1(1)
-           -10            11     -0.842876            -1            99             0          3          0          0          0          0          0          0          0  #  AgeSel_P6_MexCal_S1(1)
-           -10            11     -0.493986            -1            99             0          3          0          0          0          0          0          0          0  #  AgeSel_P7_MexCal_S1(1)
-           -10            11     -0.0467134            -1            99             0          3          0          0          0          0          0          0          0  #  AgeSel_P8_MexCal_S1(1)
-           -10            11     -0.71255            -1            99             0          3          0          0          0          0          0          0          0  #  AgeSel_P9_MexCal_S1(1)
+           -10            11      0.999074            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P1_MexCal_S1(1)
+           -10            11       2.68726            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P2_MexCal_S1(1)
+           -10            15      0.627321            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P3_MexCal_S1(1)
+           -10            11      -1.53257            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P4_MexCal_S1(1)
+           -10            11     -0.484538            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P5_MexCal_S1(1)
+           -10            11     -0.842876            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P6_MexCal_S1(1)
+           -10            11     -0.493986            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P7_MexCal_S1(1)
+           -10            11    -0.0467134            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P8_MexCal_S1(1)
+           -10            11      -0.71255            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P9_MexCal_S1(1)
 # 2   MexCal_S2 AgeSelex
            -10            11       1.99999            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P1_MexCal_S2(2)
-           -10            15      0.528724            -1            99             0          3          0          0          0          0          0          0          0  #  AgeSel_P2_MexCal_S2(2)
-           -10            11      -0.845591            -1            99             0          3          0          0          0          0          0          0          0  #  AgeSel_P3_MexCal_S2(2)
-           -10            11     -0.70448            -1            99             0          3          0          0          0          0          0          0          0  #  AgeSel_P4_MexCal_S2(2)
-           -10            11     -0.800642            -1            99             0          3          0          0          0          0          0          0          0  #  AgeSel_P5_MexCal_S2(2)
-           -10            11     -0.5            -1            99             0          3          0          0          0          0          0          0          0  #  AgeSel_P6_MexCal_S2(2)
-           -10            11     -0.5            -1            99             0          3          0          0          0          0          0          0          0  #  AgeSel_P7_MexCal_S2(2)
-           -10            11     -0.5            -1            99             0          3          0          0          0          0          0          0          0  #  AgeSel_P8_MexCal_S2(2)
-           -10            11     -0.5            -1            99             0          3          0          0          0          0          0          0          0  #  AgeSel_P9_MexCal_S2(2)
+           -10            15      0.528724            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P2_MexCal_S2(2)
+           -10            11     -0.845591            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P3_MexCal_S2(2)
+           -10            11      -0.70448            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P4_MexCal_S2(2)
+           -10            11     -0.800642            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P5_MexCal_S2(2)
+           -10            11          -0.5            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P6_MexCal_S2(2)
+           -10            11          -0.5            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P7_MexCal_S2(2)
+           -10            11          -0.5            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P8_MexCal_S2(2)
+           -10            11          -0.5            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P9_MexCal_S2(2)
 # 3   PNW AgeSelex
-             0            10       3.34761             0            99             0          4          0          0          0          0          0          0          0  #  Age_inflection_PNW(3)
-            -5            15       1.34425             0            99             0          4          0          0          0          0          0          0          0  #  Age_95%width_PNW(3)
+             0            10       3.34761             0            99             0         -4          0          0          0          0          0          0          0  #  Age_inflection_PNW(3)
+            -5            15       1.34425             0            99             0         -4          0          0          0          0          0          0          0  #  Age_95%width_PNW(3)
 # 4   AT_Survey AgeSelex
              0             9             0            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P1_AT_Survey(4)
              0            11             0            -1            99             0         -4          0          0          0          0          0          0          0  #  AgeSel_P2_AT_Survey(4)

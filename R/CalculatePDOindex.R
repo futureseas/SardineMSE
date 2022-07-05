@@ -49,7 +49,7 @@ newDat$recDevPDO <- MakeRecruitDevs(envtInx = newDat$expPDO,
 # bias correction
 sdPDO <- newDat %>% summarize(devSD = sd(recDevPDO))
 
-newDat <- newDat %>% mutate(recDevPDO = recDevPDO * (0.5/sdPDO$devSD))
+newDat <- newDat %>% mutate(recDevPDO = recDevPDO * (1.25/sdPDO$devSD))
 
 #write.csv(newDat, "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevPDOnoclim2120.csv")
 
@@ -91,9 +91,9 @@ sdPDO <- climPDO %>% filter(year >2019) %>%
                       devSD_HAD = sd(recDev_HAD),
                       devSD_IPSL = sd(recDev_IPSL))
 
-climPDO <- climPDO %>% mutate(recDev_GFDL = recDev_GFDL * (0.5/sdPDO$devSD_GFDL),
-                              recDev_HAD = recDev_HAD * (0.5/sdPDO$devSD_HAD),
-                              recDev_IPSL = recDev_IPSL * (0.5/sdPDO$devSD_IPSL))
+climPDO <- climPDO %>% mutate(recDev_GFDL = recDev_GFDL * (1.25/sdPDO$devSD_GFDL),
+                              recDev_HAD = recDev_HAD * (1.25/sdPDO$devSD_HAD),
+                              recDev_IPSL = recDev_IPSL * (1.25/sdPDO$devSD_IPSL))
 
 # write.csv(climPDO, "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevPDOclim2101.csv")
 climPDO %>% ggplot(aes(x = year, y = gfdl_pdo)) + geom_line()

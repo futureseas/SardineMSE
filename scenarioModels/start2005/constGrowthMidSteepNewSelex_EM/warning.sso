@@ -10,7 +10,7 @@ This file contains warnings, suggestions and notes generated as files are read a
 1 NOTE:  Max data length bin: 28  < max pop len bins: 30; so will accumulate larger pop len bins
 2 settle_month is less than spawn_month, so logical age at settlement calculated to be: 1  for settle_time 1.  Does not match read value of 0 are you sure? 
 3 setting in starter does not request all priors, and 1 parameters have priors and are not estimated, so their prior not included in obj_fun.
-4 1st iteration warning: ssb(endyr)/ssb(styr)= 0.00184617; suggest start with larger R0 to get near 0.4; or use depletion fleet option
+4 1st iteration warning: ssb(endyr)/ssb(styr)= 1.27045e-06; suggest start with larger R0 to get near 0.4; or use depletion fleet option
 5 1st iteration warning: catch logL > 50% total logL; check configuration; suggest start with larger R0
 6 setting positive forecast relF for forecast only fleet: 1
 7 setting positive forecast relF for forecast only fleet: 2
