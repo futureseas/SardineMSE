@@ -148,7 +148,7 @@ ssbrecsMICE %>% filter(GCM.x == "RA") %>% ggplot(aes(x = year.x, y = log(meanSSB
   geom_line(data = st1981$recruit, aes(x = Yr, y = log(SpawnBio)))
 
 # compare to estimated recruitment from the 2001 model
-st2001 <- SS_output(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2001")
+st2001 <- SS_output(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2001/constGrowthMidSteepNewSelex_OM")
 
 range(st2001$recruit$pred_recr)
 
@@ -308,7 +308,7 @@ nll <- function(pars, data) {
   Rpred <- BH_lin(pars, data$ssb)
   Robs <- log(data$rec)
   # Negative log-likelihood 
-  -sum(dnorm(x = Robs, mean = Rpred, sd = 1.25, log = TRUE))
+  -sum(dnorm(x = Robs, mean = Rpred, sd = 0.5, log = TRUE))
 }
 
 #use optim to estimate the parameters - choosing initial values that are pretty far from actual
@@ -333,24 +333,39 @@ fitMICE6 <- optim(par = c(1e11,1e5), fn = nll, method = "L-BFGS-B",
                   lower = rep(2, 1), data = datMICE)
 fitMICE7 <- optim(par = c(1e5,1e10), fn = nll, method = "L-BFGS-B",
                   lower = rep(2, 1), data = datMICE)
+fitMICE8 <- optim(par = c(1000, 1), fn = nll, method = "L-BFGS-B",
+                  lower = rep(2, 1), data = datMICE)
+fitMICE9 <- optim(par = c(100, 10), fn = nll, method = "L-BFGS-B",
+                  lower = rep(2, 1), data = datMICE)
+fitMICE10 <- optim(par = c(10000, 10), fn = nll, method = "L-BFGS-B",
+                   lower = rep(2, 1), data = datMICE)
+fitMICE11 <- optim(par = c(10000, 100), fn = nll, method = "L-BFGS-B",
+                   lower = rep(2, 1), data = datMICE)
 
 diffFits <- rbind(fitMICE$par, fitMICE1$par, fitMICE2$par, fitMICE3$par,
-                  fitMICE4$par, fitMICE5$par, fitMICE6$par, fitMICE7$par)
+                  fitMICE4$par, fitMICE5$par, fitMICE6$par, fitMICE7$par,
+                  fitMICE8$par, fitMICE9$par, fitMICE10$par, fitMICE11$par)
 colnames(diffFits) <- c("a", "b")
 diffFits <- as.data.frame(diffFits)
   
 diffFits %>% mutate(nll = c(fitMICE$value, fitMICE1$value, 
                             fitMICE2$value, fitMICE3$value,
                             fitMICE4$value, fitMICE5$value,
-                            fitMICE6$value, fitMICE7$value),
+                            fitMICE6$value, fitMICE7$value,
+                            fitMICE8$value, fitMICE9$value,
+                            fitMICE10$value, fitMICE11$value),
                     convg = c(fitMICE$convergence, fitMICE1$convergence, 
                               fitMICE2$convergence, fitMICE3$convergence,
                               fitMICE4$convergence, fitMICE5$convergence,
-                              fitMICE6$convergence, fitMICE7$convergence)) %>%
+                              fitMICE6$convergence, fitMICE7$convergence,
+                              fitMICE8$convergence, fitMICE9$convergence,
+                              fitMICE10$convergence, fitMICE11$convergence)) %>%
   arrange(convg, nll)
 
-test4 <- optim(par = c(20000000000, 1000000), fn = nll, method = "L-BFGS-B",
+test4 <- optim(par = c(27000000000, 1300000), fn = nll, method = "L-BFGS-B",
                   lower = rep(2, 1), data = datMICE)
+
+
 
 #check fit to the simulated rec data
 plot(datMICE$ssb,log(datMICE$rec),ylim=c(10,24))
@@ -387,7 +402,7 @@ ssbrecsMICE <- ssbrecsMICE %>% add_case(Year = rep(2020, 3),
                                         ensembleRecDevs = c(0,0,0),
                                         elsRecDevs = c(0,0,0)) %>%
                   # bias correction
-                  mutate(ensembleRecDevs = ensembleRecDevs * (1.25/sdMICE$ensembleDevSD),
-                         elsRecDevs = elsRecDevs * (1.25/sdMICE$elsDevSD)) 
+                  mutate(ensembleRecDevs = ensembleRecDevs * (0.5/sdMICE$ensembleDevSD),
+                         elsRecDevs = elsRecDevs * (0.5/sdMICE$elsDevSD)) 
   
 # write.csv(ssbrecsMICE, "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevMICE2100.csv")

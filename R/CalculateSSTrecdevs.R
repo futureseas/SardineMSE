@@ -98,8 +98,8 @@ sdSST <- projSST %>% filter(year >2019) %>%
                     devSD_HAD = sd(recDevSST_HAD),
                     devSD_IPSL = sd(recDevSST_IPSL))
 
-projSST <- projSST %>% mutate(recDevSST_GFDL = recDevSST_GFDL * (1.25/sdSST$devSD_GFDL),
-                              recDevSST_HAD = recDevSST_HAD * (1.25/sdSST$devSD_HAD),
-                              recDevSST_IPSL = recDevSST_IPSL * (1.25/sdSST$devSD_IPSL))
+projSST <- projSST %>% mutate(recDevSST_GFDL = recDevSST_GFDL * (0.5/sdSST$devSD_GFDL),
+                              recDevSST_HAD = recDevSST_HAD * (0.5/sdSST$devSD_HAD),
+                              recDevSST_IPSL = recDevSST_IPSL * (0.5/sdSST$devSD_IPSL))
 
 #write.csv(projSST, "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevSST2070.csv")
