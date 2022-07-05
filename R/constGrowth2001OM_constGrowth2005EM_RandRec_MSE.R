@@ -108,7 +108,7 @@ scenName <- c("constGrow2001OM_constGrow2005EM_RandRecHCR0",
               "constGrow2001OM_constGrow2005EM_RandRecHCR6",
               "constGrow2001OM_constGrow2005EM_RandRecHCR7",
               "constGrow2001OM_constGrow2005EM_RandRecHCR8")
-iters <- 20
+iters <- 100
 
 ### use random recdevs with sd same as to historical
 template_mod_change <- create_future_om_list(example_type = "model_change")
@@ -120,13 +120,13 @@ rec_dev_specify$input$last_yr_averaging <- 2019
 rec_dev_specify$input$last_yr_orig_val <- 2019
 rec_dev_specify$input$first_yr_final_val <- 2020
 rec_dev_specify$input$ts_param <- "sd"
-rec_dev_specify$input$value <- NA
+rec_dev_specify$input$value <- 1.25
 
 rand_dev_list <- list(rec_dev_specify)
 
 # Run the OM --------------------------------------------------------------
 
-# Custon MS fxn location
+# Custom MS fxn location
 # MSfxnPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R"
 MSfxnPath <- "J:/Desiree/Sardine/SardineMSE/R"
 seedNum <- 219

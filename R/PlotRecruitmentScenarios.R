@@ -19,7 +19,7 @@ omRecDevs <- smryOutputList$tsSmry %>% filter(Seas == 1,
                 select(Yr, dev, scenario) %>%
                 mutate(scenario = sub("constGrow2001OM_constGrow2005EM_", "", scenario),
                        scenario = sub("HCR0", "", scenario))
-randRec <- SS_output(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/constGrowShortNewSelex_RandRecHCR2",
+randRec <- SS_output(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/constGrowthMidSteepNewSelex_OM_OM",
                     verbose = FALSE, printstats = FALSE)
 randRec <- randRec$recruit %>% select(Yr, SpawnBio, exp_recr, pred_recr, dev, era) %>%
               mutate(scenario = "RandRec")

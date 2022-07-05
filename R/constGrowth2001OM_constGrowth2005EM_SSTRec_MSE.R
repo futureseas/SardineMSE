@@ -138,7 +138,7 @@ envt_dev_list <- list(recdevInput)
 
 # Run the OM --------------------------------------------------------------
 
-# Custon MS fxn location
+# Custom MS fxn location
 # MSfxnPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R"
 MSfxnPath <- "J:/Desiree/Sardine/SardineMSE/R"
 seedNum <- 219
