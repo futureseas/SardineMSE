@@ -141,7 +141,7 @@ envt_dev_list <- list(recdevInput)
 # Custom MS fxn location
 # MSfxnPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R"
 MSfxnPath <- "J:/Desiree/Sardine/SardineMSE/R"
-seedNum <- 219
+seedNum <- 706
 logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
 
 sink(file = file(logFile), append = TRUE)
