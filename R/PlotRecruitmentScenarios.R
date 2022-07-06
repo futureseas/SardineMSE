@@ -4,7 +4,7 @@ library(tidyverse)
 library(r4ss)
 
 # Historical recruitment from operating model
-om2001 <- SS_output(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2001",
+om2001 <- SS_output(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2001/constGrowthMidSteepNewSelex_OM",
                     verbose = FALSE, printstats = FALSE)
 omHistRec <- om2001$recruit %>% select(Yr, SpawnBio, exp_recr, pred_recr, dev, era) %>%
                 mutate(scenario = "Historical")
@@ -19,10 +19,10 @@ omRecDevs <- smryOutputList$tsSmry %>% filter(Seas == 1,
                 select(Yr, dev, scenario) %>%
                 mutate(scenario = sub("constGrow2001OM_constGrow2005EM_", "", scenario),
                        scenario = sub("HCR0", "", scenario))
-# randRec <- SS_output(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/start2001_OM_RandRecHCR0",
-#                     verbose = FALSE, printstats = FALSE)
-# randRec <- randRec$recruit %>% select(Yr, SpawnBio, exp_recr, pred_recr, dev, era) %>%
-#               mutate(scenario = "Random")
+randRec <- SS_output(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/constGrowthMidSteepNewSelex_OM_OM",
+                    verbose = FALSE, printstats = FALSE)
+randRec <- randRec$recruit %>% select(Yr, SpawnBio, exp_recr, pred_recr, dev, era) %>%
+              mutate(scenario = "RandRec")
 # 
 # # Random recruitment with autocorrelation projection
 # arRec <- SS_output(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/start2001_OM_ARRecHCR0",
@@ -66,10 +66,10 @@ climPDO <- climPDO %>% rename("Yr" = "year") %>%
   mutate(scenario = paste("PDO", scenario, sep = "_")) %>%
   select(Yr, dev, scenario)
 
-# recDevDat <- rbind(omHistRec, randRec, arRec)
-# recDevDat <- recDevDat %>% select(Yr, dev, scenario)
-# recDevDat <- rbind(recDevDat, recPDOnoclim, recSST, ssbrecsMICE, climPDO)
-recDevDat <- rbind(omRecDevs, recPDOnoclim, recSST, ssbrecsMICE, climPDO)
+recDevDat <- rbind(omHistRec, randRec)#, arRec)
+recDevDat <- recDevDat %>% select(Yr, dev, scenario)
+recDevDat <- rbind(recDevDat, recPDOnoclim, recSST, ssbrecsMICE, climPDO)
+# recDevDat <- rbind(omRecDevs, recPDOnoclim, recSST, ssbrecsMICE, climPDO)
 
 recDevDat %>% filter(scenario %in% c("RandRec", "ARRec", "PDOnoclim", 
                                      "recDevSST_GFDL", "GFDL_ensemble", "PDO_GFDL"),
