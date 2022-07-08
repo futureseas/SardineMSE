@@ -1,4 +1,4 @@
-# Code to test a constant growth model starting in 2001 with recruitment driven by GFDL SST
+# Code to test a constant growth model starting in 2001 with recruitment driven by cyclic PDO
 # Created: 1/25/2022, Robert Wildermuth
 # Details: Uses a constant growth operating model beginning in 2001 and an 
 #          estimation model with constant growth and fixed selectivity for time 
@@ -86,45 +86,45 @@ agecomp <- data.frame(Yr = rep(c(yrsrt:yrend),nadat),
                       Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
 
 sample_struct <- list(catch = catch, CPUE = CPUE, lencomp = lencomp, agecomp = agecomp)
-sample_struct_list <- list("constGrow2001OM_constGrow2005EM_SSTRecHCR0" = sample_struct,
-                           "constGrow2001OM_constGrow2005EM_SSTRecHCR1" = sample_struct,
-                           "constGrow2001OM_constGrow2005EM_SSTRecHCR2" = sample_struct,
-                           "constGrow2001OM_constGrow2005EM_SSTRecHCR3" = sample_struct,
-                           "constGrow2001OM_constGrow2005EM_SSTRecHCR5" = sample_struct,
-                           "constGrow2001OM_constGrow2005EM_SSTRecHCR6" = sample_struct,
-                           "constGrow2001OM_constGrow2005EM_SSTRecHCR7" = sample_struct,
-                           "constGrow2001OM_constGrow2005EM_SSTRecHCR8" = sample_struct)
+sample_struct_list <- list("constGrow2001OM_constGrow2005EM_PDOcyclRecHCR0" = sample_struct,
+                           "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR1" = sample_struct,
+                           "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR2" = sample_struct,
+                           "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR3" = sample_struct,
+                           "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR5" = sample_struct,
+                           "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR6" = sample_struct,
+                           "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR7" = sample_struct,
+                           "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR8" = sample_struct)
 
 # figure out the recruitment deviation input ---------------
 
 # define scenario name
-scenName <- c("constGrow2001OM_constGrow2005EM_SSTRecHCR0",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR1",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR2",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR3",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR5",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR6",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR7",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR8")
+scenName <- c("constGrow2001OM_constGrow2005EM_PDOcyclRecHCR0",
+              "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR1",
+              "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR2",
+              "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR3",
+              "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR5",
+              "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR6",
+              "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR7",
+              "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR8")
 iters <- 100
 
 ### Define custom rec devs based on environment
 
 template <- create_future_om_list(example_type = "custom")
 
-# recUserDef <- read.csv("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevSST2070.csv")
-recUserDef <- read.csv("J:/Desiree/Sardine/SardineMSE/dat/recdevSST2070.csv")
+# recUserDef <- read.csv("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevPDOnoclim2120.csv")
+recUserDef <- read.csv("J:/Desiree/Sardine/SardineMSE/dat/recdevPDOnoclim2120.csv")
 
-recUserDef <- recUserDef %>% select(year, recDevSST_GFDL) %>%
-                filter(year <= yrend - 1,
-                       year >= yrsrt - 1) #%>%
+recUserDef <- recUserDef %>% select(Year, recDevPDO) %>%
+                filter(Year <= yrend - 1,
+                       Year >= yrsrt - 1) #%>%
 
 recdevInput <- template[[1]]
 recdevInput$pars <- "rec_devs"
 
 input <- data.frame(iter = rep(1:iters, each = nrow(recUserDef)), # !!RW: must start with empty scenario folder
-                    yr = rep(recUserDef$year, times = iters),
-                    value = rep(recUserDef$recDevSST_GFDL, times = iters))
+                    yr = rep(recUserDef$Year, times = iters),
+                    value = rep(recUserDef$recDevPDO, times = iters))
 # Add additional error over environment, different among iterations but same across HCRs
 input <- input %>% mutate(addlError = rnorm(nrow(input),0, 1.25),
                           valueNew = value * 0.7 + (0.3 * addlError),
