@@ -9,6 +9,11 @@ om2001 <- SS_output(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE
 omHistRec <- om2001$recruit %>% select(Yr, SpawnBio, exp_recr, pred_recr, dev, era) %>%
                 mutate(scenario = "Historical")
 
+# Historical recruitment from 1981 model
+research1981 <- SS_output("C:/Users/r.wildermuth/Documents/FutureSeas/sardine_research_assessment")
+resHistRec <- research1981$recruit %>% select(Yr, SpawnBio, exp_recr, pred_recr, dev, era) %>%
+                mutate(scenario = "Hist1981")
+
 # Random and autocorrelated recruitment projections
 smryOutputList <- readRDS("C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/serverRandRec_ARRec_allHCRs_results.RDS")
 omRecDevs <- smryOutputList$tsSmry %>% filter(Seas == 1, 
@@ -66,14 +71,14 @@ climPDO <- climPDO %>% rename("Yr" = "year") %>%
   mutate(scenario = paste("PDO", scenario, sep = "_")) %>%
   select(Yr, dev, scenario)
 
-recDevDat <- rbind(omHistRec, randRec)#, arRec)
+recDevDat <- rbind(omHistRec, resHistRec, randRec)#, arRec)
 recDevDat <- recDevDat %>% select(Yr, dev, scenario)
 recDevDat <- rbind(recDevDat, recPDOnoclim, recSST, ssbrecsMICE, climPDO)
 # recDevDat <- rbind(omRecDevs, recPDOnoclim, recSST, ssbrecsMICE, climPDO)
 
-recDevDat %>% filter(scenario %in% c("RandRec", "ARRec", "PDOnoclim", 
+recDevDat %>% filter(scenario %in% c("RandRec", "ARRec", "PDOnoclim", "Hist1981",
                                      "recDevSST_GFDL", "GFDL_ensemble", "PDO_GFDL"),
-                     Yr < 2070, Yr > 2000) %>%
+                     Yr < 2070, Yr > 1981) %>%
   mutate(scenario = fct_relevel(scenario, "RandRec", "ARRec", "PDOnoclim", 
                                 "PDO_GFDL", "recDevSST_GFDL", "GFDL_ensemble")) %>%
   ggplot(aes(x = Yr, y = dev, color = scenario)) + 

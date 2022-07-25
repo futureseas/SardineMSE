@@ -1,4 +1,9 @@
+# Code to calculate recruitment deviations based on the SST relationship defined
+# in PFMC 2013
+# Robert Wildermuth
+
 library(tidyverse)
+library(r4ss)
 
 source("R/MakeRecruitDevs.R")
 
@@ -66,14 +71,26 @@ sstDat %>% ggplot(aes(x = Year, y = recDevSSTDiff)) + geom_line() +
 # Read in projected CalCOFI SST data
 projSST <- read_csv("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/calcofi_sst_projected.csv")
 
-# Calculate recdevs for each projection
-projSST$recDevSST_GFDL <- MakeRecruitDevs(envtInx = projSST$gfdl_sst_all,
+# Need to adjust projections so historical mean matches observed data
+histMean <- mean(sstDat$SST_CC_ann)
+histProjSST <- projSST %>% filter(year < 2009) %>% 
+                  summarize(gfdlHistMean = mean(gfdl_sst_all),
+                            hadHistMean = mean(had_sst_all),
+                            ipslHistMean = mean(ipsl_sst_all))
+histDiffs <- histProjSST - histMean
+projSST <- projSST %>% mutate(gfdlSSTadj = gfdl_sst_all - histDiffs$gfdlHistMean,
+                              hadSSTadj = had_sst_all - histDiffs$hadHistMean,
+                              ipslSSTadj = ipsl_sst_all - histDiffs$ipslHistMean)
+summary(projSST[projSST$year < 2009, ])
+
+# Calculate recdevs for each projection using adjusted values
+projSST$recDevSST_GFDL <- MakeRecruitDevs(envtInx = projSST$gfdlSSTadj,
                                     envtCoeff = 1.280965e+00, devSD = 0.45) # R^2 of annual SST model was 0.55 (PFMC 2013, Appendix E, pg 49) 
 
-projSST$recDevSST_HAD <- MakeRecruitDevs(envtInx = projSST$had_sst_all,
+projSST$recDevSST_HAD <- MakeRecruitDevs(envtInx = projSST$hadSSTadj,
                                     envtCoeff = 1.280965e+00, devSD = 0.45) 
 
-projSST$recDevSST_IPSL <- MakeRecruitDevs(envtInx = projSST$ipsl_sst_all,
+projSST$recDevSST_IPSL <- MakeRecruitDevs(envtInx = projSST$ipslSSTadj,
                                     envtCoeff = 1.280965e+00, devSD = 0.45) 
 
 # deviation is the difference between yearly temp-dependent and mean temp-dependent adjustment
@@ -89,17 +106,48 @@ centerHAD <- scale(centerHAD, center = TRUE, scale = FALSE)
 centerIPSL <- projSST %>% filter(year < 2005) %>% select(recDevSST_IPSL)
 centerIPSL <- scale(centerIPSL, center = TRUE, scale = FALSE)
 
-projSST <- projSST %>% mutate(recDevSST_GFDL = recDevSST_GFDL - attr(centerGFDL,"scaled:center"),
-                              recDevSST_HAD = recDevSST_HAD - attr(centerHAD,"scaled:center"),
-                              recDevSST_IPSL = recDevSST_IPSL - attr(centerIPSL,"scaled:center"))
+# projSST <- projSST %>% mutate(recDevSST_GFDL = recDevSST_GFDL - attr(centerGFDL,"scaled:center"),
+#                               recDevSST_HAD = recDevSST_HAD - attr(centerHAD,"scaled:center"),
+#                               recDevSST_IPSL = recDevSST_IPSL - attr(centerIPSL,"scaled:center"))
 # bias correction
 sdSST <- projSST %>% filter(year >2019) %>% 
           summarize(devSD_GFDL = sd(recDevSST_GFDL),
                     devSD_HAD = sd(recDevSST_HAD),
                     devSD_IPSL = sd(recDevSST_IPSL))
 
-projSST <- projSST %>% mutate(recDevSST_GFDL = recDevSST_GFDL * (1.25/sdSST$devSD_GFDL),
-                              recDevSST_HAD = recDevSST_HAD * (1.25/sdSST$devSD_HAD),
-                              recDevSST_IPSL = recDevSST_IPSL * (1.25/sdSST$devSD_IPSL))
+projSST <- projSST %>% mutate(recDevSST_GFDLbc = recDevSST_GFDL * (1.25/sdSST$devSD_GFDL),
+                              recDevSST_HADbc = recDevSST_HAD * (1.25/sdSST$devSD_HAD),
+                              recDevSST_IPSLbc = recDevSST_IPSL * (1.25/sdSST$devSD_IPSL))
+
+# plot of temperature time series
+plot(projSST$year, projSST$gfdlSSTadj, type = "l", ylim = c(15,20),
+     main = "SST index timeseries")
+lines(projSST$year, projSST$hadSSTadj, col = 3)
+lines(projSST$year, projSST$ipslSSTadj, col = 4)
+abline(v = 2020, col = "grey")
+
+# compare to historical SST used to derive relationship
+lines(sstDat$Year, sstDat$SST_CC_ann, col = 2)
+legend("topleft", legend = c("GFDL", "HAD", "IPSL", "PFMC2013"),
+       col = c(1,3,4,2), lty = 1, ncol = 2)
+
+# plot of various recruitment deviation estimates
+plot(projSST$year, projSST$recDevSST_GFDL, type = "l", ylim = c(-4,6), 
+     main = "Rec devs from SST")
+lines(projSST$year, projSST$recDevSST_GFDLbc, col = 4)
+lines(projSST$year, projSST$recDevSST_HADbc, col = 2)
+lines(projSST$year, projSST$recDevSST_IPSLbc, col = 3)
+abline(h = 0, col = "grey")
+
+# compare to estimated rec_devs from PFMC report and research SS model
+lines(x = sstDat$Year, y = sstDat$recDevSSTDiff, col = "darkgrey", lwd = 2)
+
+research1981 <- SS_output("C:/Users/r.wildermuth/Documents/FutureSeas/sardine_research_assessment")
+resHistRec <- research1981$recruit %>% select(Yr, SpawnBio, exp_recr, pred_recr, dev, era) %>%
+  mutate(scenario = "Hist1981")
+lines(resHistRec$Yr, resHistRec$dev, col = "darkorange", lwd = 2)
+
+legend("bottomright", legend = c("GFDL", "GFDLbc", "HADbc", "IPSLbc", "PFMC2013", "SShist"),
+       col = c(1,4,2,3,"darkgrey", "darkorange"), lty = 1, ncol = 2)
 
 #write.csv(projSST, "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevSST2070.csv")

@@ -34,17 +34,17 @@ OMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioMo
 
 # EM starts in 1981 to test a high data quality scenario
 # EMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start1981/EM_K"
-EMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2005/constantGrowth"
+EMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2005"
 # EM starter.ss file must indicate init values are to be pulled from control.ss file, not ss.par
 
 # Define Observation Model ------------------------------------------------
 # Run test of marginal comps OM
-datfile <- SS_readdat(file = paste0(OMmodelPath, "/data.ss"), version = "3.30")
+datfile <- SS_readdat(file = paste0(OMmodelPath, "/constGrowthMidSteepNewSelex_OM/data.ss"), version = "3.30")
 
 # create_sample_strct() has trouble IDing SE for survey CPUE
 # define an index for the Acoustic-Trawl survey as in Desiree's code
 #specify number of years of MSE loop
-nyrs <- 50
+nyrs <- 10
 
 #sample_struct <- create_sample_struct(dat = datfile, nyrs = nyrs)
 #traceback()
@@ -59,7 +59,7 @@ yrend <- datfile$endyr + nyrs
 CPUE <- data.frame(Yr= yrsrt:yrend,
                    Seas= 1,
                    FltSvy = 4,
-                   SE = 0.5)
+                   SE = 0.25)
 
 #specify the number of catch fleets
 ncdat <- 3
@@ -97,12 +97,12 @@ agecomp <- data.frame(Yr = rep(c(yrsrt:yrend),nadat),
                      Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
 
 sample_struct <- list(catch = catch, CPUE = CPUE, lencomp = lencomp, agecomp = agecomp)
-sample_struct_list <- list("constGrowthShortOMandEM_RandRec_HCR5" = sample_struct)
+sample_struct_list <- list("constGrowthShortOMandEM_RegRec_HCR5" = sample_struct)
 
 # figure out the recruitment deviation input ---------------
 
 # define scenario name
-scenName <- "constGrowthShortOMandEM_RandRec_HCR5"
+scenName <- "constGrowthShortOMandEM_RegRec_HCR5"
 iters <- 3
 
 ### Define custom rec devs based on environment
@@ -152,7 +152,15 @@ rec_dev_specify$input$last_yr_averaging <- 2019
 rec_dev_specify$input$last_yr_orig_val <- 2019
 rec_dev_specify$input$first_yr_final_val <- 2020
 rec_dev_specify$input$ts_param <- "sd"
-rec_dev_specify$input$value <- NA
+rec_dev_specify$input$value <- 1.25
+
+rec_dev_specify$input <- data.frame(first_yr_averaging = NA, #rep(datfile$styr, 1),
+                                    last_yr_averaging = NA, #rep(2019, 1),
+                                    last_yr_orig_val = c(2019, 2024),
+                                    first_yr_final_val = c(2020, 2025),
+                                    ts_param = c("sd", "mean"),
+                                    method = c("absolute", "additive"),
+                                    value = c(1.25, -1))#, -2.25458))
 
 ### Add autocorrelation ###
 # new_vals <- data.frame(first_yr_averaging = NA,
@@ -164,6 +172,21 @@ rec_dev_specify$input$value <- NA
 #                        value = 0.5) # 1 for random walk
 # rec_dev_specify$input <- rbind(rec_dev_specify$input,
 #                                new_vals)
+
+
+# ### use random recdevs with higher R0 estimated from 1981 research model
+# !RW: doesn't work
+# template_mod_change <- create_future_om_list(example_type = "model_change")
+# rec_dev_specify <- template_mod_change[[1]]
+# rec_dev_specify$pars <- c("SR_LN(R0)")#, "SR_regime_BLK1repl_2000")
+# rec_dev_specify$scen <- c("replicate", "all") # note: could change this to c("random", "all") if did not want to replicate the same recdevs sequences across scenarios
+# rec_dev_specify$input <- data.frame(first_yr_averaging = NA, #rep(datfile$styr, 1),
+#                                     last_yr_averaging = NA, #rep(2019, 1),
+#                                     last_yr_orig_val = rep(2024, 1),
+#                                     first_yr_final_val = rep(2025, 1),
+#                                     ts_param = rep("mean", 1),
+#                                     method = rep("absolute", 1),
+#                                     value = c(15.3516))#, -2.25458))
 
 rand_dev_list <- list(rec_dev_specify)
 
@@ -186,9 +209,9 @@ out <- run_SSMSE(scen_name_vec = scenName, # name of the scenario
                  out_dir_scen_vec = mseOutputPath, # directory in which to run the scenario
                  iter_vec = c(iters), # run with 5 iterations for now
                  OM_name_vec = NULL, # specify directories instead
-                 OM_in_dir_vec = OMmodelPath, # OM files
-                 EM_name_vec = "testHCR5", # cod is included in package data
-                 EM_in_dir_vec = EMmodelPath, # EM files
+                 OM_in_dir_vec = file.path(OMmodelPath, "constGrowthMidSteepNewSelex_OM"), # OM files
+                 EM_name_vec = "constGrowShortEM", # cod is included in package data
+                 EM_in_dir_vec = file.path(EMmodelPath, "constGrowthMidSteepNewSelex_EM"), # EM files
                  # MS_vec = "EM",
                  # MS_vec = "no_catch",
                  MS_vec = "MS_sar_hcr5_018",       # The management strategy is specified in the custom function
