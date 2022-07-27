@@ -90,28 +90,28 @@ agecomp <- data.frame(Yr = rep(c(yrsrt:yrend),nadat),
                       # Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
 
 sample_struct <- list(catch = catch, CPUE = CPUE, lencomp = lencomp, agecomp = agecomp)
-sample_struct_list <- list("constGrow2001OM_constGrow2005EM_RandRecHCR0" = sample_struct,
-                           "constGrow2001OM_constGrow2005EM_RandRecHCR1" = sample_struct,
-                           "constGrow2001OM_constGrow2005EM_RandRecHCR2" = sample_struct,
-                           "constGrow2001OM_constGrow2005EM_RandRecHCR3" = sample_struct,
+sample_struct_list <- list("constGrow2001OM_constGrow2005EM_RegRecHCR0" = sample_struct,
+                           "constGrow2001OM_constGrow2005EM_RegRecHCR1" = sample_struct,
+                           "constGrow2001OM_constGrow2005EM_RegRecHCR2" = sample_struct,
+                           "constGrow2001OM_constGrow2005EM_RegRecHCR3" = sample_struct,
                            #"constGrow2001OM_constGrow2005EM_RandRecHCR4" = sample_struct,
-                           "constGrow2001OM_constGrow2005EM_RandRecHCR5" = sample_struct,
-                           "constGrow2001OM_constGrow2005EM_RandRecHCR6" = sample_struct,
-                           "constGrow2001OM_constGrow2005EM_RandRecHCR7" = sample_struct,
-                           "constGrow2001OM_constGrow2005EM_RandRecHCR8" = sample_struct)
+                           "constGrow2001OM_constGrow2005EM_RegRecHCR5" = sample_struct,
+                           "constGrow2001OM_constGrow2005EM_RegRecHCR6" = sample_struct,
+                           "constGrow2001OM_constGrow2005EM_RegRecHCR7" = sample_struct,
+                           "constGrow2001OM_constGrow2005EM_RegRecHCR8" = sample_struct)
 
 # figure out the recruitment deviation input ---------------
 
 # define scenario name
-scenName <- c("constGrow2001OM_constGrow2005EM_RandRecHCR0",
-              "constGrow2001OM_constGrow2005EM_RandRecHCR1",
-              "constGrow2001OM_constGrow2005EM_RandRecHCR2",
-              "constGrow2001OM_constGrow2005EM_RandRecHCR3",
+scenName <- c("constGrow2001OM_constGrow2005EM_RegRecHCR0",
+              "constGrow2001OM_constGrow2005EM_RegRecHCR1",
+              "constGrow2001OM_constGrow2005EM_RegRecHCR2",
+              "constGrow2001OM_constGrow2005EM_RegRecHCR3",
               #"constGrow2001OM_constGrow2005EM_RandRecHCR4",
-              "constGrow2001OM_constGrow2005EM_RandRecHCR5",
-              "constGrow2001OM_constGrow2005EM_RandRecHCR6",
-              "constGrow2001OM_constGrow2005EM_RandRecHCR7",
-              "constGrow2001OM_constGrow2005EM_RandRecHCR8")
+              "constGrow2001OM_constGrow2005EM_RegRecHCR5",
+              "constGrow2001OM_constGrow2005EM_RegRecHCR6",
+              "constGrow2001OM_constGrow2005EM_RegRecHCR7",
+              "constGrow2001OM_constGrow2005EM_RegRecHCR8")
 iters <- 10
 
 ### use random recdevs with sd same as to historical
@@ -119,12 +119,14 @@ template_mod_change <- create_future_om_list(example_type = "model_change")
 rec_dev_specify <- template_mod_change[[1]]
 rec_dev_specify$pars <- "rec_devs"
 rec_dev_specify$scen <- c("replicate", "all") # note: could change this to c("random", "all") if did not want to replicate the same recdevs sequences across scenarios
-rec_dev_specify$input$first_yr_averaging <- datfile$styr
-rec_dev_specify$input$last_yr_averaging <- 2019
-rec_dev_specify$input$last_yr_orig_val <- 2019
-rec_dev_specify$input$first_yr_final_val <- 2020
-rec_dev_specify$input$ts_param <- "sd"
-rec_dev_specify$input$value <- 1.25
+rec_dev_specify$input <- data.frame(first_yr_averaging = rep(datfile$styr, 2),
+                                    last_yr_averaging = rep(2019, 2),
+                                    last_yr_orig_val = c(2019, 2044),
+                                    first_yr_final_val = c(2020, 2045),
+                                    ts_param = c("sd", "mean"),
+                                    method = c("absolute", "additive"),
+                                    value = c(1.25, 1))
+
 
 rand_dev_list <- list(rec_dev_specify)
 

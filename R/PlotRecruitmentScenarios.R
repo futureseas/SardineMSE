@@ -10,30 +10,43 @@ omHistRec <- om2001$recruit %>% select(Yr, SpawnBio, exp_recr, pred_recr, dev, e
                 mutate(scenario = "Historical")
 
 # Historical recruitment from 1981 model
-research1981 <- SS_output("C:/Users/r.wildermuth/Documents/FutureSeas/sardine_research_assessment")
+research1981 <- SS_output("C:/Users/r.wildermuth/Documents/FutureSeas/sardine_research_assessment",
+                          verbose = FALSE, printstats = FALSE)
 resHistRec <- research1981$recruit %>% select(Yr, SpawnBio, exp_recr, pred_recr, dev, era) %>%
                 mutate(scenario = "Hist1981")
 
 # Random and autocorrelated recruitment projections
-smryOutputList <- readRDS("C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/serverRandRec_ARRec_allHCRs_results.RDS")
-omRecDevs <- smryOutputList$tsSmry %>% filter(Seas == 1, 
-                                              model_run == "start2001_OM",
-                                              iteration == 5,
-                                              grepl("HCR0", scenario, fixed = TRUE)) %>%
-                rename("Yr" = "year", "dev" = "rec_dev") %>%
-                select(Yr, dev, scenario) %>%
-                mutate(scenario = sub("constGrow2001OM_constGrow2005EM_", "", scenario),
-                       scenario = sub("HCR0", "", scenario))
-randRec <- SS_output(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/constGrowthMidSteepNewSelex_OM_OM",
+# smryOutputList <- readRDS("C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/serverRandRec_ARRec_allHCRs_results.RDS")
+# omRecDevs <- smryOutputList$tsSmry %>% filter(Seas == 1, 
+#                                               model_run == "start2001_OM",
+#                                               iteration == 5,
+#                                               grepl("HCR0", scenario, fixed = TRUE)) %>%
+#                 rename("Yr" = "year", "dev" = "rec_dev") %>%
+#                 select(Yr, dev, scenario) %>%
+#                 mutate(scenario = sub("constGrow2001OM_constGrow2005EM_", "", scenario),
+#                        scenario = sub("HCR0", "", scenario))
+randRec <- SS_output(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/constGrow2001OM_constGrow2005EM_RandRecHCR0/1/constGrowthMidSteepNewSelex_OM_OM",
                     verbose = FALSE, printstats = FALSE)
 randRec <- randRec$recruit %>% select(Yr, SpawnBio, exp_recr, pred_recr, dev, era) %>%
               mutate(scenario = "RandRec")
-# 
-# # Random recruitment with autocorrelation projection
-# arRec <- SS_output(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/start2001_OM_ARRecHCR0",
-#                      verbose = FALSE, printstats = FALSE)
-# arRec <- arRec$recruit %>% select(Yr, SpawnBio, exp_recr, pred_recr, dev, era) %>%
-#             mutate(scenario = "AR1")
+
+# Random recruitment with autocorrelation projection
+arRec <- SS_output(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/constGrow2001OM_constGrow2005EM_ARRecHCR0/1/constGrowthMidSteepNewSelex_OM_OM",
+                     verbose = FALSE, printstats = FALSE)
+arRec <- arRec$recruit %>% select(Yr, SpawnBio, exp_recr, pred_recr, dev, era) %>%
+            mutate(scenario = "ARRec")
+
+
+# Random recruitment with regime decrease and increase
+regDecRec <- SS_output(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/constGrow2001OM_constGrow2005EM_RegRecHCR0/1/constGrowthMidSteepNewSelex_OM_OM",
+                   verbose = FALSE, printstats = FALSE)
+regDecRec <- regDecRec$recruit %>% select(Yr, SpawnBio, exp_recr, pred_recr, dev, era) %>%
+  mutate(scenario = "RegDecRec")
+
+regIncRec <- SS_output(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios/constGrow2001OM_constGrow2005EM_RegRecHCR0/4/constGrowthMidSteepNewSelex_OM_OM",
+                       verbose = FALSE, printstats = FALSE)
+regIncRec <- regIncRec$recruit %>% select(Yr, SpawnBio, exp_recr, pred_recr, dev, era) %>%
+  mutate(scenario = "RegIncRec")
 
 # deviations from cyclic PDO relationship
 recPDOnoclim <- read_csv("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevPDOnoclim2120.csv")
@@ -42,12 +55,34 @@ recPDOnoclim <- recPDOnoclim %>% select(Year, recDevPDO) %>%
                          "dev" = "recDevPDO") %>%
                   mutate(scenario = "PDOnoclim")
 
+# Add additional error over environment, different among iterations but same across HCRs
+recPDOnoclim <- recPDOnoclim %>% mutate(addlError = rnorm(nrow(recPDOnoclim),0, 1.25),
+                            # pseudo-R^2 of PDO fit was 0.44 in Zwolinski & Demer 2019
+                            valueNew = dev * 0.44 + (0.56 * addlError),
+                            devSD = sd(valueNew))
+# do scale correction
+recPDOnoclim <- recPDOnoclim %>% mutate(valueNewScaled = valueNew * (1.25/devSD)) %>%
+                    pivot_longer(cols = c(dev, valueNew, valueNewScaled),
+                                 names_to = "scaleStep",
+                                 values_to = "dev")
+
 recSST <- read_csv("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevSST2070.csv")
 recSST <- recSST %>% select(year, recDevSST_IPSL, recDevSST_HAD, recDevSST_GFDL) %>%
             rename("Yr" = "year") %>%
             # mutate(scenario = "SST") %>%
             pivot_longer(cols = c(recDevSST_IPSL, recDevSST_HAD, recDevSST_GFDL),
                          names_to = "scenario",
+                         values_to = "dev")
+
+# Add additional error over environment, different among iterations but same across HCRs
+recSST <- recSST %>% mutate(addlError = rnorm(nrow(recSST),0, 1.25),
+                          # R^2 of annual SST model was 0.55 (PFMC 2013, Appendix E, pg 49) 
+                          valueNew = dev * 0.55 + (0.45 * addlError),
+                          devSD = sd(valueNew))
+# do scale correction
+recSST <- recSST %>% mutate(valueNewScaled = valueNew * (1.25/devSD)) %>%
+            pivot_longer(cols = c(dev, valueNew, valueNewScaled),
+                         names_to = "scaleStep",
                          values_to = "dev")
 
 ssbrecsMICE <- read_csv("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevMICE2100.csv")
@@ -71,23 +106,43 @@ climPDO <- climPDO %>% rename("Yr" = "year") %>%
   mutate(scenario = paste("PDO", scenario, sep = "_")) %>%
   select(Yr, dev, scenario)
 
-recDevDat <- rbind(omHistRec, resHistRec, randRec)#, arRec)
-recDevDat <- recDevDat %>% select(Yr, dev, scenario)
-recDevDat <- rbind(recDevDat, recPDOnoclim, recSST, ssbrecsMICE, climPDO)
+recDevDat <- rbind(omHistRec, resHistRec, randRec, arRec, regDecRec, regIncRec)
+recDevDat <- recDevDat %>% select(Yr, dev, scenario) %>% 
+                mutate(scaleStep = "ID")
+envtDev <- rbind(recPDOnoclim, recSST)#, ssbrecsMICE, climPDO)
+envtDev <- envtDev %>% select(Yr, dev, scenario, scaleStep)
+recDevDat <- rbind(recDevDat, envtDev)
 # recDevDat <- rbind(omRecDevs, recPDOnoclim, recSST, ssbrecsMICE, climPDO)
 
-recDevDat %>% filter(scenario %in% c("RandRec", "ARRec", "PDOnoclim", "Hist1981",
-                                     "recDevSST_GFDL", "GFDL_ensemble", "PDO_GFDL"),
+resHistRec$Yr <- as.numeric(resHistRec$Yr)
+
+incRegMean <- regIncRec %>% filter(Yr > 2044) %>% summarize(meanDev = mean(dev))
+
+df <- data.frame(x1 = c(1981, 2001, 2020, 2045), 
+                 x2 = c(2000, 2019, 2044, 2068), 
+                 y1 = c(mean(resHistRec[resHistRec$Yr < 2001, "dev"], na.rm = TRUE),
+                        mean(resHistRec[resHistRec$Yr > 2000, "dev"], na.rm = TRUE),
+                        0, incRegMean$meanDev), 
+                 y2 = c(mean(resHistRec[resHistRec$Yr < 2001, "dev"], na.rm = TRUE),
+                        mean(resHistRec[resHistRec$Yr > 2000, "dev"], na.rm = TRUE),
+                        0, incRegMean$meanDev),
+                 scenario = c("Hist1981", "Hist1981",
+                              "RegIncRec", "RegIncRec"))
+
+recDevDat %>% filter(scenario %in% c("RandRec", "ARRec", "PDOnoclim", "Hist1981", "Historical", "RegDecRec", "RegIncRec",
+                                     "recDevSST_GFDL"),#, "GFDL_ensemble", "PDO_GFDL"),
                      Yr < 2070, Yr > 1981) %>%
-  mutate(scenario = fct_relevel(scenario, "RandRec", "ARRec", "PDOnoclim", 
-                                "PDO_GFDL", "recDevSST_GFDL", "GFDL_ensemble")) %>%
-  ggplot(aes(x = Yr, y = dev, color = scenario)) + 
+  # mutate(scenario = fct_relevel(scenario, "RandRec", "ARRec", "PDOnoclim", 
+  #                               "PDO_GFDL", "recDevSST_GFDL", "GFDL_ensemble")) %>%
+  ggplot(aes(x = Yr, y = dev, color = scaleStep)) + 
   geom_line() + 
   facet_wrap(vars(scenario)) +
   theme_classic() +
   geom_hline(yintercept = 0, color = "darkgrey") +
   geom_vline(xintercept = 2019.5, color = "darkgrey") +
-  labs(x = "Year", y = "Recruitment Deviation")
+  labs(x = "Year", y = "Recruitment Deviation") +
+  geom_segment(data = df,
+               mapping = aes(x = x1, y = y1, xend = x2, yend = y2, colour = "Regime"))
 
 recDevDat %>% ggplot(aes(x = dev, color = scenario)) + 
   geom_histogram() +

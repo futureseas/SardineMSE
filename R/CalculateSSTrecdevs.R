@@ -59,8 +59,11 @@ srSST %>% pivot_longer(cols = c(recSST14.9, recSST15.83, recSST16.8),
 #   of the Pacific Sardine Harvest Parameters Workshop
 sstDat$recDevSST <- MakeRecruitDevs(envtInx = sstDat$SST_CC_ann,
                                     envtCoeff = 1.280965e+00, devSD = 0.45) 
-meanRecDevSST <- MakeRecruitDevs(envtInx = mean(sstDat$SST_CC_ann),
-                                 envtCoeff = 1.280965e+00, devSD = 0.00001) # no error in baseline ref temp
+histMean <- mean(sstDat$SST_CC_ann)
+# meanRecDevSST <- MakeRecruitDevs(envtInx = histMean,
+#                                  envtCoeff = 1.280965e+00, devSD = 0.00001) # no error in baseline ref temp
+# calculate straight up mean temp effect
+meanRecDevSST <- histMean * 1.280965e+00
 # deviation is the difference between yearly temp-dependent and mean temp-dependent adjustment?
 sstDat <- sstDat %>% mutate(recDevSSTDiff = recDevSST - meanRecDevSST)
 range(sstDat$recDevSSTDiff)
@@ -72,7 +75,6 @@ sstDat %>% ggplot(aes(x = Year, y = recDevSSTDiff)) + geom_line() +
 projSST <- read_csv("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/calcofi_sst_projected.csv")
 
 # Need to adjust projections so historical mean matches observed data
-histMean <- mean(sstDat$SST_CC_ann)
 histProjSST <- projSST %>% filter(year < 2009) %>% 
                   summarize(gfdlHistMean = mean(gfdl_sst_all),
                             hadHistMean = mean(had_sst_all),
@@ -84,19 +86,19 @@ projSST <- projSST %>% mutate(gfdlSSTadj = gfdl_sst_all - histDiffs$gfdlHistMean
 summary(projSST[projSST$year < 2009, ])
 
 # Calculate recdevs for each projection using adjusted values
-projSST$recDevSST_GFDL <- MakeRecruitDevs(envtInx = projSST$gfdlSSTadj,
-                                    envtCoeff = 1.280965e+00, devSD = 0.45) # R^2 of annual SST model was 0.55 (PFMC 2013, Appendix E, pg 49) 
-
-projSST$recDevSST_HAD <- MakeRecruitDevs(envtInx = projSST$hadSSTadj,
-                                    envtCoeff = 1.280965e+00, devSD = 0.45) 
-
-projSST$recDevSST_IPSL <- MakeRecruitDevs(envtInx = projSST$ipslSSTadj,
-                                    envtCoeff = 1.280965e+00, devSD = 0.45) 
+# projSST$recDevSST_GFDL <- MakeRecruitDevs(envtInx = projSST$gfdlSSTadj,
+#                                     envtCoeff = 1.280965e+00, devSD = 0.45) # R^2 of annual SST model was 0.55 (PFMC 2013, Appendix E, pg 49) 
+# 
+# projSST$recDevSST_HAD <- MakeRecruitDevs(envtInx = projSST$hadSSTadj,
+#                                     envtCoeff = 1.280965e+00, devSD = 0.45) 
+# 
+# projSST$recDevSST_IPSL <- MakeRecruitDevs(envtInx = projSST$ipslSSTadj,
+#                                     envtCoeff = 1.280965e+00, devSD = 0.45) 
 
 # deviation is the difference between yearly temp-dependent and mean temp-dependent adjustment
-projSST <- projSST %>% mutate(recDevSST_GFDL = recDevSST_GFDL - meanRecDevSST,
-                              recDevSST_HAD = recDevSST_HAD - meanRecDevSST,
-                              recDevSST_IPSL = recDevSST_IPSL - meanRecDevSST)
+projSST <- projSST %>% mutate(recDevSST_GFDL = (gfdlSSTadj * 1.280965e+00) - meanRecDevSST,
+                              recDevSST_HAD = (hadSSTadj * 1.280965e+00) - meanRecDevSST,
+                              recDevSST_IPSL = (ipslSSTadj * 1.280965e+00) - meanRecDevSST)
 
 # modify rec devs so historical period (pre-2005) is centered on 0
 centerGFDL <- projSST %>% filter(year < 2005) %>% select(recDevSST_GFDL)

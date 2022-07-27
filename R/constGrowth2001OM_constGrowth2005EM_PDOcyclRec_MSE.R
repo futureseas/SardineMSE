@@ -15,18 +15,18 @@ library(SSMSE)
 packageVersion("SSMSE")
 
 # directory for MSE output
-# mseOutputPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
-mseOutputPath <- "J:/Desiree/Sardine/SardineScenarios"
+mseOutputPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
+# mseOutputPath <- "J:/Desiree/Sardine/SardineScenarios"
 
 # Set Operating and Estimation Model ----------------------------------------
 
 # directory for OM SS code
-# OMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2001"
-OMmodelPath <- "J:/Desiree/Sardine/SardineMSE/scenarioModels/start2001"
+OMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2001"
+# OMmodelPath <- "J:/Desiree/Sardine/SardineMSE/scenarioModels/start2001"
 
 # EM starts in 1981 to test a high data quality scenario
-# EMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2005"
-EMmodelPath <- "J:/Desiree/Sardine/SardineMSE/scenarioModels/start2005"
+EMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2005"
+# EMmodelPath <- "J:/Desiree/Sardine/SardineMSE/scenarioModels/start2005"
 # EM starter.ss file must indicate init values are to be pulled from control.ss file, not ss.par
 
 # Define Observation Model ------------------------------------------------
@@ -71,7 +71,9 @@ lencomp <- data.frame(Yr = rep(c(yrsrt:yrend),nldat),
                       FltSvy = c(rep(4,nyrs),rep(1,nyrs),rep(2,nyrs),rep(3,nyrs)),
                       Sex = rep(0,nyrs*nldat),
                       Part = rep(0,nyrs*nldat),
-                      Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
+                      # Use the ~mean values of sample sizes from recent past surveys/fleets
+                      Nsamp = c(rep(60,nyrs),rep(50,nyrs),rep(70,nyrs),rep(90,nyrs)))
+                      # Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
 
 #for age comps same surveys as as lcomps
 nadat <- 4
@@ -83,7 +85,9 @@ agecomp <- data.frame(Yr = rep(c(yrsrt:yrend),nadat),
                       Ageerr = c(rep(4,nyrs),rep(4,nyrs),rep(4,nyrs),rep(4,nyrs)),
                       Lbin_lo = c(rep(-1,nyrs),rep(-1,nyrs),rep(-1,nyrs),rep(-1,nyrs)),
                       Lbin_hi = c(rep(-1,nyrs),rep(-1,nyrs),rep(-1,nyrs),rep(-1,nyrs)),
-                      Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
+                      # Use the ~mean values of sample sizes from recent past surveys/fleets
+                      Nsamp = c(rep(80,nyrs),rep(40,nyrs),rep(60,nyrs),rep(80,nyrs)))
+                      # Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
 
 sample_struct <- list(catch = catch, CPUE = CPUE, lencomp = lencomp, agecomp = agecomp)
 sample_struct_list <- list("constGrow2001OM_constGrow2005EM_PDOcyclRecHCR0" = sample_struct,
@@ -106,14 +110,17 @@ scenName <- c("constGrow2001OM_constGrow2005EM_PDOcyclRecHCR0",
               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR6",
               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR7",
               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR8")
-iters <- 100
+iters <- 10
 
 ### Define custom rec devs based on environment
 
 template <- create_future_om_list(example_type = "custom")
 
-# recUserDef <- read.csv("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevPDOnoclim2120.csv")
-recUserDef <- read.csv("J:/Desiree/Sardine/SardineMSE/dat/recdevPDOnoclim2120.csv")
+recUserDef <- read.csv("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevPDOnoclim2120.csv")
+# recUserDef <- read.csv("J:/Desiree/Sardine/SardineMSE/dat/recdevPDOnoclim2120.csv")
+
+sdPDO <- recUserDef %>% filter(year >2019) %>% 
+            summarize(devPDOcycl = sd(recDevPDO))
 
 recUserDef <- recUserDef %>% select(Year, recDevPDO) %>%
                 filter(Year <= yrend - 1,
@@ -127,8 +134,12 @@ input <- data.frame(iter = rep(1:iters, each = nrow(recUserDef)), # !!RW: must s
                     value = rep(recUserDef$recDevPDO, times = iters))
 # Add additional error over environment, different among iterations but same across HCRs
 input <- input %>% mutate(addlError = rnorm(nrow(input),0, 1.25),
-                          valueNew = value * 0.7 + (0.3 * addlError),
-                          par = "rec_devs")
+                          # pseudo-R^2 of PDO fit was 0.44 in Zwolinski & Demer 2019
+                          valueNew = value * 0.44 + (0.56 * addlError),
+                          par = "rec_devs",
+                          devSD = sd(valueNew))
+# do scale correction
+input <- input %>% mutate(valueNew = valueNew * (1.25/devSD))
 input <- input %>% full_join(y = data.frame(scen = scenName), by = character()) %>% 
             arrange(scen, iter, yr)
 recdevInput$input <- input %>% select(par, scen, iter, yr, valueNew) %>%
@@ -139,8 +150,8 @@ envt_dev_list <- list(recdevInput)
 # Run the OM --------------------------------------------------------------
 
 # Custom MS fxn location
-# MSfxnPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R"
-MSfxnPath <- "J:/Desiree/Sardine/SardineMSE/R"
+MSfxnPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R"
+# MSfxnPath <- "J:/Desiree/Sardine/SardineMSE/R"
 seedNum <- 706
 logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
 

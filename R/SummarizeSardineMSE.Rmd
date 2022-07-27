@@ -34,13 +34,13 @@ termYr <- 2068
 scenarios <- c("constGrow2001OM_constGrow2005EM_RandRecHCR0",
               "constGrow2001OM_constGrow2005EM_RandRecHCR1",
               "constGrow2001OM_constGrow2005EM_RandRecHCR2",
-              "constGrow2001OM_constGrow2005EM_RandRecHCR3",
+              "constGrow2001OM_constGrow2005EM_RandRecHCR3")#,
               #"constGrow2001OM_constGrow2005EM_RandRecHCR4",
-              "constGrow2001OM_constGrow2005EM_RandRecHCR5",
-              "constGrow2001OM_constGrow2005EM_RandRecHCR6",
-              "constGrow2001OM_constGrow2005EM_RandRecHCR7",
-              "constGrow2001OM_constGrow2005EM_RandRecHCR8",
-              
+              # "constGrow2001OM_constGrow2005EM_RandRecHCR5",
+              # "constGrow2001OM_constGrow2005EM_RandRecHCR6",
+              # "constGrow2001OM_constGrow2005EM_RandRecHCR7",
+              # "constGrow2001OM_constGrow2005EM_RandRecHCR8",
+              # 
               # "constGrow2001OM_constGrow2005EM_ARRecHCR0",
               # "constGrow2001OM_constGrow2005EM_ARRecHCR1",
               # "constGrow2001OM_constGrow2005EM_ARRecHCR2",
@@ -50,26 +50,26 @@ scenarios <- c("constGrow2001OM_constGrow2005EM_RandRecHCR0",
               # "constGrow2001OM_constGrow2005EM_ARRecHCR6",
               # "constGrow2001OM_constGrow2005EM_ARRecHCR7",
               # "constGrow2001OM_constGrow2005EM_ARRecHCR8")#,
-              
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR0",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR1",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR2",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR3",
-              #"constGrow2001OM_constGrow2005EM_SSTRecHCR4",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR5",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR6",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR7",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR8",
-
-              "constGrow2001OM_constGrow2005EM_ccPDORecHCR0",
-              "constGrow2001OM_constGrow2005EM_ccPDORecHCR1",
-              "constGrow2001OM_constGrow2005EM_ccPDORecHCR2",
-              "constGrow2001OM_constGrow2005EM_ccPDORecHCR3",
-             # "constGrow2001OM_constGrow2005EM_ccPDORecHCR4",
-              "constGrow2001OM_constGrow2005EM_ccPDORecHCR5",
-              "constGrow2001OM_constGrow2005EM_ccPDORecHCR6",
-              "constGrow2001OM_constGrow2005EM_ccPDORecHCR7",
-              "constGrow2001OM_constGrow2005EM_ccPDORecHCR8")#,
+             #  
+             #  "constGrow2001OM_constGrow2005EM_SSTRecHCR0",
+             #  "constGrow2001OM_constGrow2005EM_SSTRecHCR1",
+             #  "constGrow2001OM_constGrow2005EM_SSTRecHCR2",
+             #  "constGrow2001OM_constGrow2005EM_SSTRecHCR3",
+             #  #"constGrow2001OM_constGrow2005EM_SSTRecHCR4",
+             #  "constGrow2001OM_constGrow2005EM_SSTRecHCR5",
+             #  "constGrow2001OM_constGrow2005EM_SSTRecHCR6",
+             #  "constGrow2001OM_constGrow2005EM_SSTRecHCR7",
+             #  "constGrow2001OM_constGrow2005EM_SSTRecHCR8",
+             # 
+             #  "constGrow2001OM_constGrow2005EM_ccPDORecHCR0",
+             #  "constGrow2001OM_constGrow2005EM_ccPDORecHCR1",
+             #  "constGrow2001OM_constGrow2005EM_ccPDORecHCR2",
+             #  "constGrow2001OM_constGrow2005EM_ccPDORecHCR3",
+             # # "constGrow2001OM_constGrow2005EM_ccPDORecHCR4",
+             #  "constGrow2001OM_constGrow2005EM_ccPDORecHCR5",
+             #  "constGrow2001OM_constGrow2005EM_ccPDORecHCR6",
+             #  "constGrow2001OM_constGrow2005EM_ccPDORecHCR7",
+             #  "constGrow2001OM_constGrow2005EM_ccPDORecHCR8")#,
               # 
               # "constGrow2001OM_constGrow2005EM_PDORecHCR0",
               # "constGrow2001OM_constGrow2005EM_PDORecHCR1",
@@ -92,11 +92,11 @@ scenarios <- c("constGrow2001OM_constGrow2005EM_RandRecHCR0",
               # "constGrow2001OM_constGrow2005EM_MICERecHCR8")
 
 
-  # smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
-  #                                  scenarios = scenarios)
+  smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
+                                   scenarios = scenarios)
   # saveRDS(smryOutputList, 
   #         file = file.path(mseDir, "serverRandRec_ARRec_allHCRs_results.RDS"))
-smryOutputList <- readRDS(file.path(mseDir, "serverRandSSTPDOCyclRec_allHCRs_results.RDS"))
+# smryOutputList <- readRDS(file.path(mseDir, "serverRandSSTPDOCyclRec_allHCRs_results.RDS"))
   
 performanceList <- CalcPerformance(smryOutputList)
 
@@ -230,14 +230,14 @@ meanCat <- termTS %>% filter(model_run == omName, HCR == "HCR5") %>%
             hiCatch = quantile(totCatch, probs = 0.9, na.rm = TRUE),
             minCatch = min(totCatch)) 
 
-termTS %>% filter(model_run == omName, HCR == "HCR5") %>%
-  ggplot(aes(x = year, y = totCatch)) +
-  geom_point() +
-  geom_line(data = meanCat, aes(y = meanCatch, color = HCR)) +
-  geom_line(data = meanCat, aes(y = minCatch, color = HCR)) +
-  facet_wrap(~recScen) +
-  scale_color_manual(values = hcrPal[5]) +
-  theme_minimal()
+# termTS %>% filter(model_run == omName, HCR == "HCR5") %>%
+#   ggplot(aes(x = year, y = totCatch)) +
+#   geom_point() +
+#   geom_line(data = meanCat, aes(y = meanCatch, color = HCR)) +
+#   geom_line(data = meanCat, aes(y = minCatch, color = HCR)) +
+#   facet_wrap(~recScen) +
+#   scale_color_manual(values = hcrPal[5]) +
+#   theme_minimal()
 ```
 
 ## Other parameters
@@ -279,7 +279,7 @@ smryOutputList$sclSmry %>% mutate(emYear = as.numeric(regmatches(model_run,
                          recScen = sub(pattern = "HCR.*","", scenario)) %>%
   mutate(recScen = sub(pattern = ".*EM_","", recScen))  %>%
   filter(model_run != omName, HCR != "HCR0", max_grad < 0.01, 
-         iteration == sample(1:100, size = 10)) %>%
+         iteration == sample(1:max(unique(termTS$iteration)), size = 10)) %>%
   ggplot(aes(x = emYear, y = log(SSB_Unfished))) +
   geom_line(ggplot2::aes(linetype = as.character(iteration), color = HCR))+
     #ggplot2::scale_color_manual(values = c("#D65F00", "blue")) +
@@ -579,14 +579,18 @@ assessRE %>% #filter(HCR != "HCR3") %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   labs(title = "Mean Annual Relative Error of Assessment")
 
-annualRE %>% filter(plotGroup != "non-convrg", recScen == "PDOcyclRec") %>%
-  ggplot(aes(x = as.factor(year), fill = HCR)) +
-  geom_boxplot(aes(ymin = loYrRE, lower = q1YrRE, middle = medYrRE, upper = q3YrRE, ymax = hiYrRE),
-               stat = "identity") +
-  facet_wrap(~HCR) +
-  geom_hline(yintercept = 0) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(title = "Mean Annual Relative Error of Assessment")
+scens <- unique(annualRE$recScen)
+for(i in 1:length(scens)){
+  print(annualRE %>% filter(plotGroup != "non-convrg", recScen == scens[i]) %>%
+    ggplot(aes(x = as.factor(year), fill = HCR)) +
+    geom_boxplot(aes(ymin = loYrRE, lower = q1YrRE, middle = medYrRE, 
+                     upper = q3YrRE, ymax = hiYrRE),
+                 stat = "identity") +
+    facet_wrap(~HCR) +
+    geom_hline(yintercept = 0) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    labs(title = "Median Annual Relative Error of Assessment"))
+}
 
 # Terminal estimate relative error
 termRE <- errCompare %>% filter(year == emYear.x) %>%

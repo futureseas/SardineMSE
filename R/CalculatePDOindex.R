@@ -46,10 +46,11 @@ newDat <- rbind(moPDO[moPDO$Year %in% 2019:2020, c("Year", "expPDO")],
                 newDat)
 
 # project rec devs using fit in Appendix A of Zwolinski & Demer 2019
-newDat$recDevPDO <- MakeRecruitDevs(envtInx = newDat$expPDO,
-                                    envtCoeff = 0.7815, 
-                                    devSD = 0.56) # pseudo-R^2 of PDO fit was 0.44 in Zwolinski & Demer 2019
-
+# newDat$recDevPDO <- MakeRecruitDevs(envtInx = newDat$expPDO,
+#                                     envtCoeff = 0.7815, 
+#                                     devSD = 0.56) # pseudo-R^2 of PDO fit was 0.44 in Zwolinski & Demer 2019
+newDat <- newDat %>% mutate(recDevPDO = expPDO * 0.7815)
+                              
 # make rec_devs with SS sigmaR as 'devSD'
 newDat$recDevSS_cyclPDO <- MakeRecruitDevs(envtInx = newDat$expPDO,
                                            envtCoeff = 0.7815, 
@@ -57,7 +58,7 @@ newDat$recDevSS_cyclPDO <- MakeRecruitDevs(envtInx = newDat$expPDO,
 # bias correction
 sdPDO <- newDat %>% filter(Year < 2070) %>%
             summarize(devSD = sd(recDevPDO),
-                              devSD_SS = sd(recDevSS_cyclPDO))
+                      devSD_SS = sd(recDevSS_cyclPDO))
 
 newDat <- newDat %>% mutate(recDevPDObc = recDevPDO * (1.25/sdPDO$devSD))
 #                             recDevSS_cyclPDO = recDevSS_cyclPDO * (1.25/sdPDO$devSD))
@@ -100,15 +101,18 @@ climPDO <- climPDO %>% mutate(season = case_when(month %in% 3:7 ~ "spr",
                         had_pdo = sum(had_pdo))
 
 # project rec devs using fit in Appendix A of Zwolinski & Demer 2019
-climPDO$recDev_GFDL <- MakeRecruitDevs(envtInx = climPDO$gfdl_pdo,
-                                    envtCoeff = 0.7815, 
-                                    devSD = 0.56) # pseudo-R^2 of PDO fit was 0.44 in Zwolinski & Demer 2019
-climPDO$recDev_IPSL <- MakeRecruitDevs(envtInx = climPDO$ipsl_pdo,
-                                       envtCoeff = 0.7815, 
-                                       devSD = 0.56) 
-climPDO$recDev_HAD <- MakeRecruitDevs(envtInx = climPDO$had_pdo,
-                                       envtCoeff = 0.7815, 
-                                       devSD = 0.56) 
+# climPDO$recDev_GFDL <- MakeRecruitDevs(envtInx = climPDO$gfdl_pdo,
+#                                     envtCoeff = 0.7815, 
+#                                     devSD = 0.56) # pseudo-R^2 of PDO fit was 0.44 in Zwolinski & Demer 2019
+# climPDO$recDev_IPSL <- MakeRecruitDevs(envtInx = climPDO$ipsl_pdo,
+#                                        envtCoeff = 0.7815, 
+#                                        devSD = 0.56) 
+# climPDO$recDev_HAD <- MakeRecruitDevs(envtInx = climPDO$had_pdo,
+#                                        envtCoeff = 0.7815, 
+#                                        devSD = 0.56) 
+climPDO <- climPDO %>% mutate(recDev_GFDL = (gfdl_pdo * 0.7815),
+                              recDev_HAD = (had_pdo * 0.7815),
+                              recDev_IPSL = (ipsl_pdo * 0.7815))
 
 # bias correction
 sdPDO <- climPDO %>% filter(year >2019) %>% 
@@ -116,9 +120,11 @@ sdPDO <- climPDO %>% filter(year >2019) %>%
                       devSD_HAD = sd(recDev_HAD),
                       devSD_IPSL = sd(recDev_IPSL))
 
-climPDO <- climPDO %>% mutate(recDev_GFDL = recDev_GFDL * (1.25/sdPDO$devSD_GFDL),
-                              recDev_HAD = recDev_HAD * (1.25/sdPDO$devSD_HAD),
-                              recDev_IPSL = recDev_IPSL * (1.25/sdPDO$devSD_IPSL))
+# climPDO <- climPDO %>% mutate(recDev_GFDL = recDev_GFDL * (1.25/sdPDO$devSD_GFDL),
+#                               recDev_HAD = recDev_HAD * (1.25/sdPDO$devSD_HAD),
+#                               recDev_IPSL = recDev_IPSL * (1.25/sdPDO$devSD_IPSL))
 
 # write.csv(climPDO, "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevPDOclim2101.csv")
+lines(climPDO$year, climPDO$recDev_GFDL, col = 3)
+
 climPDO %>% ggplot(aes(x = year, y = gfdl_pdo)) + geom_line()

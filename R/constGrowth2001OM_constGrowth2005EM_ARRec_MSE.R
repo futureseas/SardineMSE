@@ -15,23 +15,23 @@ library(SSMSE)
 packageVersion("SSMSE")
 
 # directory for MSE output
-# mseOutputPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
-mseOutputPath <- "J:/Desiree/Sardine/SardineScenarios"
+mseOutputPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
+# mseOutputPath <- "J:/Desiree/Sardine/SardineScenarios"
 
 # Set Operating and Estimation Model ----------------------------------------
 
 # directory for OM SS code
-# OMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2001"
-OMmodelPath <- "J:/Desiree/Sardine/SardineMSE/scenarioModels/start2001"
+OMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2001"
+# OMmodelPath <- "J:/Desiree/Sardine/SardineMSE/scenarioModels/start2001"
 
 # EM starts in 1981 to test a high data quality scenario
-# EMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2005"
-EMmodelPath <- "J:/Desiree/Sardine/SardineMSE/scenarioModels/start2005"
+EMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2005"
+# EMmodelPath <- "J:/Desiree/Sardine/SardineMSE/scenarioModels/start2005"
 # EM starter.ss file must indicate init values are to be pulled from control.ss file, not ss.par
 
 # Define Observation Model ------------------------------------------------
 # Run test of marginal comps OM
-datfile <- SS_readdat(file = paste0(OMmodelPath, "/data.ss"), version = "3.30")
+datfile <- SS_readdat(file = paste0(OMmodelPath, "/constGrowthMidSteepNewSelex_OM/data.ss"), version = "3.30")
 
 # create_sample_strct() has trouble IDing SE for survey CPUE
 # define an index for the Acoustic-Trawl survey as in Desiree's code
@@ -51,7 +51,7 @@ yrend <- datfile$endyr + nyrs
 CPUE <- data.frame(Yr= yrsrt:yrend,
                    Seas= 1,
                    FltSvy = 4,
-                   SE = 0.5)
+                   SE = 0.25)
 
 #specify the number of catch fleets
 ncdat <- 3
@@ -71,7 +71,9 @@ lencomp <- data.frame(Yr = rep(c(yrsrt:yrend),nldat),
                       FltSvy = c(rep(4,nyrs),rep(1,nyrs),rep(2,nyrs),rep(3,nyrs)),
                       Sex = rep(0,nyrs*nldat),
                       Part = rep(0,nyrs*nldat),
-                      Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
+                      # Use the ~mean values of sample sizes from recent past surveys/fleets
+                      Nsamp = c(rep(60,nyrs),rep(50,nyrs),rep(70,nyrs),rep(90,nyrs)))
+                      # Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
 
 #for age comps same surveys as as lcomps
 nadat <- 4
@@ -83,14 +85,16 @@ agecomp <- data.frame(Yr = rep(c(yrsrt:yrend),nadat),
                       Ageerr = c(rep(4,nyrs),rep(4,nyrs),rep(4,nyrs),rep(4,nyrs)),
                       Lbin_lo = c(rep(-1,nyrs),rep(-1,nyrs),rep(-1,nyrs),rep(-1,nyrs)),
                       Lbin_hi = c(rep(-1,nyrs),rep(-1,nyrs),rep(-1,nyrs),rep(-1,nyrs)),
-                      Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
+                      # Use the ~mean values of sample sizes from recent past surveys/fleets
+                      Nsamp = c(rep(80,nyrs),rep(40,nyrs),rep(60,nyrs),rep(80,nyrs)))
+                      # Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
 
 sample_struct <- list(catch = catch, CPUE = CPUE, lencomp = lencomp, agecomp = agecomp)
 sample_struct_list <- list("constGrow2001OM_constGrow2005EM_ARRecHCR0" = sample_struct,
                            "constGrow2001OM_constGrow2005EM_ARRecHCR1" = sample_struct,
                            "constGrow2001OM_constGrow2005EM_ARRecHCR2" = sample_struct,
                            "constGrow2001OM_constGrow2005EM_ARRecHCR3" = sample_struct,
-                           "constGrow2001OM_constGrow2005EM_ARRecHCR4" = sample_struct,
+                           #"constGrow2001OM_constGrow2005EM_ARRecHCR4" = sample_struct,
                            "constGrow2001OM_constGrow2005EM_ARRecHCR5" = sample_struct,
                            "constGrow2001OM_constGrow2005EM_ARRecHCR6" = sample_struct,
                            "constGrow2001OM_constGrow2005EM_ARRecHCR7" = sample_struct,
@@ -103,12 +107,12 @@ scenName <- c("constGrow2001OM_constGrow2005EM_ARRecHCR0",
               "constGrow2001OM_constGrow2005EM_ARRecHCR1",
               "constGrow2001OM_constGrow2005EM_ARRecHCR2",
               "constGrow2001OM_constGrow2005EM_ARRecHCR3",
-              "constGrow2001OM_constGrow2005EM_ARRecHCR4",
+              #"constGrow2001OM_constGrow2005EM_ARRecHCR4",
               "constGrow2001OM_constGrow2005EM_ARRecHCR5",
               "constGrow2001OM_constGrow2005EM_ARRecHCR6",
               "constGrow2001OM_constGrow2005EM_ARRecHCR7",
               "constGrow2001OM_constGrow2005EM_ARRecHCR8")
-iters <- 100
+iters <- 10
 
 ### use random recdevs with sd same as to historical
 template_mod_change <- create_future_om_list(example_type = "model_change")
@@ -120,7 +124,7 @@ rec_dev_specify$input$last_yr_averaging <- 2019
 rec_dev_specify$input$last_yr_orig_val <- 2019
 rec_dev_specify$input$first_yr_final_val <- 2020
 rec_dev_specify$input$ts_param <- "sd"
-rec_dev_specify$input$value <- NA
+rec_dev_specify$input$value <- 1.25
 
 new_vals <- data.frame(first_yr_averaging = NA,
                        last_yr_averaging  = NA,
@@ -128,7 +132,8 @@ new_vals <- data.frame(first_yr_averaging = NA,
                        first_yr_final_val = 2020,
                        ts_param = "ar_1_phi",
                        method = "absolute",
-                       value = 0.5) # 1 for random walk
+                       # Use autocorrelation value at 1 lag from recruitmentARanalysis.R
+                       value = 0.678) # 1 for random walk
 rec_dev_specify$input <- rbind(rec_dev_specify$input,
                                new_vals)
 
@@ -137,10 +142,10 @@ rand_dev_list <- list(rec_dev_specify)
 # Run the OM --------------------------------------------------------------
 
 # Custon MS fxn location
-# MSfxnPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R"
-MSfxnPath <- "J:/Desiree/Sardine/SardineMSE/R"
+MSfxnPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R"
+# MSfxnPath <- "J:/Desiree/Sardine/SardineMSE/R"
 
-seedNum <- 219
+seedNum <- 706
 
 logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
 
@@ -153,10 +158,10 @@ out0and1 <- run_SSMSE(scen_name_vec = scenName[1:2], # name of the scenario
                  out_dir_scen_vec = mseOutputPath, # directory in which to run the scenario
                  iter_vec = rep(iters, times = length(scenName[1:2])), # run with 5 iterations for now
                  OM_name_vec = NULL, # specify directories instead
-                 OM_in_dir_vec = OMmodelPath, #rep(OMmodelPath, times = length(scenName)), # OM files
+                 OM_in_dir_vec = file.path(OMmodelPath, "constGrowthMidSteepNewSelex_OM"), #rep(OMmodelPath, times = length(scenName)), # OM files
                  EM_name_vec = c(NA, "constGrowBothShort"), # Can't have number in name for summary diagnostics to work
                  EM_in_dir_vec = c(NA, 
-                                   file.path(EMmodelPath, "constantGrowth")),
+                                   file.path(EMmodelPath, "constGrowthMidSteepNewSelex_EM")),
                  MS_vec = c("no_catch", 
                             "MS_sar_hcr1"),
                  custom_MS_source = file.path(MSfxnPath, "MS_sar_hcr1.R"),
@@ -174,9 +179,9 @@ out2 <- run_SSMSE(scen_name_vec = scenName[3], # name of the scenario
                   out_dir_scen_vec = mseOutputPath, # directory in which to run the scenario
                   iter_vec = rep(iters, times = length(scenName[3])), # run with 5 iterations for now
                   OM_name_vec = NULL, # specify directories instead
-                  OM_in_dir_vec = OMmodelPath, #rep(OMmodelPath, times = length(scenName)), # OM files
+                  OM_in_dir_vec = file.path(OMmodelPath, "constGrowthMidSteepNewSelex_OM"), #rep(OMmodelPath, times = length(scenName)), # OM files
                   EM_name_vec = "constGrowBothShort", # Can't have number in name for summary diagnostics to work
-                  EM_in_dir_vec = file.path(EMmodelPath, "constantGrowth"),
+                  EM_in_dir_vec = file.path(EMmodelPath, "constGrowthMidSteepNewSelex_EM"),
                   MS_vec = "MS_sar_hcr2", 
                   custom_MS_source = file.path(MSfxnPath, "MS_sar_hcr2.R"),
                   use_SS_boot_vec = TRUE, # use the SS bootstrap module for sampling
@@ -189,34 +194,32 @@ out2 <- run_SSMSE(scen_name_vec = scenName[3], # name of the scenario
 cat("\n \n")
 out2
 
-out3and4 <- run_SSMSE(scen_name_vec = scenName[4:5], # name of the scenario
+out3and4 <- run_SSMSE(scen_name_vec = scenName[4], # name of the scenario
                       out_dir_scen_vec = mseOutputPath, # directory in which to run the scenario
-                      iter_vec = rep(iters, times = length(scenName[4:5])), # run with 5 iterations for now
+                      iter_vec = rep(iters, times = length(scenName[4])), # run with 5 iterations for now
                       OM_name_vec = NULL, # specify directories instead
-                      OM_in_dir_vec = OMmodelPath, #rep(OMmodelPath, times = length(scenName)), # OM files
+                      OM_in_dir_vec = file.path(OMmodelPath, "constGrowthMidSteepNewSelex_OM"), #rep(OMmodelPath, times = length(scenName)), # OM files
                       EM_name_vec = "constGrowBothShort", # Can't have number in name for summary diagnostics to work
-                      EM_in_dir_vec = c(file.path(EMmodelPath, "constantGrowth"),
-                                        file.path(EMmodelPath, "constantGrowth_HCR4")),
-                      MS_vec = c("MS_sar_hcr3",
-                                 "EM"),
+                      EM_in_dir_vec = file.path(EMmodelPath, "constGrowthMidSteepNewSelex_EM"),
+                      MS_vec = c("MS_sar_hcr3"),
                       custom_MS_source = file.path(MSfxnPath, "MS_sar_hcr3.R"),
                       use_SS_boot_vec = TRUE, # use the SS bootstrap module for sampling
                       nyrs_vec = nyrs,        # Years to project OM forward
                       nyrs_assess_vec = 1, # Years between assessments
                       future_om_list = rand_dev_list, 
                       run_parallel = TRUE, # Run iterations in parallel
-                      sample_struct_list = sample_struct_list[4:5], # How to sample data for running the EM.
+                      sample_struct_list = sample_struct_list[4], # How to sample data for running the EM.
                       seed = seedNum) #Set a fixed integer seed that allows replication
 cat("\n \n")
 out3and4
 
-out5 <- run_SSMSE(scen_name_vec = scenName[6], # name of the scenario
+out5 <- run_SSMSE(scen_name_vec = scenName[5], # name of the scenario
                       out_dir_scen_vec = mseOutputPath, # directory in which to run the scenario
-                      iter_vec = rep(iters, times = length(scenName[6])), # run with 5 iterations for now
+                      iter_vec = rep(iters, times = length(scenName[5])), # run with 5 iterations for now
                       OM_name_vec = NULL, # specify directories instead
-                      OM_in_dir_vec = OMmodelPath, #rep(OMmodelPath, times = length(scenName)), # OM files
+                      OM_in_dir_vec = file.path(OMmodelPath, "constGrowthMidSteepNewSelex_OM"), #rep(OMmodelPath, times = length(scenName)), # OM files
                       EM_name_vec = "constGrowBothShort", # Can't have number in name for summary diagnostics to work
-                      EM_in_dir_vec = file.path(EMmodelPath, "constantGrowth"),
+                      EM_in_dir_vec = file.path(EMmodelPath, "constGrowthMidSteepNewSelex_EM"),
                       MS_vec = "MS_sar_hcr5_018", 
                       custom_MS_source = file.path(MSfxnPath, "MS_sar_hcr5_018.R"),
                       use_SS_boot_vec = TRUE, # use the SS bootstrap module for sampling
@@ -224,20 +227,39 @@ out5 <- run_SSMSE(scen_name_vec = scenName[6], # name of the scenario
                       nyrs_assess_vec = 1, # Years between assessments
                       future_om_list = rand_dev_list, 
                       run_parallel = TRUE, # Run iterations in parallel
-                      sample_struct_list = sample_struct_list[6], # How to sample data for running the EM.
+                      sample_struct_list = sample_struct_list[5], # How to sample data for running the EM.
                       seed = seedNum) #Set a fixed integer seed that allows replication
 cat("\n \n")
 out5
 
-out6 <- run_SSMSE(scen_name_vec = scenName[7], # name of the scenario
+out6 <- run_SSMSE(scen_name_vec = scenName[6], # name of the scenario
+                  out_dir_scen_vec = mseOutputPath, # directory in which to run the scenario
+                  iter_vec = rep(iters, times = length(scenName[6])), # run with 5 iterations for now
+                  OM_name_vec = NULL, # specify directories instead
+                  OM_in_dir_vec = file.path(OMmodelPath, "constGrowthMidSteepNewSelex_OM"), #rep(OMmodelPath, times = length(scenName)), # OM files
+                  EM_name_vec = "constGrowBothShort", # Can't have number in name for summary diagnostics to work
+                  EM_in_dir_vec = file.path(EMmodelPath, "constGrowthMidSteepNewSelex_EM"),
+                  MS_vec = "MS_sar_hcr6_018", 
+                  custom_MS_source = file.path(MSfxnPath, "MS_sar_hcr6_018.R"),
+                  use_SS_boot_vec = TRUE, # use the SS bootstrap module for sampling
+                  nyrs_vec = nyrs,        # Years to project OM forward
+                  nyrs_assess_vec = 1, # Years between assessments
+                  future_om_list = rand_dev_list, 
+                  run_parallel = TRUE, # Run iterations in parallel
+                  sample_struct_list = sample_struct_list[6], # How to sample data for running the EM.
+                  seed = seedNum) #Set a fixed integer seed that allows replication
+cat("\n \n")
+out6
+
+out7 <- run_SSMSE(scen_name_vec = scenName[7], # name of the scenario
                   out_dir_scen_vec = mseOutputPath, # directory in which to run the scenario
                   iter_vec = rep(iters, times = length(scenName[7])), # run with 5 iterations for now
                   OM_name_vec = NULL, # specify directories instead
-                  OM_in_dir_vec = OMmodelPath, #rep(OMmodelPath, times = length(scenName)), # OM files
+                  OM_in_dir_vec = file.path(OMmodelPath, "constGrowthMidSteepNewSelex_OM"), #rep(OMmodelPath, times = length(scenName)), # OM files
                   EM_name_vec = "constGrowBothShort", # Can't have number in name for summary diagnostics to work
-                  EM_in_dir_vec = file.path(EMmodelPath, "constantGrowth"),
-                  MS_vec = "MS_sar_hcr6_018", 
-                  custom_MS_source = file.path(MSfxnPath, "MS_sar_hcr6_018.R"),
+                  EM_in_dir_vec = file.path(EMmodelPath, "constGrowthMidSteepNewSelex_EM"),
+                  MS_vec = "MS_sar_hcr7_018", 
+                  custom_MS_source = file.path(MSfxnPath, "MS_sar_hcr7_018.R"),
                   use_SS_boot_vec = TRUE, # use the SS bootstrap module for sampling
                   nyrs_vec = nyrs,        # Years to project OM forward
                   nyrs_assess_vec = 1, # Years between assessments
@@ -246,34 +268,15 @@ out6 <- run_SSMSE(scen_name_vec = scenName[7], # name of the scenario
                   sample_struct_list = sample_struct_list[7], # How to sample data for running the EM.
                   seed = seedNum) #Set a fixed integer seed that allows replication
 cat("\n \n")
-out6
+out7
 
-out7 <- run_SSMSE(scen_name_vec = scenName[8], # name of the scenario
+out8 <- run_SSMSE(scen_name_vec = scenName[8], # name of the scenario
                   out_dir_scen_vec = mseOutputPath, # directory in which to run the scenario
                   iter_vec = rep(iters, times = length(scenName[8])), # run with 5 iterations for now
                   OM_name_vec = NULL, # specify directories instead
-                  OM_in_dir_vec = OMmodelPath, #rep(OMmodelPath, times = length(scenName)), # OM files
+                  OM_in_dir_vec = file.path(OMmodelPath, "constGrowthMidSteepNewSelex_OM"), #rep(OMmodelPath, times = length(scenName)), # OM files
                   EM_name_vec = "constGrowBothShort", # Can't have number in name for summary diagnostics to work
-                  EM_in_dir_vec = file.path(EMmodelPath, "constantGrowth"),
-                  MS_vec = "MS_sar_hcr7_018", 
-                  custom_MS_source = file.path(MSfxnPath, "MS_sar_hcr7_018.R"),
-                  use_SS_boot_vec = TRUE, # use the SS bootstrap module for sampling
-                  nyrs_vec = nyrs,        # Years to project OM forward
-                  nyrs_assess_vec = 1, # Years between assessments
-                  future_om_list = rand_dev_list, 
-                  run_parallel = TRUE, # Run iterations in parallel
-                  sample_struct_list = sample_struct_list[8], # How to sample data for running the EM.
-                  seed = seedNum) #Set a fixed integer seed that allows replication
-cat("\n \n")
-out7
-
-out8 <- run_SSMSE(scen_name_vec = scenName[9], # name of the scenario
-                  out_dir_scen_vec = mseOutputPath, # directory in which to run the scenario
-                  iter_vec = rep(iters, times = length(scenName[9])), # run with 5 iterations for now
-                  OM_name_vec = NULL, # specify directories instead
-                  OM_in_dir_vec = OMmodelPath, #rep(OMmodelPath, times = length(scenName)), # OM files
-                  EM_name_vec = "constGrowBothShort", # Can't have number in name for summary diagnostics to work
-                  EM_in_dir_vec = file.path(EMmodelPath, "constantGrowth"),
+                  EM_in_dir_vec = file.path(EMmodelPath, "constGrowthMidSteepNewSelex_EM"),
                   MS_vec = "MS_sar_hcr8_018", 
                   custom_MS_source = file.path(MSfxnPath, "MS_sar_hcr8_018.R"),
                   use_SS_boot_vec = TRUE, # use the SS bootstrap module for sampling
@@ -281,7 +284,7 @@ out8 <- run_SSMSE(scen_name_vec = scenName[9], # name of the scenario
                   nyrs_assess_vec = 1, # Years between assessments
                   future_om_list = rand_dev_list, 
                   run_parallel = TRUE, # Run iterations in parallel
-                  sample_struct_list = sample_struct_list[9], # How to sample data for running the EM.
+                  sample_struct_list = sample_struct_list[8], # How to sample data for running the EM.
                   seed = seedNum) #Set a fixed integer seed that allows replication
 cat("\n \n")
 out8
@@ -303,5 +306,5 @@ sink()
 
 # Summarize 1 iteration of output
 sumry <- SSMSE_summary_all(mseOutputPath,
-                           scenarios = scenName, # won't work for the no catch scenario
+                           scenarios = scenName, 
                            run_parallel = TRUE)
