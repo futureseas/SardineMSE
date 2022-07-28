@@ -36,7 +36,7 @@ MakeRecruitDevs <- function(envtInx = NULL, # numeric vector of either 0/1 regim
   
   # Correct for lognormal bias
   # !!RW: does this need to happen here, or is it handled elsewhere?
-  devs <- devs - 0.5 * devSD^2
+  # devs <- devs - 0.5 * devSD^2
   
   return(devs)
 }

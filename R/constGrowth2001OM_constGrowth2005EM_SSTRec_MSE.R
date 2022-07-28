@@ -71,7 +71,10 @@ lencomp <- data.frame(Yr = rep(c(yrsrt:yrend),nldat),
                       FltSvy = c(rep(4,nyrs),rep(1,nyrs),rep(2,nyrs),rep(3,nyrs)),
                       Sex = rep(0,nyrs*nldat),
                       Part = rep(0,nyrs*nldat),
-                      Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
+
+                      # Use the ~mean values of sample sizes from recent past surveys/fleets
+                      Nsamp = c(rep(60,nyrs),rep(50,nyrs),rep(70,nyrs),rep(90,nyrs)))
+                      # Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
 
 #for age comps same surveys as as lcomps
 nadat <- 4
@@ -83,7 +86,9 @@ agecomp <- data.frame(Yr = rep(c(yrsrt:yrend),nadat),
                       Ageerr = c(rep(4,nyrs),rep(4,nyrs),rep(4,nyrs),rep(4,nyrs)),
                       Lbin_lo = c(rep(-1,nyrs),rep(-1,nyrs),rep(-1,nyrs),rep(-1,nyrs)),
                       Lbin_hi = c(rep(-1,nyrs),rep(-1,nyrs),rep(-1,nyrs),rep(-1,nyrs)),
-                      Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
+                      # Use the ~mean values of sample sizes from recent past surveys/fleets
+                      Nsamp = c(rep(80,nyrs),rep(40,nyrs),rep(60,nyrs),rep(80,nyrs)))
+                      # Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
 
 sample_struct <- list(catch = catch, CPUE = CPUE, lencomp = lencomp, agecomp = agecomp)
 sample_struct_list <- list("constGrow2001OM_constGrow2005EM_SSTRecHCR0" = sample_struct,
@@ -106,7 +111,8 @@ scenName <- c("constGrow2001OM_constGrow2005EM_SSTRecHCR0",
               "constGrow2001OM_constGrow2005EM_SSTRecHCR6",
               "constGrow2001OM_constGrow2005EM_SSTRecHCR7",
               "constGrow2001OM_constGrow2005EM_SSTRecHCR8")
-iters <- 100
+
+iters <- 10
 
 ### Define custom rec devs based on environment
 
@@ -114,6 +120,11 @@ template <- create_future_om_list(example_type = "custom")
 
 # recUserDef <- read.csv("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevSST2070.csv")
 recUserDef <- read.csv("J:/Desiree/Sardine/SardineMSE/dat/recdevSST2070.csv")
+
+sdSST <- recUserDef %>% filter(year >2019) %>% 
+            summarize(devSD_GFDL = sd(recDevSST_GFDL),
+                      devSD_HAD = sd(recDevSST_HAD),
+                      devSD_IPSL = sd(recDevSST_IPSL))
 
 recUserDef <- recUserDef %>% select(year, recDevSST_GFDL) %>%
                 filter(year <= yrend - 1,
@@ -127,8 +138,12 @@ input <- data.frame(iter = rep(1:iters, each = nrow(recUserDef)), # !!RW: must s
                     value = rep(recUserDef$recDevSST_GFDL, times = iters))
 # Add additional error over environment, different among iterations but same across HCRs
 input <- input %>% mutate(addlError = rnorm(nrow(input),0, 1.25),
-                          valueNew = value * 0.7 + (0.3 * addlError),
-                          par = "rec_devs")
+                          # R^2 of annual SST model was 0.55 (PFMC 2013, Appendix E, pg 49) 
+                          valueNew = value * 0.55 + (0.45 * addlError),
+                          par = "rec_devs",
+                          devSD = sd(valueNew))
+# do scale correction
+input <- input %>% mutate(valueNew = valueNew * (1.25/devSD))
 input <- input %>% full_join(y = data.frame(scen = scenName), by = character()) %>% 
             arrange(scen, iter, yr)
 recdevInput$input <- input %>% select(par, scen, iter, yr, valueNew) %>%

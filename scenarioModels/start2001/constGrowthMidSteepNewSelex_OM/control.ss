@@ -109,7 +109,7 @@
 #_          LO            HI          INIT         PRIOR         PR_SD       PR_type      PHASE    env-var    use_dev   dev_mnyr   dev_mxyr     dev_PH      Block    Blk_Fxn #  parm_name
              3            25       14.2008             0            99             0          1          0          0          0          0          0          0          0 # SR_LN(R0)
            0.2             1           0.6             0            99             0         -5          0          0          0          0          0          0          0 # SR_BH_steep
-             0             2           0.5             0            99             0         -3          0          0          0          0          0          0          0 # SR_sigmaR
+             0             2          1.25             0            99             0         -3          0          0          0          0          0          0          0 # SR_sigmaR
            -15            15             0             0            99             0         -1          0          0          0          0          0          1          2 # SR_regime
              0             0             0             0            99             0         -3          0          0          0          0          0          0          0 # SR_autocorr
 # timevary SR parameters
@@ -123,11 +123,11 @@
  2 #_recdev_early_phase
  0 #_forecast_recruitment phase (incl. late recr) (0 value resets to maxphase+1)
  1 #_lambda for Fcast_recr_like occurring before endyr+1
- 1992 #_last_yr_nobias_adj_in_MPD; begin of ramp
- 1996.3 #_first_yr_fullbias_adj_in_MPD; begin of plateau
- 2017.5 #_last_yr_fullbias_adj_in_MPD
- 2018.9 #_end_yr_for_ramp_in_MPD (can be in forecast to shape ramp, but SS sets bias_adj to 0.0 for fcast yrs)
- 0.9028 #_max_bias_adj_in_MPD (typical ~0.8; -3 sets all years to 0.0; -2 sets all non-forecast yrs w/ estimated recdevs to 1.0; -1 sets biasadj=1.0 for all yrs w/ recdevs)
+ 1992.1   #_last_early_yr_nobias_adj_in_MPD 
+ 1995.1   #_first_yr_fullbias_adj_in_MPD 
+ 2017.9   #_last_yr_fullbias_adj_in_MPD 
+ 2019.1   #_first_recent_yr_nobias_adj_in_MPD 
+ 0.9878  #_max_bias_adj_in_MPD (1.0 to mimic pre-2009 models)  (typical ~0.8; -3 sets all years to 0.0; -2 sets all non-forecast yrs w/ estimated recdevs to 1.0; -1 sets biasadj=1.0 for all yrs w/ recdevs)
  0 #_period of cycles in recruitment (N parms read below)
  -5 #min rec_dev
  5 #max rec_dev
@@ -243,28 +243,28 @@
 # 5   DEPM LenSelex
 # 6   TEP_all LenSelex
 # 1   MexCal_S1 AgeSelex
-           -10            11      0.999074            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P1_MexCal_S1(1)
-           -10            11       2.68726            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P2_MexCal_S1(1)
-           -10            15      0.627321            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P3_MexCal_S1(1)
-           -10            11      -1.53257            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P4_MexCal_S1(1)
-           -10            11     -0.484538            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P5_MexCal_S1(1)
-           -10            11     -0.842876            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P6_MexCal_S1(1)
-           -10            11     -0.493986            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P7_MexCal_S1(1)
-           -10            11    -0.0467134            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P8_MexCal_S1(1)
-           -10            11      -0.71255            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P9_MexCal_S1(1)
+           -10            11      0.999074            -1            99             0         3          0          0          0          0          0          0          0  #  AgeSel_P1_MexCal_S1(1)
+           -10            11       2.68726            -1            99             0         3          0          0          0          0          0          0          0  #  AgeSel_P2_MexCal_S1(1)
+           -10            15      0.627321            -1            99             0         3          0          0          0          0          0          0          0  #  AgeSel_P3_MexCal_S1(1)
+           -10            11      -1.53257            -1            99             0         3          0          0          0          0          0          0          0  #  AgeSel_P4_MexCal_S1(1)
+           -10            11     -0.484538            -1            99             0         3          0          0          0          0          0          0          0  #  AgeSel_P5_MexCal_S1(1)
+           -10            11     -0.842876            -1            99             0         3          0          0          0          0          0          0          0  #  AgeSel_P6_MexCal_S1(1)
+           -10            11     -0.493986            -1            99             0         3          0          0          0          0          0          0          0  #  AgeSel_P7_MexCal_S1(1)
+           -10            11    -0.0467134            -1            99             0         3          0          0          0          0          0          0          0  #  AgeSel_P8_MexCal_S1(1)
+           -10            11      -0.71255            -1            99             0         3          0          0          0          0          0          0          0  #  AgeSel_P9_MexCal_S1(1)
 # 2   MexCal_S2 AgeSelex
            -10            11       1.99999            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P1_MexCal_S2(2)
-           -10            15      0.528724            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P2_MexCal_S2(2)
-           -10            11     -0.845591            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P3_MexCal_S2(2)
-           -10            11      -0.70448            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P4_MexCal_S2(2)
-           -10            11     -0.800642            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P5_MexCal_S2(2)
-           -10            11          -0.5            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P6_MexCal_S2(2)
-           -10            11          -0.5            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P7_MexCal_S2(2)
-           -10            11          -0.5            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P8_MexCal_S2(2)
-           -10            11          -0.5            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P9_MexCal_S2(2)
+           -10            15      0.528724            -1            99             0         3          0          0          0          0          0          0          0  #  AgeSel_P2_MexCal_S2(2)
+           -10            11     -0.845591            -1            99             0         3          0          0          0          0          0          0          0  #  AgeSel_P3_MexCal_S2(2)
+           -10            11      -0.70448            -1            99             0         3          0          0          0          0          0          0          0  #  AgeSel_P4_MexCal_S2(2)
+           -10            11     -0.800642            -1            99             0         3          0          0          0          0          0          0          0  #  AgeSel_P5_MexCal_S2(2)
+           -10            11          -0.5            -1            99             0         3          0          0          0          0          0          0          0  #  AgeSel_P6_MexCal_S2(2)
+           -10            11          -0.5            -1            99             0         3          0          0          0          0          0          0          0  #  AgeSel_P7_MexCal_S2(2)
+           -10            11          -0.5            -1            99             0         3          0          0          0          0          0          0          0  #  AgeSel_P8_MexCal_S2(2)
+           -10            11          -0.5            -1            99             0         3          0          0          0          0          0          0          0  #  AgeSel_P9_MexCal_S2(2)
 # 3   PNW AgeSelex
-             0            10       3.34761             0            99             0         -4          0          0          0          0          0          0          0  #  Age_inflection_PNW(3)
-            -5            15       1.34425             0            99             0         -4          0          0          0          0          0          0          0  #  Age_95%width_PNW(3)
+             0            10       3.34761             0            99             0         4          0          0          0          0          0          0          0  #  Age_inflection_PNW(3)
+            -5            15       1.34425             0            99             0         4          0          0          0          0          0          0          0  #  Age_95%width_PNW(3)
 # 4   AT_Survey AgeSelex
              0             9             0            -1            99             0         -3          0          0          0          0          0          0          0  #  AgeSel_P1_AT_Survey(4)
              0            11             0            -1            99             0         -4          0          0          0          0          0          0          0  #  AgeSel_P2_AT_Survey(4)
