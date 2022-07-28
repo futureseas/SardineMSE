@@ -3,10 +3,10 @@
 
 CalcTermTS <- function(runSmryOutput,
                        termYr){
-  omName <- grep("_OM", runSmryOutput$tsSmry$model_run, 
-                 fixed = TRUE, value = TRUE)
-  initName <- grep("_init", runSmryOutput$tsSmry$model_run, 
-                   fixed = TRUE, value = TRUE)
+  omName <- unique(grep("_OM", runSmryOutput$tsSmry$model_run, 
+                 fixed = TRUE, value = TRUE))
+  initName <- unique(grep("_init", runSmryOutput$tsSmry$model_run, 
+                   fixed = TRUE, value = TRUE))
   
   # biomass timeseries
   tsBio <- runSmryOutput$tsSmry %>% filter(Seas == 1) %>%
@@ -57,6 +57,9 @@ CalcTermTS <- function(runSmryOutput,
   
   termTS <- full_join(termTS, termCat, by = c("year", "model_run", "iteration", "scenario")) %>%
               full_join(y = termRec, by = c("year", "model_run", "iteration", "scenario"))
+  
+  termTS <- termTS %>% select(Bio_smry, rec_dev, year, Seas, model_run, iteration,
+                              scenario, totCatch, Value.Recr, Value.SSB, emYear)
   
   return(termTS)
 }

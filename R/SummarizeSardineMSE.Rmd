@@ -58,7 +58,7 @@ scenarios <- c("constGrow2001OM_constGrow2005EM_RandRecHCR0",
               "constGrow2001OM_constGrow2005EM_SSTRecHCR5",
               "constGrow2001OM_constGrow2005EM_SSTRecHCR6",
               "constGrow2001OM_constGrow2005EM_SSTRecHCR7",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR8")#,
+              "constGrow2001OM_constGrow2005EM_SSTRecHCR8",
               # 
               # "constGrow2001OM_constGrow2005EM_ccPDORecHCR0",
               # "constGrow2001OM_constGrow2005EM_ccPDORecHCR1",
@@ -70,15 +70,15 @@ scenarios <- c("constGrow2001OM_constGrow2005EM_RandRecHCR0",
               # "constGrow2001OM_constGrow2005EM_ccPDORecHCR7",
               # "constGrow2001OM_constGrow2005EM_ccPDORecHCR8",
               # 
-              # "constGrow2001OM_constGrow2005EM_PDORecHCR0",
-              # "constGrow2001OM_constGrow2005EM_PDORecHCR1",
-              # "constGrow2001OM_constGrow2005EM_PDORecHCR2",
-              # "constGrow2001OM_constGrow2005EM_PDORecHCR3",
-              # "constGrow2001OM_constGrow2005EM_PDORecHCR4",
-              # "constGrow2001OM_constGrow2005EM_PDORecHCR5",
-              # "constGrow2001OM_constGrow2005EM_PDORecHCR6",
-              # "constGrow2001OM_constGrow2005EM_PDORecHCR7",
-              # "constGrow2001OM_constGrow2005EM_PDORecHCR8",
+              "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR0",
+              "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR1",
+              "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR2",
+              "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR3",
+              #"constGrow2001OM_constGrow2005EM_PDOcyclRecHCR4",
+              "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR5",
+              "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR6",
+              "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR7",
+              "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR8")#,
               # 
               # "constGrow2001OM_constGrow2005EM_MICERecHCR0",
               # "constGrow2001OM_constGrow2005EM_MICERecHCR1",
@@ -91,12 +91,12 @@ scenarios <- c("constGrow2001OM_constGrow2005EM_RandRecHCR0",
               # "constGrow2001OM_constGrow2005EM_MICERecHCR8")
 
 
-  smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
-                                   scenarios = scenarios)
-  # saveRDS(smryOutputList, 
-  #         file = file.path(mseDir, "serverRandRec_ARRec_allHCRs_results.RDS"))
-# smryOutputList <- readRDS(file.path(mseDir, "serverRandRec_ARRec_allHCRs_results.RDS"))
-  
+#   smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
+#                                    scenarios = scenarios)
+#   saveRDS(smryOutputList,
+#           file = file.path(mseDir, "serverRandSSTPDOCyclRec_allHCRs_results.RDS"))
+smryOutputList <- readRDS(file.path(mseDir, "serverRandSSTPDOCyclRec_allHCRs_results.RDS"))
+
 performanceList <- CalcPerformance(smryOutputList)
 
 metricsTbl <- performanceList$perfomanceMetrics
@@ -130,7 +130,7 @@ metricsTbl %>% group_by(scenario, recScen, HCR) %>%
 
 ```{r, Perform}
 # plot mean biomass
-metricsTbl %>% filter(recScen == "RandRec", HCR != "HCR4") %>%
+metricsTbl %>% #filter(recScen == "RandRec", HCR != "HCR4") %>%
   ggplot(aes(x = HCR, y = meanB1plus)) +
   geom_hline(yintercept = c(50000, 150000), color = "red") +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
@@ -140,7 +140,7 @@ metricsTbl %>% filter(recScen == "RandRec", HCR != "HCR4") %>%
   labs(y = "Mean Age1+ Biomass (mt)", x = "HCR")
 
 # plot closure frequency
-metricsTbl %>% filter(recScen == "RandRec", HCR != "HCR4") %>%
+metricsTbl %>% #filter(recScen == "RandRec", HCR != "HCR4") %>%
   ggplot(aes(x = HCR, y = closuresFreq)) +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
   facet_wrap(~recScen) + 
@@ -185,7 +185,7 @@ metricsTbl %>% ggplot(aes(x = HCR, y = minLen)) +
 
 # plot mean catch
 metricsTbl %>%  filter(HCR != "HCR0") %>%
-  filter(recScen == "RandRec", HCR != "HCR4") %>%
+  #filter(recScen == "RandRec", HCR != "HCR4") %>%
   ggplot(aes(x = HCR, y = meanCatch)) +
   geom_hline(yintercept = 200000) +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
@@ -208,7 +208,7 @@ metricsTbl %>%  filter(HCR != "HCR0") %>%
 Plot tradeoffs among metrics
 ```{r, Tradeoffs}
 
-metricsTbl %>% filter(recScen == "RandRec", HCR != "HCR4") %>%
+metricsTbl %>% #filter(recScen == "RandRec", HCR != "HCR4") %>%
   ggplot(aes(x = log(meanCatch), y = log(meanB1plus), color = HCR)) +
   geom_vline(xintercept = log(200000)) +
   geom_hline(yintercept = log(150000)) +
@@ -242,7 +242,7 @@ metricsTbl %>% ggplot(aes(x = meanCatch, y = minLen, color = HCR)) +
 Plot timeseries of age1+ biomass, catch, and recruitment
 ```{r, Timeseries}
 # get terminal estimates of these values for timeseries plots
-termTS <- CalcTermTS(smryOutputList) %>% 
+termTS <- CalcTermTS(smryOutputList, termYr = termYr) %>% 
               mutate(HCR = sub(pattern = ".*Rec","", scenario),
                                recScen = sub(pattern = "HCR.*","", scenario)) %>%
               mutate(recScen = sub(pattern = ".*EM_","", recScen))
@@ -443,7 +443,7 @@ cnvrgTS <- smryOutputList$tsSmry %>% mutate(HCR = sub(pattern = ".*Rec","", scen
                                    max_grad > 0.01 ~ "non-convrg",
                                    max_grad < 0.01 ~ "convrg"))
 
-for(hcr in 2:length(scenarios)){
+for(hcr in 2:length(hcrs)){
   print(cnvrgTS %>% filter(HCR == hcrs[hcr], iteration %in% exIters, Seas == 1) %>%
       ggplot(aes(x = year, y = log(Bio_smry))) +
       ggplot2::geom_vline(xintercept = 2019, color = "gray") +
@@ -470,14 +470,14 @@ errCompare <- cnvrgTS %>% filter(Seas == 1, model_run != omName) %>%
                 select(age1plusEM, age1plusOM, errSmryBio, year, model_run.x, 
                        iteration, scenario, HCR, recScen, plotGroup) %>%
                 group_by(model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
-                summarize(runMSE = mean(errSmryBio)) #%>%
+                summarize(runRE = mean(errSmryBio)) #%>%
                 # group_by(iteration, scenario, HCR, recScen, plotGroup) %>%
                 # summarize(runMSE = mean(runMSE))  %>%
                 # group_by(scenario, HCR, recScen, plotGroup) %>%
                 # summarize(runMSE = mean(runMSE))
 
 errCompare %>% #filter(HCR != "HCR3") %>%
-  ggplot(aes(x = HCR, y = runMSE, fill = plotGroup)) +
+  ggplot(aes(x = HCR, y = runRE, fill = plotGroup)) +
   geom_boxplot(outlier.shape = NA) +
   facet_wrap(~recScen) #+
 #  coord_cartesian(ylim =  c(0, 30))
@@ -499,7 +499,7 @@ age1PlusRE <- age1PlusRE %>% pivot_wider(names_from = "plotGroup", values_from =
                          emRE = (EM - Bio_smry)/Bio_smry * 100)
 
 # Plot relative errors of biomass over time
-for(hcr in 2:length(scenarios)){
+for(hcr in 2:length(hcrs)){
   print(age1PlusRE %>% filter(HCR == hcrs[hcr], iteration %in% exIters) %>%
     ggplot(aes(x = year, y = ifelse(emRE > 100, 100, emRE))) + #y = emRE)) +
     geom_vline(xintercept = 2019, color = "gray") +
@@ -509,7 +509,8 @@ for(hcr in 2:length(scenarios)){
     scale_linetype_manual(values = rep("solid", 51)) +
     guides(linetype = "none") +
     facet_grid(rows = vars(iteration), cols = vars(scenario)) +
-    theme_classic() + labs(title = "Relative Error of Age 1+ Biomass (%)") + 
+    theme_classic() + ylab(label = "Relative Error of Age 1+ Biomass (%)") + 
+    labs(title = hcrs[hcr]) +
     ylim(-100, 100))
 }
 
@@ -544,7 +545,7 @@ rebuildTime <- rebuildTime %>% group_by(model_run, iteration, scenario, HCR, rec
                   summarize(nClosures = n(),
                             meanRebuildTime = mean(closureLength)) 
 
-rebuildTime %>% filter(recScen == "RandRec", HCR != "HCR4") %>% 
+rebuildTime %>% #filter(recScen == "RandRec", HCR != "HCR4") %>% 
   ggplot(aes(x = HCR, y = meanRebuildTime)) +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
   facet_wrap(~recScen) + 

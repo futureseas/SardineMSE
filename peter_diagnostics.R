@@ -24,7 +24,7 @@ mseDir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
 mods <- "constGrow2001OM_selfTestMidSteep_"
 # recscens <- c("ARRecHCR", "RandRecHCR")
 recscens <- c("RandRecHCR")
-hcrs <- 2
+hcrs <- 2:5
 
 # hcrs <- 1:8
 scenarios <- expand_grid(mods, recscens, hcrs) %>% 
@@ -32,8 +32,8 @@ scenarios <- expand_grid(mods, recscens, hcrs) %>%
 
 #Just tested, takes 11 seconds to read in one scenario with settings below
 #6 minutes for 2 hcrs, one recscenario and all years
-iters <- 1:3
-years <- 2020:2038
+iters <- 1:10
+years <- 2020:2068
 # termYr <- 2068
 em_name <- "constGrowSelfTest_EM_"
 om_name <- "constGrowthSteepness0dot6_OM_OM"
