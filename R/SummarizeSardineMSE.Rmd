@@ -11,7 +11,7 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-```{r, include=FALSE}
+```{r, echo=FALSE}
 library(r4ss)
 library(tidyverse)
 library(RColorBrewer)
@@ -24,62 +24,51 @@ source("J:/Desiree/Sardine/SardineMSE/R/CalcTermTS.R")
 # source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/CalcTermTS.R")
 ```
 
-```{r, GetResults}
+```{r, GetResults, echo=FALSE}
 # run GetSumryOutput and CalcPerformance to get performance metrics
 
 mseDir <- "J:/Desiree/Sardine/SardineScenarios"
 # mseDir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
 termYr <- 2068
 
-scenarios <- c("constGrow2001OM_constGrow2005EM_RandRecHCR0",
-              "constGrow2001OM_constGrow2005EM_RandRecHCR1",
-              "constGrow2001OM_constGrow2005EM_RandRecHCR2",
-              "constGrow2001OM_constGrow2005EM_RandRecHCR3",
-              #"constGrow2001OM_constGrow2005EM_RandRecHCR4",
-              "constGrow2001OM_constGrow2005EM_RandRecHCR5",
-              "constGrow2001OM_constGrow2005EM_RandRecHCR6",
-              "constGrow2001OM_constGrow2005EM_RandRecHCR7",
-              "constGrow2001OM_constGrow2005EM_RandRecHCR8",
-              
-              # "constGrow2001OM_constGrow2005EM_ARRecHCR0",
-              # "constGrow2001OM_constGrow2005EM_ARRecHCR1",
-              # "constGrow2001OM_constGrow2005EM_ARRecHCR2",
-              # "constGrow2001OM_constGrow2005EM_ARRecHCR3",
-              # "constGrow2001OM_constGrow2005EM_ARRecHCR4",
-              # "constGrow2001OM_constGrow2005EM_ARRecHCR5",
-              # "constGrow2001OM_constGrow2005EM_ARRecHCR6",
-              # "constGrow2001OM_constGrow2005EM_ARRecHCR7",
-              # "constGrow2001OM_constGrow2005EM_ARRecHCR8")#,
+scenarios <- c("constGrow2001OM_constGrow2005EM_RegRecHCR0",
+              "constGrow2001OM_constGrow2005EM_RegRecHCR1",
+              "constGrow2001OM_constGrow2005EM_RegRecHCR2",
+              "constGrow2001OM_constGrow2005EM_RegRecHCR3",
+              "constGrow2001OM_constGrow2005EM_RegRecHCR5",
+              "constGrow2001OM_constGrow2005EM_RegRecHCR6",
+              "constGrow2001OM_constGrow2005EM_RegRecHCR7",
+              "constGrow2001OM_constGrow2005EM_RegRecHCR8",
 
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR0",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR1",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR2",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR3",
-              #"constGrow2001OM_constGrow2005EM_SSTRecHCR4",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR5",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR6",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR7",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR8",
+              "constGrow2001OM_constGrow2005EM_ARRecHCR0",
+              "constGrow2001OM_constGrow2005EM_ARRecHCR1",
+              "constGrow2001OM_constGrow2005EM_ARRecHCR2",
+              "constGrow2001OM_constGrow2005EM_ARRecHCR3",
+              #"constGrow2001OM_constGrow2005EM_ARRecHCR4",
+              "constGrow2001OM_constGrow2005EM_ARRecHCR5",
+              "constGrow2001OM_constGrow2005EM_ARRecHCR6",
+              "constGrow2001OM_constGrow2005EM_ARRecHCR7",
+              "constGrow2001OM_constGrow2005EM_ARRecHCR8",
+              
+              # "constGrow2001OM_constGrow2005EM_MeanRecHCR0",
+              # "constGrow2001OM_constGrow2005EM_MeanRecHCR1",
+              # "constGrow2001OM_constGrow2005EM_MeanRecHCR2",
+              # "constGrow2001OM_constGrow2005EM_MeanRecHCR3",
+              # "constGrow2001OM_constGrow2005EM_MeanRecHCR5",
+              # "constGrow2001OM_constGrow2005EM_MeanRecHCR6",
+              # "constGrow2001OM_constGrow2005EM_MeanRecHCR7",
+              # "constGrow2001OM_constGrow2005EM_MeanRecHCR8",
+
+              # "constGrow2001OM_constGrow2005EM_SSTRecHCR0",
+              # "constGrow2001OM_constGrow2005EM_SSTRecHCR1",
+              # "constGrow2001OM_constGrow2005EM_SSTRecHCR2",
+              # "constGrow2001OM_constGrow2005EM_SSTRecHCR3",
+              # #"constGrow2001OM_constGrow2005EM_SSTRecHCR4",
+              # "constGrow2001OM_constGrow2005EM_SSTRecHCR5",
+              # "constGrow2001OM_constGrow2005EM_SSTRecHCR6",
+              # "constGrow2001OM_constGrow2005EM_SSTRecHCR7",
+              # "constGrow2001OM_constGrow2005EM_SSTRecHCR8",
               # 
-              # "constGrow2001OM_constGrow2005EM_ARRecHCR0",
-              # "constGrow2001OM_constGrow2005EM_ARRecHCR1",
-              # "constGrow2001OM_constGrow2005EM_ARRecHCR2",
-              # "constGrow2001OM_constGrow2005EM_ARRecHCR3",
-              # "constGrow2001OM_constGrow2005EM_ARRecHCR4",
-              # "constGrow2001OM_constGrow2005EM_ARRecHCR5",
-              # "constGrow2001OM_constGrow2005EM_ARRecHCR6",
-              # "constGrow2001OM_constGrow2005EM_ARRecHCR7",
-              # "constGrow2001OM_constGrow2005EM_ARRecHCR8")#,
-             #  
-             #  "constGrow2001OM_constGrow2005EM_SSTRecHCR0",
-             #  "constGrow2001OM_constGrow2005EM_SSTRecHCR1",
-             #  "constGrow2001OM_constGrow2005EM_SSTRecHCR2",
-             #  "constGrow2001OM_constGrow2005EM_SSTRecHCR3",
-             #  #"constGrow2001OM_constGrow2005EM_SSTRecHCR4",
-             #  "constGrow2001OM_constGrow2005EM_SSTRecHCR5",
-             #  "constGrow2001OM_constGrow2005EM_SSTRecHCR6",
-             #  "constGrow2001OM_constGrow2005EM_SSTRecHCR7",
-             #  "constGrow2001OM_constGrow2005EM_SSTRecHCR8",
              # 
              #  "constGrow2001OM_constGrow2005EM_ccPDORecHCR0",
              #  "constGrow2001OM_constGrow2005EM_ccPDORecHCR1",
@@ -116,8 +105,8 @@ scenarios <- c("constGrow2001OM_constGrow2005EM_RandRecHCR0",
   smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
                                    scenarios = scenarios)
   saveRDS(smryOutputList,
-          file = file.path(mseDir, "serverRandRec_ARRec_allHCRs_results.RDS"))
-# smryOutputList <- readRDS(file.path(mseDir, "serverRandSSTPDOCyclRec_allHCRs_results.RDS"))
+          file = file.path(mseDir, "serverRegARPDOcycl_allHCRs_results.RDS"))
+# smryOutputList <- readRDS(file.path(mseDir, "serverRegARMeanSSTPDOcycl_allHCRs_results.RDS"))
   
 performanceList <- CalcPerformance(smryOutputList)
 
@@ -130,7 +119,7 @@ metricsTbl
 # Model Dynamics
 ## Timeseries
 Plot timeseries of age1+ biomass, catch, and recruitment
-```{r, Timeseries}
+```{r, Timeseries, echo=FALSE}
 # get terminal estimates of these values for timeseries plots
 termTS <- CalcTermTS(smryOutputList, termYr = termYr) %>% 
               mutate(HCR = sub(pattern = ".*Rec","", scenario),
@@ -148,7 +137,7 @@ Plots of simulated (OM) biomass of age 1+ fish with 90% confidence intervals (gr
 * Biomass recovers in the random and cyclic PDO recruitment scenarios
   * Cyclic PDO doesn't result in same variation as random recruitment
 * The SST recruitment scenario has higher overall biomass and larger variation
-```{r, tsBiomass}
+```{r, tsBiomass, echo=FALSE}
 
 # timeseries plot for presentation
 termTS %>% filter(model_run == omName, HCR == "HCR0") %>%
@@ -193,7 +182,7 @@ Samples of time series of recruitment deviations from 4 iterations.
 * The SST recruitment scenario is biased positive
   * Leads to much higher recruitment (numbers) overall compared to random recruitment scenario
 * The cyclic PDO scenario doesn't have the same amount of interannual variability as historic or random scenarios, but over the projection period reaches the same distribution as historic recruitment deviations.
-```{r, tsRecruitment}
+```{r, tsRecruitment, echo=FALSE}
 # look at recruitment deviations
 termTS %>% filter(model_run == omName,
                   HCR == "HCR0", iteration %in% sample(iteration, size = 4)) %>%
@@ -226,7 +215,7 @@ termTS %>% filter(model_run == omName) %>%
 ### Catch
 * Catch recovers more slowly in cyclic PDO scenario
 * Catch is higher and more variable in the SST scenario
-```{r, tsCatch}
+```{r, tsCatch, echo=FALSE}
 # plot summary of catch trajectories
 termTS %>% filter(model_run == omName) %>%
   select(totCatch, year, model_run, iteration, scenario, HCR, recScen) %>%
@@ -265,7 +254,7 @@ meanCat <- termTS %>% filter(model_run == omName, HCR == "HCR5") %>%
 ## Other parameters
 * No real trend in mean age, though larger stock biomasses generally allow for potentially older mean ages
 * Unfished biomass (B0) estimated to increase as simulation projection progresses under SST recruitment scenario
-```{r, tsParams}
+```{r, tsParams, echo=FALSE}
 # compare to mean length
   # find columns for directory parsing
   dirsCol <- ncol(str_split(smryOutputList$ageComp$resDir, 
@@ -283,7 +272,7 @@ fleet4Age <- smryOutputList$ageComp %>%
                        Seas == 1, Fleet == 4)
 
 termTS %>% filter(model_run == omName, year > 2019,
-                  recScen == "RandRec") %>%
+                  recScen == "ARRec") %>%
   left_join(y = fleet4Age, by = c("model_run", "iteration", "scenario", "year" = "Yr")) %>%
   ggplot(aes(x = log(Bio_smry), y = All_exp_mean, color = HCR, alpha = 0.05)) +
   geom_point() +
@@ -318,7 +307,7 @@ smryOutputList$sclSmry %>% mutate(emYear = as.numeric(regmatches(model_run,
 Plot comparisons across HCR and Recruitment scenario
 
 ## Stock Status
-```{r, metricsStatus}
+```{r, metricsStatus, echo=FALSE}
 # parse out HCR and recruitment scenario
 metricsTbl <- metricsTbl %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
                                     recScen = sub(pattern = "HCR.*","", scenario)) %>%
@@ -396,7 +385,7 @@ metricsTbl %>% ggplot(aes(x = HCR, y = minLen)) +
 ```
 
 ## Fishery
-```{r, metricsCatch}
+```{r, metricsCatch, echo=FALSE}
 # plot mean catch
 metricsTbl %>%  filter(HCR != "HCR0") %>%
   #filter(recScen == "RandRec", HCR != "HCR4") %>%
@@ -460,7 +449,7 @@ metricsTbl %>% ggplot(aes(x = HCR, y = bonanzaFreq)) +
 
 ```
 Investigate rebuilding lengths
-```{r}
+```{r, echo=FALSE}
 rebuildTime <- performanceList$tsSmry %>% select(Bio_smry , year, model_run, iteration, scenario, closure, closureLength) %>%
   filter(closure) %>% arrange(scenario, iteration, year) #%>% filter(year == 2020)
 #all(rebuildTime$closure)
@@ -522,7 +511,7 @@ rebuildTime %>%
 * Estimates of biomass in the final year of assessment were negatively biased
   * Cyclic PDO recruitment scenario was least biased
   * SST recruitment scenario was most biased
-```{r, metricsAssess}
+```{r, metricsAssess, echo=FALSE}
 
 # plot convergence frequency
 metricsTbl %>% filter(HCR != "HCR0") %>%
@@ -610,7 +599,7 @@ for(i in 1:length(scens)){
     facet_wrap(~HCR) +
     geom_hline(yintercept = 0) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-    labs(title = "Median Annual Relative Error of Assessment"))
+    labs(title = paste("Median Annual Relative Error of Assessment,", scens[i], sep = " ")))
 }
 
 # Terminal estimate relative error
@@ -632,7 +621,7 @@ termRE %>% group_by(scenario, HCR, recScen, plotGroup) %>%
 
 ### Error Progression
 Plot some timeseries over estimation models for each run
-```{r}
+```{r, echo=FALSE}
 
 for(hcr in 2:length(hcrs)){
   print(cnvrgTS %>% filter(HCR == hcrs[hcr], iteration %in% exIters, Seas == 1) %>%
@@ -683,7 +672,7 @@ for(hcr in 2:length(hcrs)){
 
 ### Terminal Year Error
 Error of final assessment year over projection
-```{r}
+```{r, echo=FALSE}
 set.seed(seed = 413)
 exIters <- sample(termTS$iteration, size = 3)
 exHCR <- "HCR2"
@@ -709,7 +698,7 @@ termTS %>% filter(iteration %in% exIters,
 
 # Tradeoffs
 Plot tradeoffs among metrics
-```{r, Tradeoffs}
+```{r, Tradeoffs, echo=FALSE}
 
 metricsTbl %>% #filter(recScen == "RandRec", HCR != "HCR4") %>%
   ggplot(aes(x = log(meanCatch), y = log(meanB1plus), color = HCR)) +

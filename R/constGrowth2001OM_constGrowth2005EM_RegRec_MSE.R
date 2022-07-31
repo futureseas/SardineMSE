@@ -15,18 +15,18 @@ library(SSMSE)
 packageVersion("SSMSE")
 
 # directory for MSE output
-mseOutputPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
-# mseOutputPath <- "J:/Desiree/Sardine/SardineScenarios"
+# mseOutputPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
+mseOutputPath <- "J:/Desiree/Sardine/SardineScenarios"
 
 # Set Operating and Estimation Model ----------------------------------------
 
 # directory for OM SS code
-OMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2001"
-# OMmodelPath <- "J:/Desiree/Sardine/SardineMSE/scenarioModels/start2001"
+# OMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2001"
+OMmodelPath <- "J:/Desiree/Sardine/SardineMSE/scenarioModels/start2001"
 
 # EM starts in 1981 to test a high data quality scenario
-EMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2005"
-# EMmodelPath <- "J:/Desiree/Sardine/SardineMSE/scenarioModels/start2005"
+# EMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2005"
+EMmodelPath <- "J:/Desiree/Sardine/SardineMSE/scenarioModels/start2005"
 # EM starter.ss file must indicate init values are to be pulled from control.ss file, not ss.par
 
 # Define Observation Model ------------------------------------------------
@@ -112,7 +112,7 @@ scenName <- c("constGrow2001OM_constGrow2005EM_RegRecHCR0",
               "constGrow2001OM_constGrow2005EM_RegRecHCR6",
               "constGrow2001OM_constGrow2005EM_RegRecHCR7",
               "constGrow2001OM_constGrow2005EM_RegRecHCR8")
-iters <- 10
+iters <- 100
 
 ### use random recdevs with sd same as to historical
 template_mod_change <- create_future_om_list(example_type = "model_change")
@@ -133,12 +133,12 @@ rand_dev_list <- list(rec_dev_specify)
 # Run the OM --------------------------------------------------------------
 
 # Custom MS fxn location
-MSfxnPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R"
-# MSfxnPath <- "J:/Desiree/Sardine/SardineMSE/R"
-seedNum <- 706
-logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
+# MSfxnPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R"
+MSfxnPath <- "J:/Desiree/Sardine/SardineMSE/R"
+seedNum <- 729
+# logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
 
-sink(file = file(logFile), append = TRUE)
+# sink(file = file(logFile), append = TRUE)
 
 startTime <- Sys.time()
 ptm <- proc.time()
@@ -290,7 +290,7 @@ print(procDiff)
 cat("\n \n")
 
 # close log connection
-sink()
+# sink()
 # Summarize results -------------------------------------------------------
 
 # Summarize 1 iteration of output

@@ -112,7 +112,7 @@ scenName <- c("constGrow2001OM_constGrow2005EM_ARRecHCR0",
               "constGrow2001OM_constGrow2005EM_ARRecHCR6",
               "constGrow2001OM_constGrow2005EM_ARRecHCR7",
               "constGrow2001OM_constGrow2005EM_ARRecHCR8")
-iters <- 10
+iters <- 100
 
 ### use random recdevs with sd same as to historical
 template_mod_change <- create_future_om_list(example_type = "model_change")
@@ -145,7 +145,7 @@ rand_dev_list <- list(rec_dev_specify)
 # MSfxnPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R"
 MSfxnPath <- "J:/Desiree/Sardine/SardineMSE/R"
 
-seedNum <- 706
+seedNum <- 729
 
 # logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
 # 

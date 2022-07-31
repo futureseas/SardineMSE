@@ -112,7 +112,7 @@ scenName <- c("constGrow2001OM_constGrow2005EM_SSTRecHCR0",
               "constGrow2001OM_constGrow2005EM_SSTRecHCR7",
               "constGrow2001OM_constGrow2005EM_SSTRecHCR8")
 
-iters <- 10
+iters <- 100
 
 ### Define custom rec devs based on environment
 
@@ -156,7 +156,7 @@ envt_dev_list <- list(recdevInput)
 # Custom MS fxn location
 # MSfxnPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R"
 MSfxnPath <- "J:/Desiree/Sardine/SardineMSE/R"
-seedNum <- 706
+seedNum <- 729
 # logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
 
 # sink(file = file(logFile), append = TRUE)

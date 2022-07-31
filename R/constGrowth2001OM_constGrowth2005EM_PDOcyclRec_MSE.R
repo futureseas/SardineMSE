@@ -110,7 +110,7 @@ scenName <- c("constGrow2001OM_constGrow2005EM_PDOcyclRecHCR0",
               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR6",
               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR7",
               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR8")
-iters <- 10
+iters <- 100
 
 ### Define custom rec devs based on environment
 
@@ -119,7 +119,7 @@ template <- create_future_om_list(example_type = "custom")
 # recUserDef <- read.csv("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevPDOnoclim2120.csv")
 recUserDef <- read.csv("J:/Desiree/Sardine/SardineMSE/dat/recdevPDOnoclim2120.csv")
 
-sdPDO <- recUserDef %>% filter(year >2019) %>% 
+sdPDO <- recUserDef %>% filter(Year >2019) %>% 
             summarize(devPDOcycl = sd(recDevPDO))
 
 recUserDef <- recUserDef %>% select(Year, recDevPDO) %>%
@@ -152,7 +152,7 @@ envt_dev_list <- list(recdevInput)
 # Custom MS fxn location
 # MSfxnPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R"
 MSfxnPath <- "J:/Desiree/Sardine/SardineMSE/R"
-seedNum <- 706
+seedNum <- 729
 # logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
 
 # sink(file = file(logFile), append = TRUE)

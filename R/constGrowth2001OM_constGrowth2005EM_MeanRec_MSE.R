@@ -112,7 +112,7 @@ scenName <- c("constGrow2001OM_constGrow2005EM_MeanRecHCR0",
               "constGrow2001OM_constGrow2005EM_MeanRecHCR6",
               "constGrow2001OM_constGrow2005EM_MeanRecHCR7",
               "constGrow2001OM_constGrow2005EM_MeanRecHCR8")
-iters <- 10
+iters <- 100
 
 
 # Run the OM --------------------------------------------------------------
@@ -120,7 +120,7 @@ iters <- 10
 # Custom MS fxn location
 # MSfxnPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R"
 MSfxnPath <- "J:/Desiree/Sardine/SardineMSE/R"
-seedNum <- 706
+seedNum <- 729
 # logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
 # 
 # sink(file = file(logFile), append = TRUE)
