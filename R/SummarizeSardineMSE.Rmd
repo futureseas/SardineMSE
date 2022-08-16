@@ -311,6 +311,21 @@ metricsTbl <- metricsTbl %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
                                            HCR == "HCR7" ~ "DynPik",
                                            HCR == "HCR8" ~ "Dyn40-10"))
 
+# Calculate relative biomass and catch metrics
+relDenoms <- metricsTbl %>% group_by(recScen, iteration) %>%
+                summarize(maxMeanBio = max(meanB1plus),
+                          maxMeanCat = max(meanCatch)) %>%
+                full_join(y = metricsTbl %>% filter(HCR == "HCR0") %>% 
+                                select(recScen, iteration, meanB1plus),
+                          by = c("recScen", "iteration")) %>%
+                rename("meanHCR0Bio" = "meanB1plus")
+
+metricsTbl <- metricsTbl %>% full_join(y = relDenoms,
+                                       by = c("recScen", "iteration")) %>%
+                mutate(relBioMax = meanB1plus/maxMeanBio,
+                       relBioHCR0 = meanB1plus/meanHCR0Bio,
+                       relCatMax = meanCatch/maxMeanCat)
+
 # fxn for metrics comparison
 metricsPlot <- #function(yAxis, yLab){
   #ggplot(aes(x = HCR, y = vars(yAxis))) +
@@ -339,6 +354,29 @@ metricsTbl %>% #filter(recScen == "RandRec", HCR != "HCR4") %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   labs(y = yLab, x = "HCR") 
 
+metricsTbl %>% #filter(recScen == "RandRec", HCR != "HCR4") %>%
+  ggplot(aes(x = HCR, y = relBioMax)) +
+  #geom_hline(yintercept = c(50000, 150000), color = "red") +
+  geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
+  facet_wrap(~recScen) + 
+  theme_minimal() +
+  scale_fill_manual(values = hcrPal, labels = c("NoCat", "PFMCF018", "PFMCFSST",
+                                                "ConstF", "Pikitch", "40-10",
+                                                "DynPik", "Dyn40-10")) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(y = "Mean Age1+ Biomass:Max", x = "HCR") 
+
+metricsTbl %>% #filter(recScen == "RandRec", HCR != "HCR4") %>%
+  ggplot(aes(x = HCR, y = relBioHCR0)) +
+  #geom_hline(yintercept = c(50000, 150000), color = "red") +
+  geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
+  facet_wrap(~recScen) + 
+  theme_minimal() +
+  scale_fill_manual(values = hcrPal, labels = c("NoCat", "PFMCF018", "PFMCFSST",
+                                                "ConstF", "Pikitch", "40-10",
+                                                "DynPik", "Dyn40-10")) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(y = "Mean Age1+ Biomass:HCR0", x = "HCR") 
 
 # plot collapse severity
 metricsTbl %>% ggplot(aes(x = HCR, y = meanCollapseSever)) +
@@ -389,6 +427,19 @@ metricsTbl %>%  filter(HCR != "HCR0") %>%
                                                 "DynPik", "Dyn40-10")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   labs(y = "Mean Catch (mt)", x = "HCR")
+
+metricsTbl %>%  filter(HCR != "HCR0") %>%
+  #filter(recScen == "RandRec", HCR != "HCR4") %>%
+  ggplot(aes(x = HCR, y = relCatMax)) +
+  #geom_hline(yintercept = 200000) +
+  geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
+  facet_wrap(~recScen) + 
+  theme_minimal() +
+  scale_fill_manual(values = hcrPal[-1], labels = c("PFMCF018", "PFMCFSST",
+                                                "ConstF", "Pikitch", "40-10",
+                                                "DynPik", "Dyn40-10")) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(y = "Mean Catch:Max", x = "HCR")
 
 # plot catch sd
 metricsTbl %>%  filter(HCR != "HCR0") %>%
