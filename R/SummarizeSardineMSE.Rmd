@@ -512,10 +512,12 @@ metricsTbl %>% ggplot(aes(x = HCR, y = bonanzaFreq)) +
                                                 "ConstF", "Pikitch", "40-10",
                                                 "DynPik", "Dyn40-10")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Frequenct Bt > 0.8B0", x = "HCR")
+  labs(y = "Frequency Bt > 0.8B0", x = "HCR")
 
 ```
-Investigate rebuilding lengths 
+
+Investigate rebuilding lengths
+
 ```{r, echo=FALSE}
 rebuildTime <- performanceList$tsSmry %>% select(Bio_smry , year, model_run, iteration, scenario, closure, closureLength) %>%
   filter(closure) %>% arrange(scenario, iteration, year) #%>% filter(year == 2020)
@@ -761,6 +763,7 @@ foreRE %>% filter(plotGroup != "non-convrg") %>%
 
 ### Error Progression
 Plot some timeseries over estimation models for each run 
+
 ```{r, echo=FALSE}
 
 for(hcr in 2:length(hcrs)){

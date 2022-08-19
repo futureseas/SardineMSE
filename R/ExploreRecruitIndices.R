@@ -148,7 +148,7 @@ ssbrecsMICE %>% filter(GCM.x == "RA") %>% ggplot(aes(x = year.x, y = log(meanSSB
   geom_line(data = st1981$recruit, aes(x = Yr, y = log(SpawnBio)))
 
 # compare to estimated recruitment from the 2001 model
-st2001 <- SS_output(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2001")
+st2001 <- SS_output(dir = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2001/constGrowthMidSteepNewSelex_OM")
 
 range(st2001$recruit$pred_recr)
 
@@ -386,8 +386,23 @@ ssbrecsMICE <- ssbrecsMICE %>% add_case(Year = rep(2020, 3),
                                         GCM = c("GFDL", "HAD", "IPSL"),
                                         ensembleRecDevs = c(0,0,0),
                                         elsRecDevs = c(0,0,0)) %>%
-                  # bias correction
-                  mutate(ensembleRecDevs = ensembleRecDevs * (1.25/sdMICE$ensembleDevSD),
-                         elsRecDevs = elsRecDevs * (1.25/sdMICE$elsDevSD)) 
+                  arrange(Year)
+
+# Create model average
+ensMean <- ssbrecsMICE %>% filter(Year > 2019) %>%
+              group_by(Year) %>%
+              summarize(GCM = "gcmMEAN",
+                        ensembleSSB = mean(ensembleSSB),
+                        ensembleRec = mean(ensembleRec),
+                        ensembleRecDevs = mean(ensembleRecDevs),
+                        elsSSB = mean(elsSSB),
+                        elsRecs = mean(elsRecs),
+                        elsRecDevs = mean(elsRecDevs))
+
+ssbrecsMICE <- rbind(ssbrecsMICE, ensMean)
   
+ggplot(data=ssbrecsMICE,
+       aes(x = Year, y = ensembleRecDevs, group=as.factor(GCM), color=as.factor(GCM))) +
+  geom_line()
+
 # write.csv(ssbrecsMICE, "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevMICE2100.csv")

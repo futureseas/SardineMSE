@@ -112,15 +112,13 @@ iters <- 100
 
 template <- create_future_om_list(example_type = "custom")
 
-# recUserDef <- read.csv("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevMICE2100.csv")
-recUserDef <- read.csv("J:/Desiree/Sardine/SardineMSE/dat/recdevMICE2100.csv")
+recUserDef <- read.csv("../SardineMSE/dat/recdevMICE2100.csv")
 
 recUserDef <- recUserDef %>% 
                 filter(Year <= yrend - 1,
                        Year >= yrsrt - 1,
-                       GCM == "GFDL") %>%
-                select(Year, ensembleRecDevs) %>%
-                arrange(Year)
+                       GCM == "gcmMEAN") %>%
+                select(Year, ensembleRecDevs) 
 
 recdevInput <- template[[1]]
 recdevInput$pars <- "rec_devs"
@@ -131,11 +129,14 @@ input <- data.frame(iter = rep(1:iters, each = nrow(recUserDef)), # !!RW: must s
 # Add additional error over environment, different among iterations but same across HCRs
 input <- input %>% mutate(addlError = rnorm(nrow(input),0, 1.25),
                           valueNew = value * 0.7 + (0.3 * addlError),
-                          par = "rec_devs")
+                          par = "rec_devs",
+                          devSD = sd(valueNew))
+# do scale correction
+input <- input %>% mutate(valueNew = valueNew * (1.25/devSD))
 input <- input %>% full_join(y = data.frame(scen = scenName), by = character()) %>% 
-            arrange(scen, iter, yr)
+  arrange(scen, iter, yr)
 recdevInput$input <- input %>% select(par, scen, iter, yr, valueNew) %>%
-                        rename("value" = "valueNew")
+  rename("value" = "valueNew")
 
 envt_dev_list <- list(recdevInput)
 

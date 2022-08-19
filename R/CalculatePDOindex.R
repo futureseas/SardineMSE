@@ -83,6 +83,24 @@ legend("topleft", legend = c("SShist", "cyclPDO0.78", "cyclPDObc", "cyclPDO1.25"
 
 climPDO <- read_csv("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/ESMs_monthly_pdo_1976_2100.csv")
 
+# Need to normalize the projected indexes per Mer Pozo in email "Environmental and recruitment data" 8/18/2022
+sdClimPDO <- climPDO %>% summarize(gfdlPDO = sd(gfdl_pdo),
+                                   ipslPDO = sd(ipsl_pdo),
+                                   hadPDO = sd(had_pdo))
+climPDO <- climPDO %>% mutate(gfdl_pdo = gfdl_pdo/sdClimPDO$gfdlPDO,
+                              ipsl_pdo = ipsl_pdo/sdClimPDO$ipslPDO,
+                              had_pdo = had_pdo/sdClimPDO$hadPDO) 
+climPDO %>% mutate(yrmon = year + month/12) %>%
+  ggplot(aes(x = yrmon, y = gfdl_pdo)) +
+  geom_line()
+# Check that ranges similar to Mantua data in 'moPDO'
+climPDO %>% summarize(gfdlPDOmax = max(gfdl_pdo), gfdlPDOmin = min(gfdl_pdo),
+                      ipslPDOmax = max(ipsl_pdo), ipslPDOmin = min(ipsl_pdo),
+                      hadPDOmax = max(had_pdo), hadPDOmin = min(had_pdo))
+moPDO %>% pivot_longer(c(janPDO, febPDO, marPDO, aprPDO, mayPDO, junPDO,
+                         julPDO, augPDO, sepPDO, octPDO, novPDO, decPDO),
+                       names_to = "monthPDO", values_to = "pdo") %>%
+  summarize(moPDOmax = max(pdo), moPDOmin = min(pdo), moPDOsd = sd(pdo))
 
 # Take mean of spring and summer seasons and sum as in Zwolinski & Demer 2014
 climPDO <- climPDO %>% mutate(season = case_when(month %in% 3:7 ~ "spr",
@@ -98,7 +116,16 @@ climPDO <- climPDO %>% mutate(season = case_when(month %in% 3:7 ~ "spr",
               group_by(year) %>% filter(season %in% c("spr", "sum")) %>%
               summarize(gfdl_pdo = sum(gfdl_pdo),
                         ipsl_pdo = sum(ipsl_pdo),
-                        had_pdo = sum(had_pdo))
+                        had_pdo = sum(had_pdo)) 
+
+# Create ensemble mean for recruitment projection
+climPDO$ensMeanPDO <- rowMeans(climPDO[,c("gfdl_pdo", "ipsl_pdo", "had_pdo")])
+
+climPDO %>% full_join(y = newDat %>% select(Year, expPDO),
+                      by = c("year" = "Year")) %>%
+  pivot_longer(!year, names_to = "model", values_to = "pdo") %>%
+  ggplot(aes(x = year, y = pdo, color = model)) +
+  geom_line() 
 
 # project rec devs using fit in Appendix A of Zwolinski & Demer 2019
 # climPDO$recDev_GFDL <- MakeRecruitDevs(envtInx = climPDO$gfdl_pdo,
@@ -112,19 +139,26 @@ climPDO <- climPDO %>% mutate(season = case_when(month %in% 3:7 ~ "spr",
 #                                        devSD = 0.56) 
 climPDO <- climPDO %>% mutate(recDev_GFDL = (gfdl_pdo * 0.7815),
                               recDev_HAD = (had_pdo * 0.7815),
-                              recDev_IPSL = (ipsl_pdo * 0.7815))
+                              recDev_IPSL = (ipsl_pdo * 0.7815),
+                              recDev_EMEAN = (ensMeanPDO * 0.7815))
 
 # bias correction
 sdPDO <- climPDO %>% filter(year >2019) %>% 
             summarize(devSD_GFDL = sd(recDev_GFDL),
                       devSD_HAD = sd(recDev_HAD),
-                      devSD_IPSL = sd(recDev_IPSL))
+                      devSD_IPSL = sd(recDev_IPSL),
+                      devSD_EMEAN = sd(recDev_EMEAN))
 
 # climPDO <- climPDO %>% mutate(recDev_GFDL = recDev_GFDL * (1.25/sdPDO$devSD_GFDL),
 #                               recDev_HAD = recDev_HAD * (1.25/sdPDO$devSD_HAD),
 #                               recDev_IPSL = recDev_IPSL * (1.25/sdPDO$devSD_IPSL))
 
-# write.csv(climPDO, "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevPDOclim2101.csv")
-lines(climPDO$year, climPDO$recDev_GFDL, col = 3)
+climPDO %>% full_join(y = newDat %>% select(Year, recDevPDO),
+                      by = c("year" = "Year")) %>%
+  pivot_longer(c(recDev_GFDL, recDev_HAD, recDev_IPSL, recDev_EMEAN, recDevPDO), 
+               names_to = "model", values_to = "pdo") %>%
+  ggplot(aes(x = year, y = pdo, color = model)) +
+  geom_line() 
 
-climPDO %>% ggplot(aes(x = year, y = gfdl_pdo)) + geom_line()
+# write.csv(climPDO, "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevPDOclim2101.csv")
+
