@@ -75,54 +75,43 @@ sstDat %>% ggplot(aes(x = Year, y = recDevSSTDiff)) + geom_line() +
 # Read in projected CalCOFI SST data
 projSST <- read_csv("../SardineMSE/dat/calcofi_sst_projected.csv")
 
-#only select the SST projections calculated from the box covering the CalCOFI stations 
-sst.dat <- projSST[,-c(2,4,6)]
-
 #add observed SST used for the PFMC analysis
-sst.dat$obs <- NA
-sst.dat$obs[5:29] <- sstDat$SST_CC_ann
+projSST <- projSST %>% full_join(y = sstDat %>% select(Year, SST_CC_ann), 
+                                 by = c("year" = "Year"))
 
-#change to long format for plotting
-sst.dat.long <- sst.dat %>%
-  pivot_longer(!year, names_to = "model", values_to = "sst")
-
-ggplot(data=sst.dat.long, aes(x=year, y=sst, group=model, colour=model)) +
-  geom_line() +
-  geom_point()
+# change to long format for plotting
+projSST %>%
+  pivot_longer(!c(year, gfdl_sst_station, had_sst_station, ipsl_sst_station), 
+               names_to = "model", values_to = "sst") %>%
+  ggplot(aes(x=year, y=sst, group=model, colour=model)) +
+         geom_line() +
+         geom_point()
 
 #bias correct the projections using the SST observations from 1984-2008
-sst.clim.dat <- sst.dat %>% filter(year %in% (1984:2008))
+sstMeans <- projSST %>% filter(year %in% (1984:2008)) %>%
+              summarize(meanGFDL = mean(gfdl_sst_all),
+                        meanHAD = mean(had_sst_all),
+                        meanIPSL = mean(ipsl_sst_all),
+                        meanObs = mean(SST_CC_ann, na.rm = TRUE))
 
-sst.clim <- colMeans(sst.clim.dat)
-
-sst.dat.biascorr = data.frame(year=sst.dat$year, gfdl=(sst.dat$gfdl_sst_all-sst.clim[2]+sst.clim[5]),
-                              hadl=(sst.dat$had_sst_all-sst.clim[3]+sst.clim[5]),
-                              ipsl=(sst.dat$ipsl_sst_all-sst.clim[4]+sst.clim[5]),
-                              Obs=sst.dat$obs)
+projSST <- projSST %>% mutate(sstGFDLbc = gfdl_sst_all - sstMeans$meanGFDL + sstMeans$meanObs,
+                              sstHADbc = had_sst_all - sstMeans$meanHAD + sstMeans$meanObs,
+                              sstIPSLbc = ipsl_sst_all - sstMeans$meanIPSL + sstMeans$meanObs,)
 
 #create ensemble mean
-sst.dat.biascorr$emean <- rowMeans(sst.dat.biascorr[,c(2:4)])
-sst.dat.blong <- sst.dat.biascorr %>%
-  pivot_longer(!year, names_to = "model", values_to = "sst")
+projSST$emean <- rowMeans(projSST[,c("sstGFDLbc", "sstHADbc", "sstIPSLbc")])
 
-ggplot(data=sst.dat.blong, aes(x=year, y=sst, group=model, colour=model)) +
+projSST %>%
+  pivot_longer(c(sstGFDLbc, sstHADbc, sstIPSLbc, emean, SST_CC_ann),
+               names_to = "model", values_to = "sst") %>%
+  ggplot(aes(x=year, y=sst, group=model, colour=model)) +
   geom_line() 
 
 # Bias correct projections and compute ensemble mean
-projSST <- sst.dat.biascorr %>% mutate(recDevSST_GFDL = (gfdl * 1.280965e+00) - meanRecDevSST,
-                              recDevSST_HAD = (hadl * 1.280965e+00) - meanRecDevSST,
-                              recDevSST_IPSL = (ipsl * 1.280965e+00) - meanRecDevSST,
+projSST <- projSST %>% mutate(recDevSST_GFDL = (sstGFDLbc * 1.280965e+00) - meanRecDevSST,
+                              recDevSST_HAD = (sstHADbc * 1.280965e+00) - meanRecDevSST,
+                              recDevSST_IPSL = (sstIPSLbc * 1.280965e+00) - meanRecDevSST,
                               recDevSST_EMEAN = (emean * 1.280965e+00) - meanRecDevSST)
-
-# modify rec devs so historical period (pre-2005) is centered on 0
-centerGFDL <- projSST %>% filter(year < 2005) %>% select(recDevSST_GFDL)
-centerGFDL <- scale(centerGFDL, center = TRUE, scale = FALSE)
-centerHAD <- projSST %>% filter(year < 2005) %>% select(recDevSST_HAD)
-centerHAD <- scale(centerHAD, center = TRUE, scale = FALSE)
-centerIPSL <- projSST %>% filter(year < 2005) %>% select(recDevSST_IPSL)
-centerIPSL <- scale(centerIPSL, center = TRUE, scale = FALSE)
-centerEMEAN <- projSST %>% filter(year < 2005) %>% select(recDevSST_EMEAN)
-centerEMEAN <- scale(centerEMEAN, center = TRUE, scale = FALSE)
 
 # bias correction
 sdSST <- projSST %>% filter(year >2019) %>% 
@@ -143,6 +132,8 @@ lines(projSST$year, projSST$recDevSST_GFDLbc, col = 4)
 lines(projSST$year, projSST$recDevSST_HADbc, col = 2)
 lines(projSST$year, projSST$recDevSST_IPSLbc, col = 3)
 abline(h = 0, col = "grey")
+abline(v = 2019.5, lty = 2, col = "grey")
 
 
-write.csv(projSST, "J:/Desiree/Sardine/SardineMSE/dat/recdevSST2070.csv")
+
+# write.csv(projSST, "../SardineMSE/dat/recdevSST2070.csv")

@@ -219,7 +219,7 @@ termTS %>% filter(model_run == omName) %>%
 * Catch recovers more slowly in cyclic PDO scenario
 * Catch reaches maximum levels in Regime and SST scenarios, almost immediately in SST scenario
   * Mean levels higher than AR scenario
-  
+
 ```{r, tsCatch, echo=FALSE, warning=FALSE}
 # plot summary of catch trajectories
 termTS %>% filter(model_run == omName) %>%
@@ -322,6 +322,7 @@ Plot comparisons across HCR and Recruitment scenario
 * HCR1 allows for higher biomass than No Catch HCR0 in a few instances
 * Collapse severity slightly higher in HCR3 and HCR8
 * Slightly higher mean min ages and lengths in HCR0 and HCR1 
+
 ```{r, metricsStatus, echo=FALSE, warning=FALSE}
 # parse out HCR and recruitment scenario
 metricsTbl <- metricsTbl %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
@@ -525,10 +526,12 @@ metricsTbl %>% ggplot(aes(x = HCR, y = bonanzaFreq)) +
                                                 "ConstF", "Pikitch", "40-10",
                                                 "DynPik", "Dyn40-10")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Frequenct Bt > 0.8B0", x = "HCR")
+  labs(y = "Frequency Bt > 0.8B0", x = "HCR")
 
 ```
-Investigate rebuilding lengths 
+
+Investigate rebuilding lengths
+
 ```{r, echo=FALSE}
 rebuildTime <- performanceList$tsSmry %>% select(Bio_smry , year, model_run, iteration, scenario, closure, closureLength) %>%
   filter(closure) %>% arrange(scenario, iteration, year) #%>% filter(year == 2020)
@@ -774,6 +777,7 @@ foreRE %>% filter(plotGroup != "non-convrg") %>%
 
 ### Error Progression
 Plot some timeseries over estimation models for each run 
+
 ```{r, echo=FALSE}
 
 for(hcr in 2:length(hcrs)){

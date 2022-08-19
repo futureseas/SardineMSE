@@ -111,7 +111,7 @@ scenName <- c("constGrow2001OM_constGrow2005EM_PDOclimRecHCR0",
               "constGrow2001OM_constGrow2005EM_PDOclimRecHCR6",
               "constGrow2001OM_constGrow2005EM_PDOclimRecHCR7",
               "constGrow2001OM_constGrow2005EM_PDOclimRecHCR8")
-iters <- 10
+iters <- 100
 
 ### Define custom rec devs based on environment
 
@@ -120,12 +120,7 @@ template <- create_future_om_list(example_type = "custom")
 recUserDef <- read.csv("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevPDOclim2101.csv")
 # recUserDef <- read.csv("J:/Desiree/Sardine/SardineMSE/dat/recdevPDOclim2101.csv")
 
-sdSST <- recUserDef %>% filter(year >2019) %>% 
-            summarize(devSD_GFDL = sd(recDev_GFDL),
-                      devSD_HAD = sd(recDev_HAD),
-                      devSD_IPSL = sd(recDev_IPSL))
-
-recUserDef <- recUserDef %>% select(year, recDev_GFDL) %>%
+recUserDef <- recUserDef %>% select(year, recDev_EMEAN) %>%
                 filter(year <= yrend - 1,
                        year >= yrsrt - 1) #%>%
 
@@ -134,7 +129,7 @@ recdevInput$pars <- "rec_devs"
 
 input <- data.frame(iter = rep(1:iters, each = nrow(recUserDef)), # !!RW: must start with empty scenario folder
                     yr = rep(recUserDef$year, times = iters),
-                    value = rep(recUserDef$recDev_GFDL, times = iters))
+                    value = rep(recUserDef$recDev_EMEAN, times = iters))
 # Add additional error over environment, different among iterations but same across HCRs
 input <- input %>% mutate(addlError = rnorm(nrow(input),0, 1.25),
                           # pseudo-R^2 of PDO fit was 0.44 in Zwolinski & Demer 2019
