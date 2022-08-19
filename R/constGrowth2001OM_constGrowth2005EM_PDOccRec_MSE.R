@@ -16,18 +16,16 @@ library(SSMSE)
 packageVersion("SSMSE")
 
 # directory for MSE output
-mseOutputPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
-# mseOutputPath <- "J:/Desiree/Sardine/SardineScenarios"
+# mseOutputPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
+mseOutputPath <- "J:/Desiree/Sardine/SardineScenarios"
 
 # Set Operating and Estimation Model ----------------------------------------
 
 # directory for OM SS code
-OMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2001"
-# OMmodelPath <- "J:/Desiree/Sardine/SardineMSE/scenarioModels/start2001"
+OMmodelPath <- "../SardineMSE/scenarioModels/start2001"
 
 # EM starts in 1981 to test a high data quality scenario
-EMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2005"
-# EMmodelPath <- "J:/Desiree/Sardine/SardineMSE/scenarioModels/start2005"
+EMmodelPath <- "../SardineMSE/scenarioModels/start2005"
 # EM starter.ss file must indicate init values are to be pulled from control.ss file, not ss.par
 
 # Define Observation Model ------------------------------------------------
@@ -117,8 +115,7 @@ iters <- 100
 
 template <- create_future_om_list(example_type = "custom")
 
-recUserDef <- read.csv("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevPDOclim2101.csv")
-# recUserDef <- read.csv("J:/Desiree/Sardine/SardineMSE/dat/recdevPDOclim2101.csv")
+recUserDef <- read.csv("../SardineMSE/dat/recdevPDOclim2101.csv")
 
 recUserDef <- recUserDef %>% select(year, recDev_EMEAN) %>%
                 filter(year <= yrend - 1,
@@ -148,12 +145,12 @@ envt_dev_list <- list(recdevInput)
 # Run the OM --------------------------------------------------------------
 
 # Custom MS fxn location
-MSfxnPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R"
-# MSfxnPath <- "J:/Desiree/Sardine/SardineMSE/R"
-seedNum <- 706
-logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
+MSfxnPath <- "../SardineMSE/R"
 
-sink(file = file(logFile), append = TRUE)
+seedNum <- 729
+# logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
+# 
+# sink(file = file(logFile), append = TRUE)
 
 startTime <- Sys.time()
 ptm <- proc.time()
@@ -327,7 +324,7 @@ print(procDiff)
 cat("\n \n")
 
 # close log connection
-sink()
+# sink()
 # Summarize results -------------------------------------------------------
 
 # Summarize 1 iteration of output

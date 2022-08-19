@@ -69,17 +69,17 @@ scenarios <- c("constGrow2001OM_constGrow2005EM_RegRecHCR0",
               "constGrow2001OM_constGrow2005EM_SSTRecHCR7",
               "constGrow2001OM_constGrow2005EM_SSTRecHCR8",
 
-             # 
-             #  "constGrow2001OM_constGrow2005EM_ccPDORecHCR0",
-             #  "constGrow2001OM_constGrow2005EM_ccPDORecHCR1",
-             #  "constGrow2001OM_constGrow2005EM_ccPDORecHCR2",
-             #  "constGrow2001OM_constGrow2005EM_ccPDORecHCR3",
-             # # "constGrow2001OM_constGrow2005EM_ccPDORecHCR4",
-             #  "constGrow2001OM_constGrow2005EM_ccPDORecHCR5",
-             #  "constGrow2001OM_constGrow2005EM_ccPDORecHCR6",
-             #  "constGrow2001OM_constGrow2005EM_ccPDORecHCR7",
-             #  "constGrow2001OM_constGrow2005EM_ccPDORecHCR8")#,
-              # 
+
+              "constGrow2001OM_constGrow2005EM_PDOclimRecHCR0",
+              "constGrow2001OM_constGrow2005EM_PDOclimRecHCR1",
+              "constGrow2001OM_constGrow2005EM_PDOclimRecHCR2",
+              "constGrow2001OM_constGrow2005EM_PDOclimRecHCR3",
+             # "constGrow2001OM_constGrow2005EM_ccPDORecHCR4",
+              "constGrow2001OM_constGrow2005EM_PDOclimRecHCR5",
+              "constGrow2001OM_constGrow2005EM_PDOclimRecHCR6",
+              "constGrow2001OM_constGrow2005EM_PDOclimRecHCR7",
+              "constGrow2001OM_constGrow2005EM_PDOclimRecHCR8",
+
               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR0",
               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR1",
               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR2",
@@ -88,24 +88,24 @@ scenarios <- c("constGrow2001OM_constGrow2005EM_RegRecHCR0",
               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR5",
               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR6",
               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR7",
-              "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR8")#,
-              # 
-              # "constGrow2001OM_constGrow2005EM_MICERecHCR0",
-              # "constGrow2001OM_constGrow2005EM_MICERecHCR1",
-              # "constGrow2001OM_constGrow2005EM_MICERecHCR2",
-              # "constGrow2001OM_constGrow2005EM_MICERecHCR3",
+              "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR8",
+
+              "constGrow2001OM_constGrow2005EM_MICERecHCR0",
+              "constGrow2001OM_constGrow2005EM_MICERecHCR1",
+              "constGrow2001OM_constGrow2005EM_MICERecHCR2",
+              "constGrow2001OM_constGrow2005EM_MICERecHCR3",
               # "constGrow2001OM_constGrow2005EM_MICERecHCR4",
-              # "constGrow2001OM_constGrow2005EM_MICERecHCR5",
-              # "constGrow2001OM_constGrow2005EM_MICERecHCR6",
-              # "constGrow2001OM_constGrow2005EM_MICERecHCR7",
-              # "constGrow2001OM_constGrow2005EM_MICERecHCR8")
+              "constGrow2001OM_constGrow2005EM_MICERecHCR5",
+              "constGrow2001OM_constGrow2005EM_MICERecHCR6",
+              "constGrow2001OM_constGrow2005EM_MICERecHCR7",
+              "constGrow2001OM_constGrow2005EM_MICERecHCR8")
 
 
-  # smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
-  #                                  scenarios = scenarios)
-  # saveRDS(smryOutputList, 
-  #         file = file.path(mseDir, "serverRandRec_ARRec_allHCRs_results.RDS"))
-smryOutputList <- readRDS(file.path(mseDir, "serverRegARPDOcyclSST_allHCRs_results.RDS"))
+  smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
+                                   scenarios = scenarios)
+  saveRDS(smryOutputList,
+          file = file.path(mseDir, "serverRegARPDOcyclPDOclimSSTMICE_allHCRs_results.RDS"))
+# smryOutputList <- readRDS(file.path(mseDir, "serverRegARPDOcyclSST_allHCRs_results.RDS"))
   
 performanceList <- CalcPerformance(smryOutputList)
 

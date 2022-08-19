@@ -145,10 +145,10 @@ envt_dev_list <- list(recdevInput)
 # Custom MS fxn location
 # MSfxnPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R"
 MSfxnPath <- "J:/Desiree/Sardine/SardineMSE/R"
-seedNum <- 706
-logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
-
-sink(file = file(logFile), append = TRUE)
+seedNum <- 729
+# logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
+# 
+# sink(file = file(logFile), append = TRUE)
 
 startTime <- Sys.time()
 ptm <- proc.time()
@@ -322,7 +322,7 @@ print(procDiff)
 cat("\n \n")
 
 # close log connection
-sink()
+# sink()
 # Summarize results -------------------------------------------------------
 
 # Summarize 1 iteration of output
