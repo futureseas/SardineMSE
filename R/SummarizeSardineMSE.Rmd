@@ -11,7 +11,7 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-```{r, echo=FALSE}
+```{r, include=FALSE}
 library(r4ss)
 library(tidyverse)
 library(RColorBrewer)
@@ -24,7 +24,7 @@ source("J:/Desiree/Sardine/SardineMSE/R/CalcTermTS.R")
 # source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/CalcTermTS.R")
 ```
 
-```{r, GetResults, echo=FALSE}
+```{r, GetResults, include=FALSE}
 # run GetSumryOutput and CalcPerformance to get performance metrics
 
 mseDir <- "J:/Desiree/Sardine/SardineScenarios"
@@ -101,26 +101,23 @@ scenarios <- c("constGrow2001OM_constGrow2005EM_RegRecHCR0",
               # "constGrow2001OM_constGrow2005EM_MICERecHCR8")
 
 
-
-  smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
-                                   scenarios = scenarios)
-  saveRDS(smryOutputList,
-          file = file.path(mseDir,
-                           "serverRegARPDOcyclSST_allHCRs_results.RDS"))
-# smryOutputList <- readRDS(file.path(mseDir, "serverRegARMeanSSTPDOcycl_allHCRs_results.RDS"))
+  # smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
+  #                                  scenarios = scenarios)
+  # saveRDS(smryOutputList, 
+  #         file = file.path(mseDir, "serverRandRec_ARRec_allHCRs_results.RDS"))
+smryOutputList <- readRDS(file.path(mseDir, "serverRegARPDOcyclSST_allHCRs_results.RDS"))
   
 performanceList <- CalcPerformance(smryOutputList)
 
 metricsTbl <- performanceList$perfomanceMetrics
                    
-metricsTbl
-```
 
+```
 
 # Model Dynamics
 ## Timeseries
-Plot timeseries of age1+ biomass, catch, and recruitment
-```{r, Timeseries, echo=FALSE}
+Plot timeseries of age1+ biomass, catch, and recruitment 
+```{r, Timeseries, include=FALSE}
 # get terminal estimates of these values for timeseries plots
 termTS <- CalcTermTS(smryOutputList, termYr = termYr) %>% 
               mutate(HCR = sub(pattern = ".*Rec","", scenario),
@@ -134,11 +131,13 @@ hcrPal <- brewer.pal(10, "Set3")[-2]
 ```
 
 ### Biomass
-Plots of simulated (OM) biomass of age 1+ fish with 90% confidence intervals (grey band), and individual trajectories (dotted lines). Under a no fishing strategy:
-* Biomass recovers in the random and cyclic PDO recruitment scenarios
-  * Cyclic PDO doesn't result in same variation as random recruitment
-* The SST recruitment scenario has higher overall biomass and larger variation
-```{r, tsBiomass, echo=FALSE}
+Plots of simulated (OM) biomass of age 1+ fish with 80% confidence intervals (grey band), and individual trajectories (dotted lines). Under a no fishing strategy:
+
+* Biomass recovers in all recruitment scenarios
+    * Regime and SST recruitment reach higher mean biomass than historic levels (max 1.5 x 10^6 in 1999 estimated from PK's research model)
+* The SST recruitment scenario has unreasonably high biomass and larger variation 
+
+```{r, tsBiomass, echo=FALSE, warning=FALSE}
 
 # timeseries plot for presentation
 termTS %>% filter(model_run == omName, HCR == "HCR0") %>%
@@ -180,10 +179,12 @@ termTS %>% filter(model_run == omName) %>%
 
 ### Recruitment
 Samples of time series of recruitment deviations from 4 iterations. 
-* The SST recruitment scenario is biased positive
-  * Leads to much higher recruitment (numbers) overall compared to random recruitment scenario
-* The cyclic PDO scenario doesn't have the same amount of interannual variability as historic or random scenarios, but over the projection period reaches the same distribution as historic recruitment deviations.
-```{r, tsRecruitment, echo=FALSE}
+
+* The SST recruitment scenario is biased positive with higher deviations than historic period
+  * Leads to much higher recruitment (numbers) overall compared to other recruitment scenarios
+* The cyclic PDO and Regime scenarios don't have the same amount of interannual variability as historic or autocorrelated scenarios, but over the projection period reach the same distribution as historic recruitment deviations.
+
+```{r, tsRecruitment, echo=FALSE, warning=FALSE}
 # look at recruitment deviations
 termTS %>% filter(model_run == omName,
                   HCR == "HCR0", iteration %in% sample(iteration, size = 4)) %>%
@@ -214,9 +215,12 @@ termTS %>% filter(model_run == omName) %>%
 ```
 
 ### Catch
+* Catch generally follows the pattern of recruitment in each scenario
 * Catch recovers more slowly in cyclic PDO scenario
-* Catch is higher and more variable in the SST scenario
-```{r, tsCatch, echo=FALSE}
+* Catch reaches maximum levels in Regime and SST scenarios, almost immediately in SST scenario
+  * Mean levels higher than AR scenario
+  
+```{r, tsCatch, echo=FALSE, warning=FALSE}
 # plot summary of catch trajectories
 termTS %>% filter(model_run == omName) %>%
   select(totCatch, year, model_run, iteration, scenario, HCR, recScen) %>%
@@ -255,7 +259,8 @@ meanCat <- termTS %>% filter(model_run == omName, HCR == "HCR5") %>%
 ## Other parameters
 * No real trend in mean age, though larger stock biomasses generally allow for potentially older mean ages
 * Unfished biomass (B0) estimated to increase as simulation projection progresses under SST recruitment scenario
-```{r, tsParams, echo=FALSE}
+
+```{r, tsParams, echo=FALSE, warning=FALSE}
 # compare to mean length
   # find columns for directory parsing
   dirsCol <- ncol(str_split(smryOutputList$ageComp$resDir, 
@@ -302,14 +307,22 @@ smryOutputList$sclSmry %>% mutate(emYear = as.numeric(regmatches(model_run,
   #geom_rug(data = convrgCheck, mapping = aes(x = emYear),
   #                     sides = "b", inherit.aes = FALSE) +
   labs(x = "Year", y = "B0 (Unfished SSB)")
-```
 
+```
 
 # Performance Metrics
 Plot comparisons across HCR and Recruitment scenario
 
 ## Stock Status
-```{r, metricsStatus, echo=FALSE}
+
+* Larger variation in biomass outcomes among scenarios than HCRs
+* Relative to other HCRs within recruitment scenarios, HCR1 allows larger biomasses on average
+  * Distant second is HCR7, though groups more with other HCRs
+  * HCR2 (Current SST rule) results in lowest mean biomass
+* HCR1 allows for higher biomass than No Catch HCR0 in a few instances
+* Collapse severity slightly higher in HCR3 and HCR8
+* Slightly higher mean min ages and lengths in HCR0 and HCR1 
+```{r, metricsStatus, echo=FALSE, warning=FALSE}
 # parse out HCR and recruitment scenario
 metricsTbl <- metricsTbl %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
                                     recScen = sub(pattern = "HCR.*","", scenario)) %>%
@@ -425,7 +438,21 @@ metricsTbl %>% ggplot(aes(x = HCR, y = minLen)) +
 ```
 
 ## Fishery
-```{r, metricsCatch, echo=FALSE}
+
+* Larger variation in catch outcomes among scenarios than HCRs
+* Relative to HCR2 (highest mean catch), HCR1 and HCR7 had lowest mean catches
+* HCR2 had highest catch variability in non-SST scenarios and lowest in SST scenario
+  * HCR1 and HCR7 had highest variability in SST scenario
+* Rank of least frequently below 150K mt: HCR0, HCR1, HCR2, HCR7
+  * HCR1 had overall lowest frequency of years below 150K mt across all scenarios
+* HCR1 least frequently below 50K mt, HCR3 and HCR8 most frequently below 50K mt
+* Bonanzas (biomass >0.8B0) generally rare (<20% chance), except in SST scenario where bonanzas were common (50% chance or greater)
+* Rebuilding time generally less than 10 yrs, though potentially longer in AR scenario
+  * Slightly longer rebuilding time under HCR0 and HCR1 under Regime and cyclic PDO scenarios
+  * Slightly longer rebuilding time under HCR3 and HCR8 under AR scenario
+* Number of potential closure events always <4 for HCR0 and HCR1, no longer than 6 times
+
+```{r, metricsCatch, echo=FALSE, warning=FALSE}
 # plot mean catch
 metricsTbl %>%  filter(HCR != "HCR0") %>%
   #filter(recScen == "RandRec", HCR != "HCR4") %>%
@@ -501,7 +528,6 @@ metricsTbl %>% ggplot(aes(x = HCR, y = bonanzaFreq)) +
   labs(y = "Frequenct Bt > 0.8B0", x = "HCR")
 
 ```
-
 Investigate rebuilding lengths 
 ```{r, echo=FALSE}
 rebuildTime <- performanceList$tsSmry %>% select(Bio_smry , year, model_run, iteration, scenario, closure, closureLength) %>%
@@ -558,14 +584,15 @@ rebuildTime %>%
 ```
 
 ## Assessment
-* Maximum non-convergence rate was 4% to 8% depending on the HCR
+* Maximum non-convergence rate was 2% to 6% depending on the HCR
 * For the overall assessment:
-  * Cyclic PDO led to positive bias in annual biomass estimate
-  * The SST scenario was expected to be unbiased for a given year
+  * Any given assessment was expected to be positively biased (up to 12.5%) over assessment years
+  * The SST scenario was expected to be least biased for a given assessment year
+* Relative error was expected to be unbiased for any given year at 95% CI in all but later years of SST scenario
 * Estimates of biomass in the final year of assessment were negatively biased
-  * Cyclic PDO recruitment scenario was least biased
-  * SST recruitment scenario was most biased
-```{r, metricsAssess, echo=FALSE}
+  * SST recruitment scenario was most negatively biased
+
+```{r, metricsAssess, echo=FALSE, warning=FALSE}
 
 # plot convergence frequency
 metricsTbl %>% filter(HCR != "HCR0") %>%
@@ -636,12 +663,12 @@ annualRE <- errCompare %>% filter(year <= emYear.x) %>%
                           q3YrRE = quantile(errSmryBio, probs = 0.75),
                           nErrs = n())
 
-assessRE %>% #filter(HCR != "HCR3") %>%
+assessRE %>% filter(plotGroup != "non-convrg") %>%
   ggplot(aes(x = HCR, y = meanRunRE, fill = plotGroup)) +
   geom_boxplot() +
   facet_wrap(~recScen) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(title = "Mean Annual Relative Error of Assessment")
+  labs(title = "Mean Relative Error of Total Assessment")
 
 scens <- unique(annualRE$recScen)
 for(i in 1:length(scens)){
@@ -662,18 +689,90 @@ termRE <- errCompare %>% filter(year == emYear.x) %>%
               group_by(model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
               summarize(termRE = mean(errSmryBio))
 
-termRE %>% ggplot(aes(x = HCR, y = termRE, fill = plotGroup)) +
+termRE %>% filter(plotGroup != "non-convrg") %>%
+  ggplot(aes(x = HCR, y = termRE, fill = HCR)) +
   geom_boxplot() +
   facet_wrap(~recScen) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(title = "Mean Terminal Relative Error of Assessment")
+  labs(title = "Mean Relative Error of Terminal Assessment Year") +
+  scale_fill_manual(values = hcrPal[-1], labels = c("PFMCF018", "PFMCFSST",
+                                                "ConstF", "Pikitch", "40-10",
+                                                "DynPik", "Dyn40-10"))
 
-termRE %>% group_by(scenario, HCR, recScen, plotGroup) %>%
-              summarize(termScenHCR_RE = mean(termRE),
-                        itN = n())
+# termRE %>% group_by(scenario, HCR, recScen, plotGroup) %>%
+#               summarize(termScenHCR_RE = mean(termRE),
+#                         itN = n())
+
+# Terminal lag1 estimate relative error
+lag1RE <- errCompare %>% filter(year == (emYear.x - 1)) %>%
+              select(age1plusEM, age1plusOM, errSmryBio, year, emYear.x, model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
+              group_by(model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
+              summarize(lag1RE = mean(errSmryBio))
+
+lag1RE %>% filter(plotGroup != "non-convrg") %>%
+  ggplot(aes(x = HCR, y = lag1RE, fill = HCR)) +
+  geom_boxplot() +
+  facet_wrap(~recScen) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(title = "Mean Relative Error of Assessment Year Lag1") +
+  scale_fill_manual(values = hcrPal[-1], labels = c("PFMCF018", "PFMCFSST",
+                                                "ConstF", "Pikitch", "40-10",
+                                                "DynPik", "Dyn40-10"))
+
+# Terminal lag2 estimate relative error
+lag2RE <- errCompare %>% filter(year == (emYear.x - 2)) %>%
+              select(age1plusEM, age1plusOM, errSmryBio, year, emYear.x, 
+                     model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
+              group_by(model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
+              summarize(lag2RE = mean(errSmryBio))
+
+lag2RE %>% filter(plotGroup != "non-convrg") %>%
+  ggplot(aes(x = HCR, y = lag2RE, fill = HCR)) +
+  geom_boxplot() +
+  facet_wrap(~recScen) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(title = "Mean Relative Error of Assessment Year Lag2") +
+  scale_fill_manual(values = hcrPal[-1], labels = c("PFMCF018", "PFMCFSST",
+                                                "ConstF", "Pikitch", "40-10",
+                                                "DynPik", "Dyn40-10"))
+
+# Terminal lag3 estimate relative error
+lag3RE <- errCompare %>% filter(year == (emYear.x - 3)) %>%
+              select(age1plusEM, age1plusOM, errSmryBio, year, emYear.x, 
+                     model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
+              group_by(model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
+              summarize(lag3RE = mean(errSmryBio))
+
+lag3RE %>% filter(plotGroup != "non-convrg") %>%
+  ggplot(aes(x = HCR, y = lag3RE, fill = HCR)) +
+  geom_boxplot() +
+  facet_wrap(~recScen) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(title = "Mean Relative Error of Assessment Year Lag3") +
+  scale_fill_manual(values = hcrPal[-1], labels = c("PFMCF018", "PFMCFSST",
+                                                "ConstF", "Pikitch", "40-10",
+                                                "DynPik", "Dyn40-10"))
+
+# Forecast estimate relative error
+foreRE <- errCompare %>% filter(year == (emYear.x + 1)) %>%
+              select(age1plusEM, age1plusOM, errSmryBio, year, emYear.x, 
+                     model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
+              group_by(model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
+              summarize(foreRE = mean(errSmryBio))
+
+foreRE %>% filter(plotGroup != "non-convrg") %>%
+  ggplot(aes(x = HCR, y = foreRE, fill = HCR)) +
+  geom_boxplot() +
+  facet_wrap(~recScen) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(title = "Mean Relative Error of Assessment 1 Year Forecast") +
+  scale_fill_manual(values = hcrPal[-1], labels = c("PFMCF018", "PFMCFSST",
+                                                "ConstF", "Pikitch", "40-10",
+                                                "DynPik", "Dyn40-10"))
+
 ```
 
-### Error Progression 
+### Error Progression
 Plot some timeseries over estimation models for each run 
 ```{r, echo=FALSE}
 
@@ -725,8 +824,8 @@ for(hcr in 2:length(hcrs)){
 ```
 
 ### Terminal Year Error
-Error of final assessment year over projection
-```{r, echo=FALSE}
+Error of final assessment year over projection 
+```{r, echo=FALSE, warning=FALSE}
 set.seed(seed = 413)
 exIters <- sample(termTS$iteration, size = 3)
 exHCR <- "HCR2"
@@ -742,6 +841,7 @@ termTS %>% filter(iteration %in% exIters,
     ggplot2::geom_line(ggplot2::aes(linetype = as.character(iteration), color = model_run))+
     #ggplot2::scale_color_manual(values = c("#D65F00", "blue")) +
     ggplot2::scale_linetype_manual(values = rep("solid", 50)) +
+  scale_fill_manual(labels = c("Terminal EM","OM")) +
     ggplot2::guides(linetype = "none") +
     ggplot2::facet_grid(rows = vars(iteration), cols = vars(recScen)) +
     ggplot2::theme_classic() + 
@@ -751,8 +851,14 @@ termTS %>% filter(iteration %in% exIters,
 ```
 
 # Tradeoffs
-Plot tradeoffs among metrics 
-```{r, Tradeoffs, echo=FALSE}
+Plot tradeoffs among metrics
+
+* HCR1 and HCR7 had relatively lower mean catch for a given mean level of biomass, while HCR2 and HCR8 had higher mean catch per biomass level
+* On annual basis, stronger tradeoff between catch and biomass for HCRs 3, 6, 7, and 8
+  * HCR2 provides higher catches at intermediate levels of biomass than many HCRs
+* Positive relationship between mean catch and catch SD, except in SST scenario where relationship is negative
+
+```{r, Tradeoffs, echo=FALSE, warning=FALSE}
 
 metricsTbl %>% #filter(recScen == "RandRec", HCR != "HCR4") %>%
   ggplot(aes(x = log(meanCatch), y = log(meanB1plus), color = HCR)) +
