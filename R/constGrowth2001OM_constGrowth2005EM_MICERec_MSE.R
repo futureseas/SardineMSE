@@ -21,12 +21,10 @@ mseOutputPath <- "J:/Desiree/Sardine/SardineScenarios"
 # Set Operating and Estimation Model ----------------------------------------
 
 # directory for OM SS code
-# OMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2001"
-OMmodelPath <- "J:/Desiree/Sardine/SardineMSE/scenarioModels/start2001"
+OMmodelPath <- "../SardineMSE/scenarioModels/start2001"
 
 # EM starts in 1981 to test a high data quality scenario
-# EMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2005"
-EMmodelPath <- "J:/Desiree/Sardine/SardineMSE/scenarioModels/start2005"
+EMmodelPath <- "../SardineMSE/scenarioModels/start2005"
 # EM starter.ss file must indicate init values are to be pulled from control.ss file, not ss.par
 
 # Define Observation Model ------------------------------------------------
@@ -145,7 +143,7 @@ envt_dev_list <- list(recdevInput)
 # Custom MS fxn location
 # MSfxnPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R"
 MSfxnPath <- "J:/Desiree/Sardine/SardineMSE/R"
-seedNum <- 706
+seedNum <- 729
 logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
 
 sink(file = file(logFile), append = TRUE)

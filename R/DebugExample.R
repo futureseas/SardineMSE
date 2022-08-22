@@ -44,7 +44,7 @@ datfile <- SS_readdat(file = paste0(OMmodelPath, "/constGrowthMidSteepNewSelex_O
 # create_sample_strct() has trouble IDing SE for survey CPUE
 # define an index for the Acoustic-Trawl survey as in Desiree's code
 #specify number of years of MSE loop
-nyrs <- 10
+nyrs <- 5
 
 #sample_struct <- create_sample_struct(dat = datfile, nyrs = nyrs)
 #traceback()
@@ -56,10 +56,12 @@ yrsrt <- datfile$endyr +1
 yrend <- datfile$endyr + nyrs
 
 #sample_struct$CPUE = sample_struct$CPUE[1:nyrs,]
-CPUE <- data.frame(Yr= yrsrt:yrend,
-                   Seas= 1,
+CPUE <- data.frame(Yr= rep(yrsrt:yrend, times = 2),
+                   # Need to provide seasons in terms of months for index
+                   Seas= rep(c(1, 10), each = length(yrsrt:yrend)),
                    FltSvy = 4,
                    SE = 0.25)
+#CPUE <- CPUE %>% filter(Seas == 10)
 
 #specify the number of catch fleets
 ncdat <- 3
@@ -154,13 +156,13 @@ rec_dev_specify$input$first_yr_final_val <- 2020
 rec_dev_specify$input$ts_param <- "sd"
 rec_dev_specify$input$value <- 1.25
 
-rec_dev_specify$input <- data.frame(first_yr_averaging = NA, #rep(datfile$styr, 1),
-                                    last_yr_averaging = NA, #rep(2019, 1),
-                                    last_yr_orig_val = c(2019, 2024),
-                                    first_yr_final_val = c(2020, 2025),
-                                    ts_param = c("sd", "mean"),
-                                    method = c("absolute", "additive"),
-                                    value = c(1.25, -1))#, -2.25458))
+# rec_dev_specify$input <- data.frame(first_yr_averaging = NA, #rep(datfile$styr, 1),
+#                                     last_yr_averaging = NA, #rep(2019, 1),
+#                                     last_yr_orig_val = c(2019, 2024),
+#                                     first_yr_final_val = c(2020, 2025),
+#                                     ts_param = c("sd", "mean"),
+#                                     method = c("absolute", "additive"),
+#                                     value = c(1.25, -1))#, -2.25458))
 
 ### Add autocorrelation ###
 # new_vals <- data.frame(first_yr_averaging = NA,
