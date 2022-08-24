@@ -144,13 +144,12 @@ MS_sar_hcr2 = function(EM_out_dir = NULL,
   bio1 = EMts$Bio_Smry.1[1]
   
   #upload the CalCOFI temperature timeseries
- # Ctemp=read.csv("/home/desiree/Documents/COCA/Sardine/calcofi_sst_projected.csv")
- # Ctemp=read.csv("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/calcofi_sst_projected.csv")
- Ctemp=read.csv("J:/Desiree/Sardine/SardineMSE/dat/calcofi_sst_projected.csv")
-  
+  # RW Note: Use the ensemble mean from the bias corrected values set to historical mean
+ Ctemp=read.csv("../SardineMSE/dat/recdevSST2070.csv")
+
  #extract the average for the three years prior to the forecast
  Tyr=c((EMts$Yr[1]-1),(EMts$Yr[1]-2),(EMts$Yr[1]-3))
- Temsy = mean(Ctemp$gfdl_sst_all[Ctemp$year %in% Tyr])#here we might need to create a separte hcr 2 function for each projection or have the GCM as an input to the function
+ Temsy = mean(Ctemp$emean[Ctemp$year %in% Tyr])#here we might need to create a separte hcr 2 function for each projection or have the GCM as an input to the function
  #set input to hcr
   Emsy = -18.46452+3.25209*Temsy-0.19723*Temsy^2+0.0041863*Temsy^3
   cutoff = 150000

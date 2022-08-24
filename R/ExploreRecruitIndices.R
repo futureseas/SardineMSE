@@ -381,15 +381,15 @@ sdMICE <- ssbrecsMICE %>% filter(GCM == "GFDL") %>%
             summarize(ensembleDevSD = sd(ensembleRecDevs),
                       elsDevSD = sd(elsRecDevs))
 
-# add 0 deviation for missing 2020 and do bias correction 
-ssbrecsMICE <- ssbrecsMICE %>% add_case(Year = rep(2020, 3),
-                                        GCM = c("GFDL", "HAD", "IPSL"),
-                                        ensembleRecDevs = c(0,0,0),
-                                        elsRecDevs = c(0,0,0)) %>%
+# add 0 deviation for missing 2019 and 2020 and do bias correction 
+ssbrecsMICE <- ssbrecsMICE %>% add_case(Year = rep(2019:2020, each = 3),
+                                        GCM = rep(c("GFDL", "HAD", "IPSL"), times = 2),
+                                        ensembleRecDevs = rep(0,times = 6),
+                                        elsRecDevs = rep(0, times = 6)) %>%
                   arrange(Year)
 
 # Create model average
-ensMean <- ssbrecsMICE %>% filter(Year > 2019) %>%
+ensMean <- ssbrecsMICE %>% filter(Year > 2018) %>%
               group_by(Year) %>%
               summarize(GCM = "gcmMEAN",
                         ensembleSSB = mean(ensembleSSB),

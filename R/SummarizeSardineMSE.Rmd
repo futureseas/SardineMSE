@@ -101,11 +101,12 @@ scenarios <- c("constGrow2001OM_constGrow2005EM_RegRecHCR0",
               "constGrow2001OM_constGrow2005EM_MICERecHCR8")
 
 
-  smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
-                                   scenarios = scenarios)
-  saveRDS(smryOutputList,
-          file = file.path(mseDir, "serverRegARPDOcyclPDOclimSSTMICE_allHCRs_results.RDS"))
-# smryOutputList <- readRDS(file.path(mseDir, "serverRegARPDOcyclSST_allHCRs_results.RDS"))
+  # smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
+  #                                  scenarios = scenarios)
+  # saveRDS(smryOutputList,
+  #         file = file.path(mseDir, "serverRegARPDOcyclPDOclimSSTMICE_allHCRs_results.RDS"))
+smryOutputList <- readRDS(file.path(mseDir,
+                                    "serverRegARPDOcyclPDOclimSSTMICE_allHCRs_results.RDS"))
   
 performanceList <- CalcPerformance(smryOutputList)
 
