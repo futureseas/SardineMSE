@@ -15,6 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(r4ss)
 library(tidyverse)
 library(RColorBrewer)
+library(scales)
 
 source("J:/Desiree/Sardine/SardineMSE/R/GetSumryOutput.R")
 source("J:/Desiree/Sardine/SardineMSE/R/CalcPerformance.R")
@@ -135,10 +136,11 @@ hcrPal <- brewer.pal(10, "Set3")[-2]
 Plots of simulated (OM) biomass of age 1+ fish with 80% confidence intervals (grey band), and individual trajectories (dotted lines). Under a no fishing strategy:
 
 * Biomass recovers in all recruitment scenarios
-    * Regime and SST recruitment reach higher mean biomass than historic levels (max 1.5 x 10^6 in 1999 estimated from PK's research model)
+  * Regime and SST recruitment reach higher mean biomass than historic levels (max 1.5 x 10^6 in 1999 estimated from PK's research model)
+  * MICE recruitment nears Regime scenario by end of simulation
 * The SST recruitment scenario has unreasonably high biomass and larger variation 
 
-```{r, tsBiomass, echo=FALSE, warning=FALSE}
+```{r, tsBiomass, echo=FALSE, warning=FALSE, message=FALSE}
 
 # timeseries plot for presentation
 termTS %>% filter(model_run == omName, HCR == "HCR0") %>%
@@ -152,7 +154,8 @@ termTS %>% filter(model_run == omName, HCR == "HCR0") %>%
   geom_ribbon(aes(ymin = lowAge1Plus, ymax = hiAge1Plus, alpha = 0.3)) +
   facet_grid(rows = vars(HCR), cols = vars(recScen)) +
   theme_minimal() +
-  labs(x = "Year", y = "Age 1+ Biomass (mt)") +
+  labs(x = "Year", y = "Age 1+ Biomass (mt)",
+       caption = "Mean (solid line), 80% CI (grey shaded ribbon), and five sample trajectories under a No Catch (HCR0) management rule\n for each recruitment scenario.") +
   # add example trajectories
   geom_line(data = subset(termTS, model_run == omName & 
                             HCR == "HCR0" & 
@@ -160,7 +163,9 @@ termTS %>% filter(model_run == omName, HCR == "HCR0") %>%
             mapping = aes(x = year, y = Bio_smry, linetype = as.character(iteration))) +
   scale_linetype_manual(values = rep("dashed", 5)) +
   scale_color_manual(values = c("blue")) +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 # plot summary of biomass trajectories
 termTS %>% filter(model_run == omName) %>%
@@ -174,7 +179,11 @@ termTS %>% filter(model_run == omName) %>%
   geom_ribbon(aes(ymin = lowAge1Plus, ymax = hiAge1Plus, alpha = 0.3)) +
   facet_grid(rows = vars(HCR), cols = vars(recScen)) +
   theme_minimal()+ 
-  theme(legend.position = "none")
+  labs(x = "Year", y = "Age 1+ Biomass (mt)",
+       caption = "Mean (solid line), 80% CI (grey shaded ribbon) of Age1+ biomass under each management rule (rows) for each recruitment\n scenario (columns).") +
+  theme(legend.position = "none",
+        plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 ```
 
@@ -197,7 +206,10 @@ termTS %>% filter(model_run == omName,
   facet_grid(rows = vars(iteration), cols = vars(recScen)) + 
   theme_minimal() +
   geom_vline(xintercept = 2019, color = "gray") +
-  theme(legend.position = "none")
+  labs(caption = "Sample recruitment deviation trajectories (rows) for each recruitment scenario (columns).") +
+  theme(legend.position = "none",
+        plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 # plot summary of recruitment trajectories
 termTS %>% filter(model_run == omName) %>%
@@ -211,8 +223,10 @@ termTS %>% filter(model_run == omName) %>%
   geom_ribbon(aes(ymin = lowRec, ymax = hiRec, alpha = 0.3)) +
   facet_grid(rows = vars(HCR), cols = vars(recScen)) +
   theme_minimal() +
-  theme(legend.position = "none")
-
+  labs(caption = "Mean (solid line), 80% CI (grey shaded ribbon) of recruitment abundance under each management rule (rows) for each\n recruitment scenario (columns).") +
+  theme(legend.position = "none",
+        plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 ```
 
 ### Catch
@@ -220,6 +234,7 @@ termTS %>% filter(model_run == omName) %>%
 * Catch recovers more slowly in cyclic PDO scenario
 * Catch reaches maximum levels in Regime and SST scenarios, almost immediately in SST scenario
   * Mean levels higher than AR scenario
+* MICE and climate-driven PDO recruitment scenarios project decline (potential crash) in catch during simulation, regardless of HCR
 
 ```{r, tsCatch, echo=FALSE, warning=FALSE}
 # plot summary of catch trajectories
@@ -234,7 +249,10 @@ termTS %>% filter(model_run == omName) %>%
   geom_ribbon(aes(ymin = lowCatch, ymax = hiCatch, alpha = 0.3)) +
   facet_grid(rows = vars(HCR), cols = vars(recScen)) +
   theme_minimal() +
-  theme(legend.position = "none")
+  labs(caption = "Mean (solid line), 80% CI (grey shaded ribbon) of catch (mt) under each management rule (rows) for each\n recruitment scenario (columns).") +
+  theme(legend.position = "none",
+        plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 # plot catch levels for HCR5 (Pikitch rule)
 meanCat <- termTS %>% filter(model_run == omName, HCR == "HCR5") %>%
@@ -286,8 +304,11 @@ termTS %>% filter(model_run == omName, year > 2019,
   facet_wrap(~HCR) + 
   theme_minimal() +
   scale_color_manual(values = hcrPal) +
-  labs(y = "Mean Age in Survey", x = "Age1+ Biomass (log-mt)")
-
+  labs(y = "Mean Age in Survey", x = "Age1+ Biomass (log-mt)",
+       caption = "Relationship between mean age in the AT survey and stock biomass under each management rule (rows) for the autocorrelated\n recruitment scenario.") +
+  theme(legend.position = "none",
+        plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 # Look at timeseries of B0 and account for non-convergence
 smryOutputList$sclSmry %>% mutate(emYear = as.numeric(regmatches(model_run,
@@ -307,19 +328,26 @@ smryOutputList$sclSmry %>% mutate(emYear = as.numeric(regmatches(model_run,
     ggplot2::theme_classic() + 
   #geom_rug(data = convrgCheck, mapping = aes(x = emYear),
   #                     sides = "b", inherit.aes = FALSE) +
-  labs(x = "Year", y = "B0 (Unfished SSB)")
+  labs(x = "Year", y = "B0 (Unfished SSB)",
+       caption = "Sample of estimated unfished SSB (B0) in the assessment under each management rule (rows) and each recruitment\n scenario (columns).") +
+  theme(legend.position = "none",
+        plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 ```
 
 # Performance Metrics
 Plot comparisons across HCR and Recruitment scenario
 
+**NOTE** Current HCR (HCR2) only comparable among MICE and SST scenarios, *or* AR, cyclic and climate-driven PDO, and Regime recruitment scenarios. The last four scenarios need to be re-run with corrected HCR2 fxn.
+
 ## Stock Status
 
 * Larger variation in biomass outcomes among scenarios than HCRs
+  * Mean biomass only crosses management thresholds or limits in AR recruitment scenario
 * Relative to other HCRs within recruitment scenarios, HCR1 allows larger biomasses on average
   * Distant second is HCR7, though groups more with other HCRs
-  * HCR2 (Current SST rule) results in lowest mean biomass
+  * HCR2 (Current SST rule) results in lowest mean biomass (see above note)
 * HCR1 allows for higher biomass than No Catch HCR0 in a few instances
 * Collapse severity slightly higher in HCR3 and HCR8
 * Slightly higher mean min ages and lengths in HCR0 and HCR1 
@@ -359,7 +387,7 @@ metricsPlot <- #function(yAxis, yLab){
   ggplot() +
   geom_hline(yintercept = c(50000, 150000), color = "red") +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
-  facet_wrap(~recScen) + 
+  facet_wrap(~recScen, scales = "free") + 
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = c("NoCat", "PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
@@ -373,70 +401,88 @@ metricsTbl %>% #filter(recScen == "RandRec", HCR != "HCR4") %>%
   ggplot(aes(x = HCR, y = meanB1plus)) +
   geom_hline(yintercept = c(50000, 150000), color = "red") +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
-  facet_wrap(~recScen) + 
+  facet_wrap(~recScen, scales = "free") + 
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = c("NoCat", "PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
                                                 "DynPik", "Dyn40-10")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = yLab, x = "HCR") 
+  labs(y = yLab, x = "HCR",
+       caption = "Violin plot of mean Age1+ biomass under each HCR for each recruitment scenario. Red lines are the 150K and 50K mt\n management limit and threshold.\nMeans over model iteration, with horizontal black lines at 10%, 50%, and 90% quantiles.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 metricsTbl %>% #filter(recScen == "RandRec", HCR != "HCR4") %>%
   ggplot(aes(x = HCR, y = relBioMax)) +
   #geom_hline(yintercept = c(50000, 150000), color = "red") +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
-  facet_wrap(~recScen) + 
+  facet_wrap(~recScen, scales = "free") + 
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = c("NoCat", "PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
                                                 "DynPik", "Dyn40-10")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Mean Age1+ Biomass:Max", x = "HCR") 
+  labs(y = "Mean Age1+ Biomass:Max", x = "HCR",
+       caption = "Violin plot of mean Age1+ biomass under each HCR relative to the maximum mean biomass observed in each recruitment scenario.\nMeans over model iteration, with horizontal black lines at 10%, 50%, and 90% quantiles.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 metricsTbl %>% #filter(recScen == "RandRec", HCR != "HCR4") %>%
   ggplot(aes(x = HCR, y = relBioHCR0)) +
   #geom_hline(yintercept = c(50000, 150000), color = "red") +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
-  facet_wrap(~recScen) + 
+  facet_wrap(~recScen, scales = "free") + 
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = c("NoCat", "PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
                                                 "DynPik", "Dyn40-10")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Mean Age1+ Biomass:HCR0", x = "HCR") 
+  labs(y = "Mean Age1+ Biomass:HCR0", x = "HCR",
+       caption = "Violin plot of mean Age1+ biomass under each HCR relative to the maximum mean biomass observed for the No Catch (HCR0) rule\n in each recruitment scenario.\nMeans over model iteration, with horizontal black lines at 10%, 50%, and 90% quantiles.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot") 
 
 # plot collapse severity
 metricsTbl %>% ggplot(aes(x = HCR, y = meanCollapseSever)) +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
-  facet_wrap(~recScen) + 
+  facet_wrap(~recScen, scales = "free") + 
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = c("NoCat", "PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
                                                 "DynPik", "Dyn40-10")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Collapse severity", x = "HCR") 
+  labs(y = "Collapse severity", x = "HCR",
+       caption = "Violin plot of mean collapse severity under each HCR for each recruitment scenario. Values closer to 1 are less severe.\nMeans over model iteration, with horizontal black lines at 10%, 50%, and 90% quantiles.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot") 
 
 # plot mean minimum age
 metricsTbl %>% ggplot(aes(x = HCR, y = minAge)) +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
-  facet_wrap(~recScen) + 
+  facet_wrap(~recScen, scales = "free") + 
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = c("NoCat", "PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
                                                 "DynPik", "Dyn40-10")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Mean minimum age", x = "HCR") 
+  labs(y = "Mean minimum age", x = "HCR",
+       caption = "Violin plot of mean of the minimum age observed under each HCR for each recruitment scenario.\nMeans over model iteration, with horizontal black lines at 10%, 50%, and 90% quantiles.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot") 
 
 # plot mean minimum length
 metricsTbl %>% ggplot(aes(x = HCR, y = minLen)) +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
-  facet_wrap(~recScen) + 
+  facet_wrap(~recScen, scales = "free") + 
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = c("NoCat", "PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
                                                 "DynPik", "Dyn40-10")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Mean minimum length", x = "HCR") 
+  labs(y = "Mean minimum length", x = "HCR",
+       caption = "Violin plot of mean of the minimum length observed under each HCR for each recruitment scenario.\nMeans over model iteration, with horizontal black lines at 10%, 50%, and 90% quantiles.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot") 
 ```
 
 ## Fishery
@@ -448,7 +494,7 @@ metricsTbl %>% ggplot(aes(x = HCR, y = minLen)) +
 * Rank of least frequently below 150K mt: HCR0, HCR1, HCR2, HCR7
   * HCR1 had overall lowest frequency of years below 150K mt across all scenarios
 * HCR1 least frequently below 50K mt, HCR3 and HCR8 most frequently below 50K mt
-* Bonanzas (biomass >0.8B0) generally rare (<20% chance), except in SST scenario where bonanzas were common (50% chance or greater)
+* Bonanzas (biomass >0.8B0) generally rare (<10% chance), except in SST scenario where bonanzas were common (50% chance or greater)
 * Rebuilding time generally less than 10 yrs, though potentially longer in AR scenario
   * Slightly longer rebuilding time under HCR0 and HCR1 under Regime and cyclic PDO scenarios
   * Slightly longer rebuilding time under HCR3 and HCR8 under AR scenario
@@ -461,73 +507,91 @@ metricsTbl %>%  filter(HCR != "HCR0") %>%
   ggplot(aes(x = HCR, y = meanCatch)) +
   geom_hline(yintercept = 200000) +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
-  facet_wrap(~recScen) + 
+  facet_wrap(~recScen, scales = "free") + 
   theme_minimal() +
   scale_fill_manual(values = hcrPal[-1], labels = c("PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
                                                 "DynPik", "Dyn40-10")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Mean Catch (mt)", x = "HCR")
+  labs(y = "Mean Catch (mt)", x = "HCR",
+       caption = "Violin plot of mean catch (mt) observed under each HCR for each recruitment scenario. Black horizontal line indicates the\n maximum catch.\nMeans over model iteration, with horizontal black lines at 10%, 50%, and 90% quantiles.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot") 
 
 metricsTbl %>%  filter(HCR != "HCR0") %>%
   #filter(recScen == "RandRec", HCR != "HCR4") %>%
   ggplot(aes(x = HCR, y = relCatMax)) +
   #geom_hline(yintercept = 200000) +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
-  facet_wrap(~recScen) + 
+  facet_wrap(~recScen, scales = "free") + 
   theme_minimal() +
   scale_fill_manual(values = hcrPal[-1], labels = c("PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
                                                 "DynPik", "Dyn40-10")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Mean Catch:Max", x = "HCR")
+  labs(y = "Mean Catch:Max", x = "HCR",
+       caption = "Violin plot of mean catch (mt) under each HCR relative to the maximum catch observed in each recruitment scenario.\nMeans over model iteration, with horizontal black lines at 10%, 50%, and 90% quantiles.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 # plot catch sd
 metricsTbl %>%  filter(HCR != "HCR0") %>%
   ggplot(aes(x = HCR, y = sdCatch)) +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
-  facet_wrap(~recScen) + 
+  facet_wrap(~recScen, scales = "free") + 
   theme_minimal() +
   scale_fill_manual(values = hcrPal[-1], labels = c("PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
                                                 "DynPik", "Dyn40-10")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Catch SD (mt)", x = "HCR")
+  labs(y = "Catch SD (mt)", x = "HCR",
+       caption = "Violin plot of mean standard deviation of catch (mt) observed under each HCR for each recruitment scenario.\nMeans over model iteration, with horizontal black lines at 10%, 50%, and 90% quantiles.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 # plot closure frequency
 metricsTbl %>% #filter(recScen == "RandRec", HCR != "HCR4") %>%
   ggplot(aes(x = HCR, y = closuresFreq)) +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
-  facet_wrap(~recScen) + 
+  facet_wrap(~recScen, scales = "free") + 
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = c("NoCat", "PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
                                                 "DynPik", "Dyn40-10")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Frequency Bt < 150,000 mt", x = "HCR")
+  labs(y = "Frequency Bt < 150,000 mt", x = "HCR",
+       caption = "Violin plot of the frequency Age1+ stock biomass was below the 150,000 mt closure threshold.\nFrequencies over model iteration, with horizontal black lines at 10%, 50%, and 90% quantiles.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 # plot collapse frequency
 metricsTbl %>% ggplot(aes(x = HCR, y = collapseFreq)) +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
-  facet_wrap(~recScen) + 
+  facet_wrap(~recScen, scales = "free") + 
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = c("NoCat", "PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
                                                 "DynPik", "Dyn40-10")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Frequency Bt < 50,000 mt", x = "HCR")
+  labs(y = "Frequency Bt < 50,000 mt", x = "HCR",
+       caption = "Violin plot of the frequency Age1+ stock biomass was below the 50,000 mt collapse threshold.\nFrequencies over model iteration, with horizontal black lines at 10%, 50%, and 90% quantiles.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 
 # plot bonanza frequency
 metricsTbl %>% ggplot(aes(x = HCR, y = bonanzaFreq)) +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
-  facet_wrap(~recScen) + 
+  facet_wrap(~recScen, scales = "free") + 
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = c("NoCat","PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
                                                 "DynPik", "Dyn40-10")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Frequency Bt > 0.8B0", x = "HCR")
+  labs(y = "Frequency Bt > 0.8B0", x = "HCR",
+       caption = "Violin plot of the frequency Age1+ stock biomass was above the bonanza threshold (Bt > 0.8B0).\nFrequencies over model iteration, with horizontal black lines at 10%, 50%, and 90% quantiles.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 ```
 
@@ -552,13 +616,16 @@ rebuildTime %>%
   ggplot(aes(x = HCR, y = closureLength)) +
   #geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
   geom_dotplot(binaxis = "y", binwidth = 1/15) +
-  facet_wrap(~recScen) + 
+  facet_wrap(~recScen, scales = "free") + 
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = c("NoCat","PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
                                                 "DynPik", "Dyn40-10")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Rebuilding Time (yrs)", x = "HCR")
+  labs(y = "Rebuilding Time (yrs)", x = "HCR",
+       caption = "Dot plot of the length of the rebuilding period (i.e., length of time Age1+ stock biomass was below the 150,000 mt closure threshold).\nValues over model iteration.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 rebuildTime <- rebuildTime %>% group_by(model_run, iteration, scenario, HCR, recScen) %>%
                   summarize(nClosures = n(),
@@ -567,24 +634,30 @@ rebuildTime <- rebuildTime %>% group_by(model_run, iteration, scenario, HCR, rec
 rebuildTime %>% #filter(recScen == "RandRec", HCR != "HCR4") %>% 
   ggplot(aes(x = HCR, y = meanRebuildTime)) +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
-  facet_wrap(~recScen) + 
+  facet_wrap(~recScen, scales = "free") + 
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = c("NoCat","PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
                                                 "DynPik", "Dyn40-10")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Mean Rebuilding Time (yrs)", x = "HCR")
+  labs(y = "Mean Rebuilding Time (yrs)", x = "HCR",
+       caption = "Violin plot of the mean rebuilding time (i.e., mean length of time Age1+ stock biomass was below the 150,000 mt closure threshold).\nMeans over model iteration, with horizontal black lines at 10%, 50%, and 90% quantiles.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 rebuildTime %>%  
   ggplot(aes(x = HCR, y = nClosures)) +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
-  facet_wrap(~recScen) + 
+  facet_wrap(~recScen, scales = "free") + 
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = c("NoCat","PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
                                                 "DynPik", "Dyn40-10")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Number of Closures", x = "HCR")
+  labs(y = "Number of Closures", x = "HCR",
+       caption = "Violin plot of the number of time intervals (one or more years) when Age1+ stock biomass was below the 150,000 mt closure threshold.\nValues over model iteration, with horizontal black lines at 10%, 50%, and 90% quantiles.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 ```
 
 ## Assessment
@@ -595,6 +668,9 @@ rebuildTime %>%
 * Relative error was expected to be unbiased for any given year at 95% CI in all but later years of SST scenario
 * Estimates of biomass in the final year of assessment were negatively biased
   * SST recruitment scenario was most negatively biased
+  * Estimates for years with 2- to 3-year lag less likely to be biased
+    * HCR1 slightly more negatively biased than other HCRs
+  * Forecast estimates were negatively biased between -50% and 25%
 
 ```{r, metricsAssess, echo=FALSE, warning=FALSE}
 
@@ -608,7 +684,10 @@ metricsTbl %>% filter(HCR != "HCR0") %>%
                                                 "ConstF", "Pikitch", "40-10",
                                                 "DynPik", "Dyn40-10")) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Frequency of Non-convergence", x = "HCR")
+  labs(y = "Frequency of Non-convergence", x = "HCR",
+       caption = "Violin plot of the frequency the Stock Synthesis 3.0 assessment model did not converge.\nFrequencies over model iteration, with horizontal black lines at 10%, 50%, and 90% quantiles.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 hcrs <- unique(termTS$HCR)
 exIters <- sample(termTS$iteration, size = 4)
@@ -672,7 +751,10 @@ assessRE %>% filter(plotGroup != "non-convrg") %>%
   geom_boxplot() +
   facet_wrap(~recScen) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(title = "Mean Relative Error of Total Assessment")
+  labs(title = "Mean Relative Error of Total Assessment",
+       caption = "Violin plot of the mean total assessment relative error (over all assessed years) for Age1+ biomass.\nMeans over model assessment and year, levels of boxplot are 25th, 50th, and 75th quartiles, whiskers are 1.5IQR.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 scens <- unique(annualRE$recScen)
 for(i in 1:length(scens)){
@@ -684,7 +766,12 @@ for(i in 1:length(scens)){
     facet_wrap(~HCR) +
     geom_hline(yintercept = 0) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-    labs(title = paste("Median Annual Relative Error of Assessment,", scens[i], sep = " ")))
+    labs(title = paste("Median Annual Relative Error of Assessment,", scens[i], sep = " "),
+       caption = paste0("Violin plot of the mean assessment relative error in each year for Age1+ biomass for scenario ", 
+                       scens[i],
+                       ".\nMeans over assessment years, levels of boxplot are 25th, 50th, and 75th quartiles, whiskers are 95% CI.")) +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot"))
 }
 
 # Terminal estimate relative error
@@ -701,7 +788,10 @@ termRE %>% filter(plotGroup != "non-convrg") %>%
   labs(title = "Mean Relative Error of Terminal Assessment Year") +
   scale_fill_manual(values = hcrPal[-1], labels = c("PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
-                                                "DynPik", "Dyn40-10"))
+                                                "DynPik", "Dyn40-10")) +
+  labs(caption = "Violin plot of the mean assessment relative error in the assessment year for Age1+ biomass.\nMeans over model assessment and year, levels of boxplot are 25th, 50th, and 75th quartiles, whiskers are 1.5IQR.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 # termRE %>% group_by(scenario, HCR, recScen, plotGroup) %>%
 #               summarize(termScenHCR_RE = mean(termRE),
@@ -721,7 +811,10 @@ lag1RE %>% filter(plotGroup != "non-convrg") %>%
   labs(title = "Mean Relative Error of Assessment Year Lag1") +
   scale_fill_manual(values = hcrPal[-1], labels = c("PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
-                                                "DynPik", "Dyn40-10"))
+                                                "DynPik", "Dyn40-10")) +
+  labs(caption = "Violin plot of the mean assessment relative error 1 year preceding assessment for Age1+ biomass.\nMeans over model assessment and year, levels of boxplot are 25th, 50th, and 75th quartiles, whiskers are 1.5IQR.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 # Terminal lag2 estimate relative error
 lag2RE <- errCompare %>% filter(year == (emYear.x - 2)) %>%
@@ -738,7 +831,10 @@ lag2RE %>% filter(plotGroup != "non-convrg") %>%
   labs(title = "Mean Relative Error of Assessment Year Lag2") +
   scale_fill_manual(values = hcrPal[-1], labels = c("PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
-                                                "DynPik", "Dyn40-10"))
+                                                "DynPik", "Dyn40-10")) + 
+  labs(caption = "Violin plot of the mean assessment relative error 2 years preceding assessment for Age1+ biomass.\nMeans over model assessment and year, levels of boxplot are 25th, 50th, and 75th quartiles, whiskers are 1.5IQR.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 # Terminal lag3 estimate relative error
 lag3RE <- errCompare %>% filter(year == (emYear.x - 3)) %>%
@@ -755,7 +851,10 @@ lag3RE %>% filter(plotGroup != "non-convrg") %>%
   labs(title = "Mean Relative Error of Assessment Year Lag3") +
   scale_fill_manual(values = hcrPal[-1], labels = c("PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
-                                                "DynPik", "Dyn40-10"))
+                                                "DynPik", "Dyn40-10")) +
+  labs(caption = "Violin plot of the mean assessment relative error 3 years preceding assessment for Age1+ biomass.\nMeans over model assessment and year, levels of boxplot are 25th, 50th, and 75th quartiles, whiskers are 1.5IQR.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 # Forecast estimate relative error
 foreRE <- errCompare %>% filter(year == (emYear.x + 1)) %>%
@@ -772,7 +871,10 @@ foreRE %>% filter(plotGroup != "non-convrg") %>%
   labs(title = "Mean Relative Error of Assessment 1 Year Forecast") +
   scale_fill_manual(values = hcrPal[-1], labels = c("PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
-                                                "DynPik", "Dyn40-10"))
+                                                "DynPik", "Dyn40-10")) +
+  labs(caption = "Violin plot of the mean assessment relative error for a 1 year forecast for Age1+ biomass.\nMeans over model assessment and year, levels of boxplot are 25th, 50th, and 75th quartiles, whiskers are 1.5IQR.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 
 ```
 
@@ -792,7 +894,10 @@ for(hcr in 2:length(hcrs)){
       ggplot2::guides(linetype = "none") +
       ggplot2::facet_grid(rows = vars(iteration), cols = vars(recScen)) +
       ggplot2::theme_classic() + theme(legend.position="none") +
-      labs(title = hcrs[hcr]))
+      labs(title = hcrs[hcr],
+           caption = "Error progression of estimated log-Age1+ biomass (black lines) compared to the operating model biomass (colored line)\n for a sample of iterations (rows) in each recruitment scenario (columns).") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot"))
 }
 
 age1PlusBio <- smryOutputList$tsSmry %>% filter(Seas == 1) %>%
@@ -823,13 +928,17 @@ for(hcr in 2:length(hcrs)){
   guides(linetype = "none") +
   facet_grid(rows = vars(iteration), cols = vars(scenario)) +
   theme_classic() + ylab(label = "Relative Error of Age 1+ Biomass (%)") +
-  labs(title = hcrs[hcr]) +
+  labs(title = hcrs[hcr],
+           caption = "Progression of relative error of estimated log-Age1+ biomass (black lines) relative to the operating model biomass\n for a sample of iterations (rows) in each recruitment scenario (columns).") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot") +
   ylim(-100, 100))
 }
 ```
 
 ### Terminal Year Error
 Error of final assessment year over projection 
+
 ```{r, echo=FALSE, warning=FALSE}
 set.seed(seed = 413)
 exIters <- sample(termTS$iteration, size = 3)
@@ -852,7 +961,10 @@ termTS %>% filter(iteration %in% exIters,
     ggplot2::theme_classic() + 
   geom_rug(data = convrgCheckEx, mapping = aes(x = emYear),
                        sides = "b", inherit.aes = FALSE) +
-  labs(x = "Year", y = "Age1+ Biomass (log-t)")
+  labs(x = "Year", y = "Age1+ Biomass (log-t)",
+       caption = "Error progression of estimated terminal (assessment) year log-Age1+ biomass (orange line) compared to the operating model biomass (blue line)\n for a sample of iterations (rows) in each recruitment scenario (columns).") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")
 ```
 
 # Tradeoffs
@@ -861,7 +973,7 @@ Plot tradeoffs among metrics
 * HCR1 and HCR7 had relatively lower mean catch for a given mean level of biomass, while HCR2 and HCR8 had higher mean catch per biomass level
 * On annual basis, stronger tradeoff between catch and biomass for HCRs 3, 6, 7, and 8
   * HCR2 provides higher catches at intermediate levels of biomass than many HCRs
-* Positive relationship between mean catch and catch SD, except in SST scenario where relationship is negative
+* Positive relationship between mean catch and catch SD, except in SST scenario where relationship is negative, likely due to iterations reaching maximum catch cap more often
 
 ```{r, Tradeoffs, echo=FALSE, warning=FALSE}
 
@@ -876,7 +988,10 @@ metricsTbl %>% #filter(recScen == "RandRec", HCR != "HCR4") %>%
                                                 "ConstF", "Pikitch", "40-10",
                                                 "DynPik", "Dyn40-10")) +
   labs(y = "Mean Age 1+ Biomass (log-mt)", x = "Mean Catch (log-mt)",
-       title = "Mean Biomass x Mean Catch") 
+       title = "Mean Biomass x Mean Catch",
+       caption = "Interaction between mean log-catch and mean log-Age1+ biomass under each HCR (colored points) in each recruitment scenario.\nMeans over iterations.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot") 
 
 termTS %>% filter(model_run == omName, year > 2019) %>%
   ggplot(aes(x = log(Bio_smry), y = log(totCatch), color = HCR)) +
@@ -887,7 +1002,10 @@ termTS %>% filter(model_run == omName, year > 2019) %>%
                                                 "ConstF", "Pikitch", "40-10",
                                                 "DynPik", "Dyn40-10")) +
   labs(y = "Catch (log-mt)", x = "Age1+ Biomass (log-mt)",
-       title = "Annual Biomass x Annual Catch")
+       title = "Annual Biomass x Annual Catch",
+       caption = "Interaction between annual log-catch and annual log-Age1+ biomass under each HCR (colored points) in each recruitment scenario.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot") 
 
 metricsTbl %>% ggplot(aes(x = log(meanCatch), y = closuresFreq, color = HCR)) +
   geom_point() +
@@ -895,7 +1013,10 @@ metricsTbl %>% ggplot(aes(x = log(meanCatch), y = closuresFreq, color = HCR)) +
   theme_minimal() +
   scale_color_manual(values = hcrPal, labels = c("NoCat","PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
-                                                "DynPik", "Dyn40-10")) 
+                                                "DynPik", "Dyn40-10")) +
+  labs(caption = "Interaction between mean log-catch and closure frequency under each HCR (colored points) in each recruitment scenario.\nValues over iterations.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot") 
 
 metricsTbl %>% ggplot(aes(x = meanCatch, y = sdCatch, color = HCR)) +
   geom_point() +
@@ -903,7 +1024,10 @@ metricsTbl %>% ggplot(aes(x = meanCatch, y = sdCatch, color = HCR)) +
   theme_minimal() +
   scale_color_manual(values = hcrPal, labels = c("NoCat","PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
-                                                "DynPik", "Dyn40-10")) 
+                                                "DynPik", "Dyn40-10"))+
+  labs(caption = "Interaction between mean catch and standard deviation of catch under each HCR (colored points) in each recruitment scenario.\nValues over iterations.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot")  
 
 metricsTbl %>% ggplot(aes(x = meanCatch, y = minLen, color = HCR)) +
   geom_point() +
@@ -911,7 +1035,49 @@ metricsTbl %>% ggplot(aes(x = meanCatch, y = minLen, color = HCR)) +
   theme_minimal() +
   scale_color_manual(values = hcrPal, labels = c("NoCat","PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
-                                                "DynPik", "Dyn40-10")) 
+                                                "DynPik", "Dyn40-10")) +
+  labs(caption = "Interaction between mean catch and mean minimum length under each HCR (colored points) in each recruitment scenario.\nValues over iterations.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot") 
+
+```
+
+## Radar plots
+```{r, RadarPlots, echo=FALSE}
+metricsTbl %>% full_join(y = rebuildTime, by = c("iteration", "scenario", 
+                                                 "model_run", "HCR", "recScen")) %>%
+  select(iteration, scenario, HCR, nameHCR, recScen, relBioMax, relCatMax, 
+         sdCatch, closuresFreq, collapseFreq, meanCollapseSever, meanRebuildTime) %>%
+  mutate(invSDCatch = 1 - rescale(sdCatch, to = c(0, 1)),
+         invClosFreq = 1 - closuresFreq,
+         invCollapseFreq = 1 - collapseFreq,
+         invCollapseSever = 1 - meanCollapseSever,
+         invRebuildLen = 1 - rescale(meanRebuildTime, to = c(0, 1), 
+                                     from = c(0, max(meanRebuildTime, na.rm = TRUE)))) %>%
+  select(iteration, scenario, HCR, nameHCR, recScen, relBioMax, relCatMax, 
+         invSDCatch, invClosFreq, invCollapseFreq, invCollapseSever, invRebuildLen) %>%
+  group_by(scenario, HCR, nameHCR, recScen) %>%
+  summarize(relBioMax = median(relBioMax, na.rm = TRUE), 
+            relCatMax = median(relCatMax, na.rm = TRUE), 
+            invSDCatch = median(invSDCatch, na.rm = TRUE), 
+            invClosFreq = median(invClosFreq, na.rm = TRUE), 
+            invCollapseFreq = median(invCollapseFreq, na.rm = TRUE), 
+            invCollapseSever = median(invCollapseSever, na.rm = TRUE), 
+            invRebuildLen = median(invRebuildLen, na.rm = TRUE)) %>%
+  pivot_longer(cols = -c(scenario, recScen, HCR, nameHCR), 
+               names_to = "variable", values_to = "value") %>%
+  arrange(variable) %>%
+  ggplot(aes(x=variable, y=value, group=nameHCR, color=HCR)) + 
+  geom_polygon(fill=NA, size = 1) + 
+  coord_polar() + theme_minimal() + 
+  facet_wrap(~recScen) +
+  scale_color_manual(values = hcrPal, labels = c("NoCat","PFMCF018", "PFMCFSST",
+                                                "ConstF", "Pikitch", "40-10",
+                                                "DynPik", "Dyn40-10")) +
+  labs(caption = "Radar plot of select performance metrics. Metrics are scaled between 0 and 1 and inversed so that favorable performance levels are\n on outer edge of circle.\nValues are median metric over iterations.") +
+  theme(plot.caption = element_text(hjust = 0),
+        plot.caption.position = "plot") 
+
 
 ```
 
