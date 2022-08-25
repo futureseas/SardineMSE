@@ -1,15 +1,14 @@
-#' Code to run harvest control rule 2 for sardine. This is applying a temperature dependent Emsy to the biomass estimated from the EM as is currently done for PAcific sardine management
+#' 
 #' @param EM_out_dir is the path to the directory of the estimation model (EM, the simulated assessment)
-#' @param EM_init_dir Initialization director that retains the reference files for interim assessments
+#' @param EM_init_dir Initialization directory that retains the reference files for interim assessments
 #' @param init_loop Logical. If this is the first initialization loop of the MSE, \code{init_loop} should be TRUE. If it is in further loops, it should be FALSE.
 #' @param OM_dat An valid SS data file read in using r4ss. In particular, this should be sampled data.
 #' @param OM_out_dir The full path to the directory in which the OM is run.
-#' @param OM_dat A valid SS data file read in using r4ss. In particular, this should be sampled data. 
 #' @template verbose
 #' @param sample_struct An optional list including which years and fleets should be
 #'  added from the OM into the EM for different types of data. If NULL, the data
-#'  structure will try to be infered from the pattern found for each of the
-#'  datatypes within EM_datfile. Ignored if init_loop is TRUE.
+#'  structure will try to be inferred from the pattern found for each of the
+#'  datatypes within the EM_datfile. Ignored if init_loop is TRUE.
 #' @param interim_struct An optional including how many years to average over,
 #'  fleet weights, the scaling rate (Beta) of catch relative to the index change for each fleet,
 #'  and the reference year for each fleet (either a fixed year or <=0 relative to end_yr, fixed year
@@ -20,10 +19,12 @@
 #' @return A list with a dataframe of catches by fleet and season to be input into the OM
 #' @author Desiree Tommasi (code below based on parse_MS function developed by Kathryn Doering & Nathan Vaughan for SSMSE package)
 
-MS_sar_hcr2 = function(EM_out_dir = NULL, 
-                      init_loop = TRUE, OM_dat,
-                      verbose = FALSE, nyrs_assess, dat_yrs,
-                      sample_struct = NULL, interim_struct = NULL, seed = NULL, ...){
+MS_sar_hcr9 = function(EM_out_dir = NULL, 
+                       init_loop = TRUE, OM_dat,
+                       verbose = FALSE, nyrs_assess, dat_yrs,
+                       sample_struct = NULL, interim_struct = NULL, seed = NULL, ...){
+  # browser()
+  
   library(dplyr)
   
   new_datfile_name <- "init_dat.ss"
@@ -76,89 +77,34 @@ MS_sar_hcr2 = function(EM_out_dir = NULL,
   }
   #Update SS random seed
   start <- r4ss:::SS_readstarter(file.path(EM_out_dir, "starter.ss"),
-                                 verbose = FALSE
-  )
+                                 verbose = FALSE)
+  
   start[["seed"]] <- seed
   r4ss:::SS_writestarter(start, file.path(EM_out_dir),
                          verbose = FALSE,
-                         overwrite = TRUE, warn = FALSE
-  )
-  # manipulate the forecasting file.
-  # make sure enough yrs can be forecasted.
-  fcast <- r4ss:::SS_readforecast(file.path(EM_out_dir, "forecast.ss"),
-                                  readAll = TRUE,
-                                  verbose = FALSE
-  )
-  # check that it can be used in the EM
-  SSMSE:::check_EM_forecast(fcast,
-                            n_flts_catch = length(which(new_EM_dat[["fleetinfo"]][, "type"] %in%
-                                                          c(1, 2)))
-  )
-  
-  mod_styr = new_EM_dat[["styr"]]
+                         overwrite = TRUE, warn = FALSE)
+
   mod_endyr = new_EM_dat[["endyr"]]
   
-  #Change the years that are averaged over to calculate the quantities used to calculate the benchmark outputs.
-  # 1 and 2 are the beginning and ending years for biology (e.g., growth, natural mortality, maturity, fecundity),
-  # 3 and 4 are for selectivity
-  # 5 and 6 for relative Fs
-  # 7 and 8 for recruitment distribution
-  # 9 and 10 for stock-recruitment parameters
-  # In the sardine assessment case all are set to the end yr except for recruitment pars which start at the start of the acoustic survey
-  fcast$Bmark_years=c(mod_endyr,mod_endyr,mod_endyr,mod_endyr,mod_endyr,mod_endyr,2005,mod_endyr,2005,mod_endyr)
+  # browser()
   
-  #Change first year for caps and allocations
-  fcast$FirstYear_for_caps_and_allocations = mod_endyr + 2
+  #obtain the biomass from the summer survey - this is obtained from the .dat file with error that would go into the EM
+  survey.dat = new_EM_dat$CPUE %>% filter(seas==1, index==4, year==mod_endyr)
+  bio1 = survey.dat$obs
   
-  #change the year of the input apical F to be used in the forecast to the forecast year
-  #in the actual assessment process the assessment is run once to find apical Fs for each fleet in the last year,
-  #then the assessment is run a second time with the Fs for the forecast period set to the apical Fs
-  #Here we assume the catches stay constant as those of the previous year
-  #Specify that the forecast will specify future catches
-  fcast$InputBasis=2
-  #specify the forecast year
-  fcast$ForeCatch$Year = rep((mod_endyr+1),6)
-  #extract observed catch for last year of data
-  fcatch = new_EM_dat$catch %>% dplyr::filter(year==mod_endyr)
-  #specify the forecast catch as being the same as that in the latest observed year
-  fcast$ForeCatch$`Catch or F`= fcatch$catch
-  
-  #save updated forecast file
-  r4ss:::SS_writeforecast(fcast,
-                          dir = EM_out_dir, writeAll = TRUE, overwrite = TRUE,
-                          verbose = FALSE
-  )
-  
-  # given all checks for the input files are good, run the EM
-  SSMSE:::run_EM(EM_dir = EM_out_dir, verbose = verbose, check_converged = TRUE)
-  
-  #extract the required output, use EM_out_dir as input
-  EM_out = r4ss:::SS_output(EM_out_dir, verbose = FALSE, printstats = FALSE, hidewarn = TRUE)
-  
-  #Extract the timeseries data for the forecast period (1 yr for sardine)
-  EMts = EM_out$sprseries %>% dplyr::filter(Era=="FORE")
-  
-  #obtain the forecast Age 1+ biomass for the next year from the EM
-  #as in the EM starter file the minimum age to calculate summary biomass is set at 1, Bio_Smry.1 can be used
-  #the EM starter file specifies 1 forecast year, so only 1 value shoudl be available, but just in case specify first value is used
-  bio1 = EMts$Bio_Smry.1[1]
-  
-  #upload the CalCOFI temperature timeseries
-  # RW Note: Use the ensemble mean from the bias corrected values set to historical mean
- Ctemp=read.csv("../SardineMSE/dat/recdevSST2070.csv")
-
- #extract the average for the three years prior to the forecast
- Tyr=c((EMts$Yr[1]-1),(EMts$Yr[1]-2),(EMts$Yr[1]-3))
- Temsy = mean(Ctemp$emean[Ctemp$year %in% Tyr])#here we might need to create a separte hcr 2 function for each projection or have the GCM as an input to the function
- #set input to hcr
-  Emsy = -18.46452+3.25209*Temsy-0.19723*Temsy^2+0.0041863*Temsy^3
+  #set other inputs to hcr
+  Emsy = 0.18
   cutoff = 150000
   distribution = 0.87
   
-  #if biomass is less than the cutoff, the harvest guideline is set to 0, if not the current hg rule is ised
+  #if biomass is less than the cutoff, the harvest guideline is set to 0, if not the current hg rule is used
   #HG=(BIOMASS-CUTOFF)xFRACTIONxDISTRIBUTION
   #Note that as there are still
-  if (bio1 < cutoff) {HG = 0 } else {HG = (bio1-cutoff)*Emsy*distribution}
+  if(bio1 < cutoff){
+    HG <- 0
+  } else {
+      HG <- (bio1-cutoff)*Emsy*distribution
+      }
   
   #the hg is capped at a maximum catch of 200000 mt
   if (HG > 200000) {HG = 200000}
@@ -200,12 +146,22 @@ MS_sar_hcr2 = function(EM_out_dir = NULL,
   #   catch = c(2,2,2,2,2,2),
   #   catch_se = rep(0.01,6))
   
-    catch_df = data.frame(
+  # browser()
+  
+  catInfo <- new_EM_dat$catch %>% filter(year == mod_endyr)
+  
+  catch_df = data.frame(
       year = rep((mod_endyr+1),6),
-      seas = fcast$ForeCatch$Seas,
-      fleet = fcast$ForeCatch$Fleet,
-      catch = HG*cr_avg0611,
-      catch_se = rep(new_EM_dat$catch$catch_se[1],6))
+      seas = catInfo$seas,
+      fleet = catInfo$fleet,
+      catch = NA,
+      catch_se = rep(new_EM_dat$catch$catch_se[1],6)) # RW: I think update_OM() expects F, not catch se
+  
+  if (HG==0) {
+    catch_df$catch <- catch_hg0
+  } else {
+    catch_df$catch <- HG*cr_avg0611
+  }
   
   #Set other inputs run_SSMSE will look for
   catch_bio = catch_df # catch in biomass. In this case, catch is in biomass for both. Could also be left as NULL
@@ -216,6 +172,8 @@ MS_sar_hcr2 = function(EM_out_dir = NULL,
                      catch_bio = catch_bio, 
                      catch_F = catch_F,
                      discards = discards)
+  
+  # browser()
   
   return(catch_list)
   
