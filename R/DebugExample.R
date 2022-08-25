@@ -44,7 +44,7 @@ datfile <- SS_readdat(file = paste0(OMmodelPath, "/constGrowthMidSteepNewSelex_O
 # create_sample_strct() has trouble IDing SE for survey CPUE
 # define an index for the Acoustic-Trawl survey as in Desiree's code
 #specify number of years of MSE loop
-nyrs <- 5
+nyrs <- 15
 
 #sample_struct <- create_sample_struct(dat = datfile, nyrs = nyrs)
 #traceback()
@@ -61,7 +61,7 @@ CPUE <- data.frame(Yr= rep(yrsrt:yrend, times = 2),
                    Seas= rep(c(1, 10), each = length(yrsrt:yrend)),
                    FltSvy = 4,
                    SE = 0.25)
-#CPUE <- CPUE %>% filter(Seas == 10)
+CPUE <- CPUE %>% filter(Seas == 1)
 
 #specify the number of catch fleets
 ncdat <- 3
@@ -99,12 +99,12 @@ agecomp <- data.frame(Yr = rep(c(yrsrt:yrend),nadat),
                      Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
 
 sample_struct <- list(catch = catch, CPUE = CPUE, lencomp = lencomp, agecomp = agecomp)
-sample_struct_list <- list("constGrowthShortOMandEM_RegRec_HCR5" = sample_struct)
+sample_struct_list <- list("constGrowthShortOMandEM_RandRec_HCR9" = sample_struct)
 
 # figure out the recruitment deviation input ---------------
 
 # define scenario name
-scenName <- "constGrowthShortOMandEM_RegRec_HCR5"
+scenName <- "constGrowthShortOMandEM_RandRec_HCR9"
 iters <- 3
 
 ### Define custom rec devs based on environment
@@ -216,8 +216,8 @@ out <- run_SSMSE(scen_name_vec = scenName, # name of the scenario
                  EM_in_dir_vec = file.path(EMmodelPath, "constGrowthMidSteepNewSelex_EM"), # EM files
                  # MS_vec = "EM",
                  # MS_vec = "no_catch",
-                 MS_vec = "MS_sar_hcr5_018",       # The management strategy is specified in the custom function
-                 custom_MS_source = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/MS_sar_hcr5_018.R", # file location of the MS function
+                 MS_vec = "MS_sar_hcr9",       # The management strategy is specified in the custom function
+                 custom_MS_source = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/MS_sar_hcr9.R", # file location of the MS function
                  use_SS_boot_vec = TRUE, # use the SS bootstrap module for sampling
                  nyrs_vec = nyrs,        # Years to project OM forward
                  nyrs_assess_vec = 1, # Years between assessments
@@ -225,7 +225,8 @@ out <- run_SSMSE(scen_name_vec = scenName, # name of the scenario
                  run_parallel = TRUE, # Run iterations in parallel
                  n_cores = 4, # number of cores to use in parallel
                  sample_struct_list = sample_struct_list, # How to sample data for running the EM.
-                 seed = 12349) #Set a fixed integer seed that allows replication
+                 seed = 12349,
+                 verbose = FALSE) #Set a fixed integer seed that allows replication
 endTime <- Sys.time()
 
 procDiff <- proc.time() - ptm

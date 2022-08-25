@@ -831,7 +831,7 @@ lag2RE %>% filter(plotGroup != "non-convrg") %>%
   labs(title = "Mean Relative Error of Assessment Year Lag2") +
   scale_fill_manual(values = hcrPal[-1], labels = c("PFMCF018", "PFMCFSST",
                                                 "ConstF", "Pikitch", "40-10",
-                                                "DynPik", "Dyn40-10")) + 
+                                                "DynPik", "Dyn40-10")) +
   labs(caption = "Violin plot of the mean assessment relative error 2 years preceding assessment for Age1+ biomass.\nMeans over model assessment and year, levels of boxplot are 25th, 50th, and 75th quartiles, whiskers are 1.5IQR.") +
   theme(plot.caption = element_text(hjust = 0),
         plot.caption.position = "plot")
