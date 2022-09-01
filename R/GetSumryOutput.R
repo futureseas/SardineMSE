@@ -8,7 +8,9 @@ library(tidyverse)
 library(doParallel)
 
 GetSumryOutput <- function(dirSSMSE, # SSMSE directory (character)
-                           scenarios # scenario name (character)
+                           scenarios, # scenario name (character)
+                           comps = FALSE, # return comps output? (logical) Default is FALSE
+                           simData = FALSE # return simulated EM data? (logical) Default is FALSE
 ){
   
   # Pull the SSMSE summary info ---------------------------------------------
@@ -37,6 +39,8 @@ GetSumryOutput <- function(dirSSMSE, # SSMSE directory (character)
     tsSmryAll <- bind_rows(tsSmryAll, tsSumry)
   } # end 'scn' for-loop
   
+  outList <- list("dqSmry" = dqSmryAll, "sclSmry" = sclSmryAll, "tsSmry" = tsSmryAll)
+  
   # Use parallelization to pull in composition and EM data ------------------
   # Adapted from code from Peter Kuriyama
   
@@ -51,6 +55,11 @@ GetSumryOutput <- function(dirSSMSE, # SSMSE directory (character)
                            recursive = FALSE,
                            full.names = FALSE)
   
+    # Need to remove EM folders for HCRs that don't run the EM
+    if(grepl("HCR9", scenarios[scn], fixed = TRUE)){
+      runNames <- grep("_OM", runNames, value = TRUE, fixed = TRUE)
+    }
+    
     #The results directories to read in
     scnResultsDirs <- expand_grid(scenarios[scn], iters, runNames) %>% 
                     mutate(scen = file.path(dirSSMSE, `scenarios[scn]`, iters, runNames)) %>%
@@ -59,56 +68,63 @@ GetSumryOutput <- function(dirSSMSE, # SSMSE directory (character)
     resultsDirs <- c(resultsDirs, scnResultsDirs)
   }
   
+  if(comps){
+    # extract wanted tables per directory and add data origin
+    # start_time <- Sys.time()
+    ncores <- detectCores() - 2 #Leave some cores open for background stuff
+    cl <- makeCluster(ncores)
+    registerDoParallel(cl)
+    
+    resultsList <- foreach::foreach(ii = 1:length(resultsDirs),
+                                    
+                                    .packages = c("tidyverse", 'r4ss')) %dopar% {
+                                      outList <- SS_output(resultsDirs[ii], 
+                                                covar = FALSE, printstats = FALSE,
+                                                verbose = FALSE)
+                                      outList %>% magrittr::extract(c("len_comp_fit_table", 
+                                                                      "age_comp_fit_table")) %>%
+                                        map2(.y = resultsDirs[ii], 
+                                             .f = function(x, y){x['resDir'] <- y;x})
+                                    }
+    stopCluster(cl)
+    # run_time <- Sys.time() - start_time; run_time #To see how long it takes
+    
+    # summarize into single table for export
+    smryMeanLen <- resultsList %>% map_dfr(magrittr::extract2, "len_comp_fit_table") %>%
+                      select(Fleet, Fleet_Name, Yr, Seas, All_obs_mean, All_exp_mean, resDir)
+    smryMeanAge <- resultsList %>% map_dfr(magrittr::extract2, "age_comp_fit_table") %>%
+                      select(Fleet, Fleet_Name, Yr, Seas, All_obs_mean, All_exp_mean, resDir)
+    
+    outList$lenComp <- smryMeanLen
+    outList$ageComp <- smryMeanAge
+  } # end 'comps' if-statement
   
-  # extract wanted tables per directory and add data origin
-  start_time <- Sys.time()
-  ncores <- detectCores() - 2 #Leave some cores open for background stuff
-  cl <- makeCluster(ncores)
-  registerDoParallel(cl)
+  if(simData){
+    # repeat for the data file
+    ncores <- detectCores() - 2 #Leave some cores open for background stuff
+    cl <- makeCluster(ncores)
+    registerDoParallel(cl)
+    
+    dataList <- foreach::foreach(ii = 1:length(resultsDirs),
+                                    
+                                    .packages = c("tidyverse", 'r4ss')) %dopar% {
+                                      outList <- SS_readdat(file = file.path(resultsDirs[ii], "data.ss_new"),
+                                                            version = "3.30", verbose = FALSE)
+                                      outList %>% magrittr::extract(c("CPUE", 
+                                                                      "catch")) %>%
+                                        map2(.y = resultsDirs[ii], 
+                                             .f = function(x, y){x['resDir'] <- y;x})
+                                    }
+    stopCluster(cl)
   
-  resultsList <- foreach::foreach(ii = 1:length(resultsDirs),
-                                  
-                                  .packages = c("tidyverse", 'r4ss')) %dopar% {
-                                    outList <- SS_output(resultsDirs[ii], 
-                                              covar = FALSE, printstats = FALSE,
-                                              verbose = FALSE)
-                                    outList %>% magrittr::extract(c("len_comp_fit_table", 
-                                                                    "age_comp_fit_table")) %>%
-                                      map2(.y = resultsDirs[ii], 
-                                           .f = function(x, y){x['resDir'] <- y;x})
-                                  }
-  stopCluster(cl)
-  run_time <- Sys.time() - start_time; run_time #To see how long it takes
+    # summarize into single table for export
+    smryObsCPUE <- dataList %>% map_dfr(magrittr::extract2, "CPUE") 
+    smryObsCatch <- dataList %>% map_dfr(magrittr::extract2, "catch") 
+    
+    outList$obsCPUE <- smryObsCPUE
+    outList$obsCatch <- smryObsCatch
   
-  # summarize into single table for export
-  smryMeanLen <- resultsList %>% map_dfr(magrittr::extract2, "len_comp_fit_table") %>%
-                    select(Fleet, Fleet_Name, Yr, Seas, All_obs_mean, All_exp_mean, resDir)
-  smryMeanAge <- resultsList %>% map_dfr(magrittr::extract2, "age_comp_fit_table") %>%
-                    select(Fleet, Fleet_Name, Yr, Seas, All_obs_mean, All_exp_mean, resDir)
+  } # end 'simData' if-statement
   
-  # repeat for the data file
-  ncores <- detectCores() - 2 #Leave some cores open for background stuff
-  cl <- makeCluster(ncores)
-  registerDoParallel(cl)
-  
-  dataList <- foreach::foreach(ii = 1:length(resultsDirs),
-                                  
-                                  .packages = c("tidyverse", 'r4ss')) %dopar% {
-                                    outList <- SS_readdat(file = file.path(resultsDirs[ii], "data.ss_new"),
-                                                          version = "3.30", verbose = FALSE)
-                                    outList %>% magrittr::extract(c("CPUE", 
-                                                                    "catch")) %>%
-                                      map2(.y = resultsDirs[ii], 
-                                           .f = function(x, y){x['resDir'] <- y;x})
-                                  }
-  stopCluster(cl)
-
-  # summarize into single table for export
-  smryObsCPUE <- dataList %>% map_dfr(magrittr::extract2, "CPUE") 
-  smryObsCatch <- dataList %>% map_dfr(magrittr::extract2, "catch") 
-  
-  
-  return(list("lenComp" = smryMeanLen, "ageComp" = smryMeanAge, 
-         "obsCPUE" = smryObsCPUE, "obsCatch" = smryObsCatch, 
-         "dqSmry" = dqSmryAll, "sclSmry" = sclSmryAll, "tsSmry" = tsSmryAll))
+  return(outList)
 }
