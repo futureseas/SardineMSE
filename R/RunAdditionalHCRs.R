@@ -89,20 +89,20 @@ agecomp <- data.frame(Yr = rep(c(yrsrt:yrend),nadat),
 
 sample_struct <- list(catch = catch, CPUE = CPUE, lencomp = lencomp, agecomp = agecomp)
 sample_struct_list <- list(#"constGrow2001OM_constGrow2005EM_RegRecHCR2" = sample_struct,
-                           "constGrow2001OM_constGrow2005EM_SSTRecHCR9" = sample_struct)
+                           "constGrow2001OM_constGrow2005EM_MICERecHCR9" = sample_struct)
 
 # figure out the recruitment deviation input ---------------
 
 # define scenario name
 scenName <- c(#"constGrow2001OM_constGrow2005EM_RegRecHCR2",
-              "constGrow2001OM_constGrow2005EM_SSTRecHCR9")
+              "constGrow2001OM_constGrow2005EM_MICERecHCR9")
 # iters <- 3
 
 ### use same recdevs as were used in the HCR0 run
 template <- create_future_om_list(example_type = "custom")
 
 recUserDef <- read.csv(file.path(mseOutputPath,
-                                 "constGrow2001OM_constGrow2005EM_SSTRecHCR0/results_ts_constGrow2001OM_constGrow2005EM_SSTRecHCR0.csv"))
+                                 "constGrow2001OM_constGrow2005EM_MICERecHCR0/results_ts_constGrow2001OM_constGrow2005EM_MICERecHCR0.csv"))
 iters <- max(recUserDef$iteration)
 
 recUserDef <- recUserDef %>% 
