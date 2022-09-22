@@ -47,6 +47,7 @@ GetSumryOutput <- function(dirSSMSE, # SSMSE directory (character)
   # set up the directories
   # get the iterations
   resultsDirs <- NULL
+  resDirsHCR9 <- NULL
   for(scn in 1:length(scenarios)){
     iters <- list.dirs(file.path(dirSSMSE, scenarios[scn]), recursive = FALSE, full.names = FALSE)
   
@@ -57,6 +58,8 @@ GetSumryOutput <- function(dirSSMSE, # SSMSE directory (character)
   
     # Need to remove EM folders for HCRs that don't run the EM
     if(grepl("HCR9", scenarios[scn], fixed = TRUE)){
+      resDirsHCR9 <- c(resDirsHCR9,
+                       grep("_EM", runNames, value = TRUE, fixed = TRUE))
       runNames <- grep("_OM", runNames, value = TRUE, fixed = TRUE)
     }
     
@@ -121,9 +124,48 @@ GetSumryOutput <- function(dirSSMSE, # SSMSE directory (character)
     smryObsCPUE <- dataList %>% map_dfr(magrittr::extract2, "CPUE") 
     smryObsCatch <- dataList %>% map_dfr(magrittr::extract2, "catch") 
     
+    # If HCR9 included, need to pull simulated data from different file
+    # get the model directory names
+    
+    
+    # Need to remove EM folders for HCRs that don't run the EM
+    if(any(grepl("HCR9", scenarios, fixed = TRUE))){
+      scensHCR9 <- grep("HCR9", scenarios, fixed = TRUE, value = TRUE)
+    
+      resDirsHCR9 <- unique(resDirsHCR9)
+      #The results directories to read in
+      resDirsHCR9 <- expand_grid(scensHCR9, iters, resDirsHCR9) %>% 
+        mutate(scen = file.path(dirSSMSE, scensHCR9, iters, resDirsHCR9)) %>%
+        #mutate(scen = file.path(dirSSMSE, `scenarios[scn]`, iters, runNames)) %>%
+        pull(scen)
+      
+      # have to pull init_dat files to get survey value used
+      ncores <- detectCores() - 2 #Leave some cores open for background stuff
+      cl <- makeCluster(ncores)
+      registerDoParallel(cl)
+      
+      dataList <- foreach::foreach(ii = 1:length(resDirsHCR9),
+                                   
+                                   .packages = c("tidyverse", 'r4ss')) %dopar% {
+                                     outList <- SS_readdat(file = file.path(resDirsHCR9[ii], "init_dat.ss"),
+                                                           version = "3.30", verbose = FALSE)
+                                     outList %>% magrittr::extract(c("CPUE", 
+                                                                     "catch")) %>%
+                                       map2(.y = resDirsHCR9[ii], 
+                                            .f = function(x, y){x['resDir'] <- y;x})
+                                   }
+      stopCluster(cl)
+      
+      smryObsCPUE <- rbind(smryObsCPUE,
+                           dataList %>% map_dfr(magrittr::extract2, "CPUE"))    
+      smryObsCatch <- rbind(smryObsCatch,
+                            dataList %>% map_dfr(magrittr::extract2, "catch"))
+    }# close HCR9 if-statement
+    
+    # note: survey years are duplicated by number of assessment years. How to only read final year of data?
     outList$obsCPUE <- smryObsCPUE
     outList$obsCatch <- smryObsCatch
-  
+    
   } # end 'simData' if-statement
   
   return(outList)

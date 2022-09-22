@@ -107,15 +107,16 @@ scenarios <- c("constGrow2001OM_constGrow2005EM_RegRecHCR0",
               "constGrow2001OM_constGrow2005EM_MICERecHCR9")
 
 
-  smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
-                                   scenarios = scenarios,
-                                   comps = TRUE)
-  saveRDS(smryOutputList,
-          file = file.path(mseDir,
-                           "serverRegARPDOcyclPDOclimSSTMICE_allHCRs_results.RDS"))
-# smryOutputList <- readRDS(file.path(mseDir, 
-#                                     "serverRegARPDOcyclPDOclimSSTMICE_allHCRs_results.RDS"))
+  # smryOutputList <- GetSumryOutput(dirSSMSE = mseDir,
+  #                                  scenarios = scenarios,
+  #                                  comps = TRUE)
+  # saveRDS(smryOutputList,
+  #         file = file.path(mseDir,
+  #                          "serverRegARPDOcyclPDOclimSSTMICE_allHCRs_results.RDS"))
 
+smryOutputList <- readRDS(file.path(mseDir, 
+                                    "serverRegARPDOcyclPDOclimSSTMICE_allHCRs_results.RDS"))
+  
 performanceList <- CalcPerformance(smryOutputList)
 
 metricsTbl <- performanceList$perfomanceMetrics
@@ -150,12 +151,14 @@ Plots of simulated (OM) biomass of age 1+ fish with 80% confidence intervals (gr
 ```{r, tsBiomass, echo=FALSE, warning=FALSE, message=FALSE}
 
 # timeseries plot for presentation
-termTS %>% filter(model_run == omName, HCR == "HCR0") %>%
+sampleDat <- termTS %>% filter(model_run == omName, HCR == "HCR0") %>%
   select(Bio_smry, year, model_run, iteration, scenario, HCR, recScen) %>%
   group_by(year, scenario, HCR, recScen) %>%
   summarize(meanAge1Plus = mean(Bio_smry),
             lowAge1Plus = quantile(Bio_smry, probs = 0.1, na.rm = TRUE),
-            hiAge1Plus = quantile(Bio_smry, probs = 0.9, na.rm = TRUE)) %>%
+            hiAge1Plus = quantile(Bio_smry, probs = 0.9, na.rm = TRUE)) 
+
+sampleDat %>%
   ggplot(aes(x = year, y = meanAge1Plus)) +
   geom_line() +
   geom_ribbon(aes(ymin = lowAge1Plus, ymax = hiAge1Plus, alpha = 0.3)) +
@@ -167,12 +170,17 @@ termTS %>% filter(model_run == omName, HCR == "HCR0") %>%
   geom_line(data = subset(termTS, model_run == omName & 
                             HCR == "HCR0" & 
                             iteration %in% sample(iteration, size = 5)),
-            mapping = aes(x = year, y = Bio_smry, linetype = as.character(iteration))) +
-  scale_linetype_manual(values = rep("dashed", 5)) +
-  scale_color_manual(values = c("blue")) +
+            mapping = aes(x = year, y = Bio_smry, 
+                          linetype = as.character(iteration), 
+                          color = as.character(iteration)),
+            size = 0.5) +
+  scale_linetype_manual(values = rep("solid", 5)) +
+  scale_color_manual(values = brewer.pal(n = 5, "Pastel1")) +
+  geom_line(data = sampleDat, aes(x = year, y = meanAge1Plus)) +
   theme(legend.position = "none",
         plot.caption = element_text(hjust = 0),
-        plot.caption.position = "plot")
+        plot.caption.position = "plot") +
+  geom_hline(yintercept = 150000, color = "red")
 
 # plot summary of biomass trajectories
 termTS %>% filter(model_run == omName) %>%
