@@ -217,6 +217,77 @@ termTS %>% filter(model_run == omName, recScen == "MICERec", iteration == exIt) 
         panel.grid.minor.y = element_blank()) +
   labs(x = "Year", y = "Age1+ Biomass (mt)")
   
+hLines <- data.frame(output = c("Bio_smry", "Bio_smry", "rec_dev"),
+                     yinter = c(150000, 50000, 0))
+termTS %>% filter(HCR == "HCR0", recScen == "ARRec", iteration == 8) %>% 
+  pivot_longer(cols = c(Bio_smry, rec_dev), names_to = "output") %>%
+  ggplot(aes(x = year, y = value)) +
+  geom_vline(xintercept = 2019.5, color = "grey", linetype = "dashed") +
+  geom_hline(data = hLines,
+             aes(yintercept = yinter), color = c("red", "red", "grey")) +
+  geom_line(aes(color = output), size = 1) +
+  facet_wrap(~output, scales = "free_y", ncol = 1,
+              strip.position = "left",
+              labeller = as_labeller(c(Bio_smry = "Age1+ Biomass (log-mt)", 
+                                       rec_dev = "Recruitment Deviation"))) +
+  theme_classic() +
+  theme(legend.position = "none",
+        strip.placement = "outside",
+        strip.background = element_blank()) +
+  labs(x = "Year", y = "")
+
+# example of EM error progression
+errProgEx <- smryOutputList$tsSmry %>% filter(grepl("ARRecHCR1", scenario, fixed = TRUE), 
+                                              iteration == 8, Seas == 1) %>%
+              mutate(emYear = as.numeric(regmatches(model_run,
+                                                    gregexpr("[[:digit:]]+", 
+                                                             model_run))))%>%
+              mutate(emYear = case_when(is.na(emYear) ~ 2019,
+                                        TRUE ~ emYear)) %>%
+              filter(year <= emYear, model_run != omName) 
+
+emErrPlot1 <- errProgEx %>% filter(emYear == 2045) %>%
+  ggplot(aes(y = Bio_smry, x = year, color = emYear, linetype = as.character(model_run))) +
+  geom_line(size = 1) +
+  scale_linetype_manual(values = rep("solid", 51)) +
+  theme_classic() +
+  theme(legend.position = "none") +
+  geom_line(data = termTS %>% filter(model_run == omName, iteration == 8, 
+                                     grepl("ARRecHCR1", scenario, fixed = TRUE)),
+            color = "orangered", size = 1) +
+  labs(x = "", y = "") +
+  geom_vline(xintercept = 2019.5, color = "grey", linetype = "dashed")
+
+emErrPlot2 <- errProgEx %>%
+  ggplot(aes(y = Bio_smry, x = year, color = emYear, linetype = as.character(model_run))) +
+  geom_line(size = 1) +
+  scale_linetype_manual(values = rep("solid", 52)) +
+  geom_point(data = termTS %>% filter(model_run != omName, iteration == 8, 
+                                      grepl("ARRecHCR1", scenario, fixed = TRUE),
+                                      year > 2019),
+             color = "chartreuse3", shape = 4, size = 1.5, stroke = 2) +
+  geom_line(data = termTS %>% filter(model_run == omName, iteration == 8, 
+                                     grepl("ARRecHCR1", scenario, fixed = TRUE)),
+            color = "orangered", size = 1) +
+  theme_classic() +
+  theme(legend.position = "none") +
+  labs(y = "Age1+ Biomass (mt)", x = "")+
+  geom_vline(xintercept = 2019.5, color = "grey", linetype = "dashed")
+
+emErrPlot3 <- termTS %>% filter(model_run != omName, iteration == 8, 
+                                      grepl("ARRecHCR1", scenario, fixed = TRUE)) %>%
+  ggplot(aes(y = Bio_smry, x = year, linetype = as.character(model_run))) +
+  scale_linetype_manual(values = rep("solid", 3)) +
+  geom_line(color = "chartreuse3", size = 1) +
+  geom_line(data = termTS %>% filter(model_run == omName, iteration == 8, 
+                                     grepl("ARRecHCR1", scenario, fixed = TRUE)),
+            color = "orangered", size = 1) +
+  theme_classic() +
+  theme(legend.position = "none") +
+  labs(x = "Year", y="")+
+  geom_vline(xintercept = 2019.5, color = "grey", linetype = "dashed")
+
+grid.arrange(emErrPlot1, emErrPlot2, emErrPlot3)
 # Metrics plots -----------------------------------------------------------
 
 # Calculate relative biomass and catch metrics
@@ -460,6 +531,74 @@ rebuildTime %>%  filter(!recScen %in% c("RegRec", "SSTRec")) %>%
             medNclose = median(nClosures),
             high90 = quantile(nClosures, probs = 0.9))
   
+# join tables for clean faceted plots
+metricsTbl <- metricsTbl %>% left_join(y = rebuildTime, 
+                                       by = c("iteration", "scenario", 
+                                              "model_run", "HCR", "recScen"))
+
+metricLabs <- c("Frequency Bt < 150,000 mt", "Frequency Bt < 50,000 mt",
+                "Mean Collapse Severity", "Number of Closures", 
+                "Mean Rebuilding Time (yrs)", "Catch SD (mt)")
+names(metricLabs) <- c("closuresFreq", "collapseFreq", "meanCollapseSever",
+                         "nClosures", "meanRebuildTime", "sdCatch")
+
+metricsTbl %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
+  select(iteration, scenario, model_run, HCR, nameHCR, recScen, closuresFreq, 
+         collapseFreq, meanCollapseSever, nClosures, meanRebuildTime, sdCatch) %>%
+  pivot_longer(cols = c(closuresFreq, collapseFreq, meanCollapseSever, nClosures,
+                        meanRebuildTime, sdCatch),
+               names_to = "Metric", values_to = "vals") %>%
+  group_by(HCR, Metric) %>%
+  summarize(meanMetric = mean(vals, na.rm = TRUE),
+            medMetric = median(vals, na.rm = TRUE),
+            hiMetric = quantile(vals, probs = 0.975, na.rm = TRUE),
+            loMetric = quantile(vals, probs = 0.025, na.rm = TRUE),
+            q1Metric = quantile(vals, probs = 0.25, na.rm = TRUE),
+            q3Metric = quantile(vals, probs = 0.75, na.rm = TRUE),
+            nMetric = n()) %>% 
+  ggplot(aes(x = HCR, fill = HCR)) +
+  geom_boxplot(aes(ymin = loMetric, lower = q1Metric, middle = medMetric, 
+                   upper = q3Metric, ymax = hiMetric),
+               stat = "identity") +
+  facet_wrap(~Metric, scales = "free_y",
+             strip.position = "left",
+             labeller = labeller(Metric = metricLabs),
+             ncol = 2) +
+  theme_classic() +
+  scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
+  theme(axis.text.x = element_blank(),
+        strip.placement = "outside",
+        strip.background = element_blank()) +
+  labs(x = "HCR")
+
+annualRelBioCat %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
+  select(iteration, scenario, model_run, HCR, nameHCR, recScen, 
+         relAnnBioMax, relAnnCatMax) %>%
+  pivot_longer(cols = c(relAnnBioMax, relAnnCatMax),
+               names_to = "Metric", values_to = "vals") %>%
+  group_by(HCR, Metric) %>%
+  summarize(meanMetric = mean(vals, na.rm = TRUE),
+            medMetric = median(vals, na.rm = TRUE),
+            hiMetric = quantile(vals, probs = 0.975, na.rm = TRUE),
+            loMetric = quantile(vals, probs = 0.025, na.rm = TRUE),
+            q1Metric = quantile(vals, probs = 0.25, na.rm = TRUE),
+            q3Metric = quantile(vals, probs = 0.75, na.rm = TRUE),
+            nMetric = n()) %>% 
+  ggplot(aes(x = HCR, fill = HCR)) +
+  geom_boxplot(aes(ymin = loMetric, lower = q1Metric, middle = medMetric, 
+                   upper = q3Metric, ymax = hiMetric),
+               stat = "identity") +
+  facet_wrap(~Metric, scales = "free_y",
+             strip.position = "left",
+             labeller = as_labeller(c(relAnnBioMax = "Annual Age1+ Biomass:Max",
+                                      relAnnCatMax = "Annual Catch:Max")),
+             ncol = 2) +
+  theme_classic() +
+  scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
+  theme(axis.text.x = element_blank(),
+        strip.placement = "outside",
+        strip.background = element_blank()) +
+  labs(x = "HCR")
 # Error metrics -----------------------------------------------------------
 
 metricsTbl %>% filter(!recScen %in% c("RegRec", "SSTRec"), 
@@ -499,8 +638,9 @@ simBioObsHCR9 <- simBioObsHCR9$obsCPUE %>%
                          recScen = sub(pattern = "HCR.*","", scenario)) %>%
                   mutate(recScen = sub(pattern = ".*EM_","", recScen)) %>%
                   # need to filter to data used in final assessment per MSE run
-                  filter(emYear == termYr, index == 4, HCR == "HCR9") %>%
-                  select(year, obs, emYear, model_run, iteration, scenario, plotGroup) %>%
+                  filter(emYear == termYr, index == 4, year > 2019, HCR == "HCR9") %>%
+                  select(year, obs, emYear, model_run, iteration, scenario, HCR, 
+                         recScen, plotGroup) %>%
                   rename(Bio_smry = obs)
 
 
@@ -516,7 +656,7 @@ cnvrgTS <- smryOutputList$tsSmry  %>%
 errCompare <- cnvrgTS %>% filter(Seas == 1, model_run != omName) %>%
   select(Bio_smry, year, model_run, iteration, scenario, HCR, 
          recScen, emYear, plotGroup) %>%
-  # rbind HCR9 survey simData here, then join OM:
+  bind_rows(simBioObsHCR9) %>%
   inner_join(y = subset(termTS, model_run == omName), 
              by = c("year", "iteration", "scenario", "HCR", "recScen")) %>%
   #filter(iteration == 1) %>%
@@ -528,7 +668,7 @@ errCompare <- cnvrgTS %>% filter(Seas == 1, model_run != omName) %>%
                                  TRUE ~ "avg"))
 
 # Error among assessments within year
-annualRE <- errCompare %>% filter(year <= emYear.x) %>%
+annualRE <- errCompare %>% filter(year <= emYear.x | plotGroup == "ATsurvey") %>%
   select(age1plusEM, age1plusOM, errSmryBio, year, model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
   group_by(year,  scenario, HCR, recScen, plotGroup) %>%#iteration,
   summarize(meanYrRE = mean(errSmryBio),
@@ -551,7 +691,7 @@ annualRE %>% filter(plotGroup != "non-convrg", HCR == "HCR2") %>%
   labs(x = "Year", y = "Relative Error (%)")
 
 # Terminal estimate relative error
-termRE <- errCompare %>% filter(year == emYear.x) %>%
+termRE <- errCompare %>% filter(year == emYear.x | plotGroup == "ATsurvey") %>%
             select(age1plusEM, age1plusOM, errSmryBio, year, model_run.x, 
                    iteration, scenario, HCR, recScen, plotGroup, recDevState) %>%
             mutate(closeYr = age1plusOM < 150000,
@@ -597,7 +737,7 @@ termRE %>% filter(plotGroup != "non-convrg",
                stat = "identity") +
   # geom_boxplot(aes(y = errSmryBio), notch = TRUE) +
   facet_grid(closeYr ~ HCR,
-             labeller = labeller(HCR = hcrLabels[2:8], closeYr = bioStateLabs)) +
+             labeller = labeller(HCR = hcrLabels[-1], closeYr = bioStateLabs)) +
   # facet_wrap(~closeYr) +
   #theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   scale_fill_manual(values = rev(brewer.pal(n = 3, name = "BrBG"))) +
@@ -660,7 +800,7 @@ termRE %>% filter(collapseYr) %>%
 
 # Confusion matrix
 confErr <- termRE %>% filter(plotGroup != "non-convrg") %>%
-  group_by(model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
+  group_by(year, iteration, scenario, HCR, recScen) %>%
   mutate(closeTruePos = isTRUE(closeYr) & isTRUE(closeYrEst),
          closeFalsePos = isFALSE(closeYr) & isTRUE(closeYrEst),
          closeTrueNeg = isFALSE(closeYr) & isFALSE(closeYrEst),
@@ -668,8 +808,12 @@ confErr <- termRE %>% filter(plotGroup != "non-convrg") %>%
          collapseTruePos = isTRUE(collapseYr) & isTRUE(collapseYrEst),
          collapseFalsePos = isFALSE(collapseYr) & isTRUE(collapseYrEst),
          collapseTrueNeg = isFALSE(collapseYr) & isFALSE(collapseYrEst),
-         collapseFalseNeg = isTRUE(collapseYr) & isFALSE(collapseYrEst)) %>%
-  group_by(scenario, HCR, recScen, plotGroup) %>%
+         collapseFalseNeg = isTRUE(collapseYr) & isFALSE(collapseYrEst),
+         closePropFalsePos = closeFalsePos * (errSmryBio/100),
+         closePropFalseNeg = closeFalseNeg *(errSmryBio/100),
+         collapsePropFalsePos = collapseFalsePos * (errSmryBio/100),
+         collapsePropFalseNeg = collapseFalseNeg *(errSmryBio/100)) %>%
+  group_by(scenario, HCR, recScen) %>%
   summarize(closeTruePos = sum(closeTruePos),
             closeFalsePos = sum(closeFalsePos),
             closeTrueNeg = sum(closeTrueNeg),
@@ -677,37 +821,80 @@ confErr <- termRE %>% filter(plotGroup != "non-convrg") %>%
             collapseTruePos = sum(collapseTruePos),
             collapseFalsePos = sum(collapseFalsePos),
             collapseTrueNeg = sum(collapseTrueNeg),
-            collapseFalseNeg = sum(collapseFalseNeg)) %>%
-  mutate(nAssess = closeTruePos + closeFalsePos + closeTrueNeg + closeFalseNeg,
+            collapseFalseNeg = sum(collapseFalseNeg),
+            closePropFalsePos = mean(closePropFalsePos)*100,
+            closePropFalseNeg = mean(closePropFalseNeg)*100,
+            collapsePropFalsePos = mean(collapsePropFalsePos)*100,
+            collapsePropFalseNeg = mean(collapsePropFalseNeg)*100) %>%
+  mutate(nAssess = closeTruePos + closeFalsePos + closeTrueNeg + closeFalseNeg, # change to just during closure
+         nClose = closeTruePos + closeFalseNeg,
+         nCollapse = collapseTruePos + collapseFalseNeg,
          closeErrRate = (closeFalsePos + closeFalseNeg)/nAssess,
-         closeFalsePosRate = closeFalsePos/nAssess,
-         closeFalseNegRate = closeFalseNeg/nAssess,
+         closeFalsePosRate = closeFalsePos/(nAssess-nClose),
+         closeFalseNegRate = closeFalseNeg/nClose,
          collapseErrRate = (collapseFalsePos + collapseFalseNeg)/nAssess,
-         collapseFalsePosRate = collapseFalsePos/nAssess,
-         collapseFalseNegRate = collapseFalseNeg/nAssess)
+         collapseFalsePosRate = collapseFalsePos/(nAssess-nCollapse),
+         collapseFalseNegRate = collapseFalseNeg/nCollapse)
+
+errLabs <- c("Missed Closure", "Missed Collapse", 
+             "Mean Conditional Relative Error:\nClosure (%)",
+             "Mean Conditional Relative Error:\nCollapse (%)",
+             "Total Closure Error", "Total Collapse Error")
+names(errLabs) <- c("closeFalseNegRate", "collapseFalseNegRate", "closePropFalseNeg", 
+                    "collapsePropFalseNeg", "closeErrRate", "collapseErrRate")
+
 
 confErrXHCR <- confErr %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>% 
-  select(scenario, HCR, recScen, closeErrRate, collapseErrRate) %>%
-  pivot_longer(c(closeErrRate, collapseErrRate), names_to = "errRate", values_to = "vals") %>%
+  select(scenario, HCR, recScen, closeFalseNegRate, collapseFalseNegRate, 
+         closePropFalseNeg, collapsePropFalseNeg,
+         closeErrRate, collapseErrRate) %>%
+  pivot_longer(c(closeFalseNegRate, collapseFalseNegRate, closePropFalseNeg, 
+                 collapsePropFalseNeg, closeErrRate, collapseErrRate), 
+               names_to = "errMetric", values_to = "vals") %>%
   ggplot(aes(x = HCR, y = vals, fill = recScen)) +
-  geom_dotplot(binaxis = "y") +
-  facet_wrap(~errRate) +
+  geom_col(position = "dodge") +
+  facet_wrap(~errMetric, scales = "free",
+             labeller = labeller(errMetric = errLabs)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Error Rate", x = "HCR")
+  labs(y = "Error Rate", x = "HCR", fill = "Recruitment\nScenario")
+
+propErrXHCR <- confErr %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>% 
+  select(scenario, HCR, recScen, closePropFalsePos, closePropFalseNeg, 
+         collapsePropFalsePos, collapsePropFalseNeg) %>%
+  pivot_longer(c(closePropFalsePos, closePropFalseNeg, 
+                 collapsePropFalsePos, collapsePropFalseNeg), 
+               names_to = "errMetric", values_to = "vals") %>%
+  ggplot(aes(x = HCR, y = vals*100, fill = recScen)) +
+  geom_dotplot(binaxis = "y") +
+  facet_wrap(~errMetric) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(y = "Mean Proportional Error (%)", x = "HCR")
 
 confErrViolin <- confErr %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>% 
-  select(scenario, HCR, recScen, closeErrRate, collapseErrRate) %>%
-  pivot_longer(c(closeErrRate, collapseErrRate), names_to = "errRate", values_to = "vals") %>%
-  ggplot(aes(x = errRate, y = vals)) +
+  select(scenario, HCR, recScen, closeFalseNegRate, collapseFalseNegRate,
+         closeErrRate, collapseErrRate) %>%
+  pivot_longer(c(closeFalseNegRate, collapseFalseNegRate, closeErrRate, collapseErrRate), 
+               names_to = "errMetric", values_to = "vals") %>%
+  ggplot(aes(x = errMetric, y = vals)) +
   geom_violin() +
   geom_dotplot(binaxis = "y", stackdir = "center", aes(fill = recScen)) +
-  # facet_wrap(~errRate) +
+  # facet_wrap(~errMetric) +
   theme_minimal() +
   # theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   labs(y = "Error Rate", x = "HCR")
 
 grid.arrange(confErrXHCR, confErrViolin)
+
+# Plot errors in receiver operating characteristic space
+confErr %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
+  ggplot() +
+  geom_point(aes(x = closeFalsePosRate, y = 1-closeFalseNegRate, color = HCR)) +
+  geom_abline(slope = 1, intercept = 0, color = "red") +
+  scale_color_manual(values = hcrPal[-1], labels = hcrLabels[-1]) +
+  ylim(0,1) +
+  facet_wrap(~recScen)
 
 confErr %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>% 
   select(scenario, HCR, recScen, closeFalsePosRate, collapseFalsePosRate) %>%
