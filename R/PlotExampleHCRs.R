@@ -1,3 +1,10 @@
+# Example plots of current SST and other assessed HCRs in terms of catch and 
+# fishing mortality
+
+library(tidyverse)
+library(RColorBrewer)
+library(colorspace)
+
 x <- c(0, seq(150000, 5000000, by = 50000))
 y <- function(x, Fmsy){
   HG <- (x-150000)*Fmsy
@@ -21,3 +28,41 @@ y20 <- sapply(x, y, Fmsy = 0.2)
 plot(x, y5, type = "l", xlab = "Biomass (mt)", ylab = "Catch (mt)", lwd = 4)
 abline(h = 200000, col = 2, lwd = 4)
 lines(x, y20, col = "blue", lwd = 4)
+
+# Plots in terms of F_target
+
+# rough median est of SmryBio_Unfished from all assessments
+Bsmry0 <- 314000
+hcrPal <- brewer.pal(11, "Set3")[-2]
+flexPts <- data.frame(SmryBio = c(8000, 0.1*Bsmry0, 0.4*Bsmry0, 150000, 150000, 0.8*Bsmry0,  500000),
+                      NoCat = rep(-0.002, times = 7), 
+                      PFMCF018 = c(0, 0, 0, 0, 0.18, 0.18, 0.18), 
+                      ConstF = rep(0.183, times = 7),
+                      Pikitch = c(0, 0, 0, 
+                                  rep(0.181*(150000-0.4*Bsmry0)/(Bsmry0*(0.8-0.4)), times = 2), 
+                                  0.181, 0.181), 
+                      Rule40.10 = c(0, 0, 0.182, 0.182, 0.182, 0.182, 0.182))
+
+sstFs <- data.frame(PFMCFSST = rep(seq(0.05, 0.19, by = 0.01), each = 4),
+                    Ftarget = c(0.05, 0.05, 
+                                rep(seq(0.06, 0.19, by = 0.01), each = 4), 
+                                0.2, 0.2),
+                    SmryBio = c(150000, 500000, 500000, 150000))
+
+flexPts %>% pivot_longer(cols = -SmryBio, names_to = "HCR", values_to = "Ftarget") %>%
+  mutate(HCR = factor(HCR, levels = c("NoCat", "PFMCF018", "ConstF", 
+                                      "Pikitch", "Rule40.10"))) %>%
+  ggplot(aes(x = log(SmryBio), y = Ftarget)) +
+  geom_polygon(data = sstFs, aes(fill = PFMCFSST, group = PFMCFSST)) +
+  scale_fill_gradient(low = lighten(hcrPal[3], 0.85), high = hcrPal[3]) +
+  geom_line(aes(color = HCR), size = 1.5) +
+  scale_color_manual(values = hcrPal[-3]) +
+  geom_segment(data = data.frame(x1 = c(0.1*Bsmry0, 0.4*Bsmry0, 0.8*Bsmry0),
+                                 x2 = c(0.1*Bsmry0, 0.4*Bsmry0, 0.8*Bsmry0),
+                                 y1 = rep(0, times = 3),
+                                 y2 = rep(0.18, times = 3),
+                                 HCR = rep("Dyn", times = 3)),
+               aes(x = log(x1), xend = log(x2), y = y1, yend = y2),
+               color = hcrPal[8], size = 1, linetype = "dashed") +
+  theme_classic() +
+  labs(x = "Age1+ Biomass (log-mt)", y = "Target F Rate")
