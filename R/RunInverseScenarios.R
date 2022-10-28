@@ -15,10 +15,7 @@ library(doParallel) #if using run_parallel = TRUE
 library(SSMSE) 
 packageVersion("SSMSE")
 
-# directory for MSE output
-mseOutputPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
-# mseOutputPath <- "J:/Desiree/Sardine/SardineScenarios"
-  
+
 RunInverseScenarios <- function(scenVec, # character vector of 9 scenarios, including one HCR0 scenario
                                 mseOutputPath, 
                                 seedNum){
