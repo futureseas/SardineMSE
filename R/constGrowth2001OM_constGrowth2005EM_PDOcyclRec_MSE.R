@@ -15,18 +15,16 @@ library(SSMSE)
 packageVersion("SSMSE")
 
 # directory for MSE output
-mseOutputPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
-# mseOutputPath <- "J:/Desiree/Sardine/SardineScenarios"
+# mseOutputPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
+mseOutputPath <- "J:/Desiree/Sardine/SardineScenarios/addlRuns"
 
 # Set Operating and Estimation Model ----------------------------------------
 
 # directory for OM SS code
-OMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2001"
-# OMmodelPath <- "J:/Desiree/Sardine/SardineMSE/scenarioModels/start2001"
+OMmodelPath <- "../SardineMSE/scenarioModels/start2001"
 
 # EM starts in 1981 to test a high data quality scenario
-EMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2005"
-# EMmodelPath <- "J:/Desiree/Sardine/SardineMSE/scenarioModels/start2005"
+EMmodelPath <- "../SardineMSE/scenarioModels/start2005"
 # EM starter.ss file must indicate init values are to be pulled from control.ss file, not ss.par
 
 # Define Observation Model ------------------------------------------------
@@ -97,7 +95,8 @@ sample_struct_list <- list("constGrow2001OM_constGrow2005EM_PDOcyclRecHCR0" = sa
                            "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR5" = sample_struct,
                            "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR6" = sample_struct,
                            "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR7" = sample_struct,
-                           "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR8" = sample_struct)
+                           "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR8" = sample_struct,
+                           "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR9" = sample_struct)
 
 # figure out the recruitment deviation input ---------------
 
@@ -109,15 +108,15 @@ scenName <- c("constGrow2001OM_constGrow2005EM_PDOcyclRecHCR0",
               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR5",
               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR6",
               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR7",
-              "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR8")
-iters <- 10
+              "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR8",
+              "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR9")
+iters <- 400
 
 ### Define custom rec devs based on environment
 
 template <- create_future_om_list(example_type = "custom")
 
-recUserDef <- read.csv("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevPDOnoclim2120.csv")
-# recUserDef <- read.csv("J:/Desiree/Sardine/SardineMSE/dat/recdevPDOnoclim2120.csv")
+recUserDef <- read.csv("../SardineMSE/dat/recdevPDOnoclim2120.csv")
 
 sdPDO <- recUserDef %>% filter(year >2019) %>% 
             summarize(devPDOcycl = sd(recDevPDO))
@@ -150,12 +149,11 @@ envt_dev_list <- list(recdevInput)
 # Run the OM --------------------------------------------------------------
 
 # Custom MS fxn location
-MSfxnPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R"
-# MSfxnPath <- "J:/Desiree/Sardine/SardineMSE/R"
-seedNum <- 706
-logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
-
-sink(file = file(logFile), append = TRUE)
+MSfxnPath <- "../SardineMSE/R"
+seedNum <- 1104
+# logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
+# 
+# sink(file = file(logFile), append = TRUE)
 
 startTime <- Sys.time()
 ptm <- proc.time()
@@ -317,6 +315,27 @@ out8 <- run_SSMSE(scen_name_vec = scenName[8], # name of the scenario
 cat("\n \n")
 out8
 
+envt_dev_list9 <- envt_dev_list
+envt_dev_list9[[1]]$input <- envt_dev_list9[[1]]$input %>% filter(scen %in% scenName[9])
+
+out9 <- run_SSMSE(scen_name_vec = scenName[9], # name of the scenario
+                  out_dir_scen_vec = mseOutputPath, # directory in which to run the scenario
+                  iter_vec = rep(iters, times = length(scenName[9])), # run with 5 iterations for now
+                  OM_name_vec = NULL, # specify directories instead
+                  OM_in_dir_vec = file.path(OMmodelPath, "constGrowthMidSteepNewSelex_OM"), #rep(OMmodelPath, times = length(scenName)), # OM files
+                  EM_name_vec = "constGrowBothShort", # Can't have number in name for summary diagnostics to work
+                  EM_in_dir_vec = file.path(EMmodelPath, "constGrowthMidSteepNewSelex_EM"),
+                  MS_vec = "MS_sar_hcr9", 
+                  custom_MS_source = file.path(MSfxnPath, "MS_sar_hcr9.R"),
+                  use_SS_boot_vec = TRUE, # use the SS bootstrap module for sampling
+                  nyrs_vec = nyrs,        # Years to project OM forward
+                  nyrs_assess_vec = 1, # Years between assessments
+                  future_om_list = envt_dev_list9, 
+                  run_parallel = TRUE, # Run iterations in parallel
+                  sample_struct_list = sample_struct_list[9], # How to sample data for running the EM.
+                  seed = seedNum) #Set a fixed integer seed that allows replication
+cat("\n \n")
+out9
 
 endTime <- Sys.time()
 
@@ -329,7 +348,7 @@ print(procDiff)
 cat("\n \n")
 
 # close log connection
-sink()
+# sink()
 # Summarize results -------------------------------------------------------
 
 # Summarize 1 iteration of output
