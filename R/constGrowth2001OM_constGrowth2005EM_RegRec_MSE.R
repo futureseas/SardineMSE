@@ -16,17 +16,15 @@ packageVersion("SSMSE")
 
 # directory for MSE output
 # mseOutputPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
-mseOutputPath <- "J:/Desiree/Sardine/SardineScenarios"
+mseOutputPath <- "J:/Desiree/Sardine/SardineScenarios/addlRuns"
 
 # Set Operating and Estimation Model ----------------------------------------
 
 # directory for OM SS code
-# OMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2001"
-OMmodelPath <- "J:/Desiree/Sardine/SardineMSE/scenarioModels/start2001"
+OMmodelPath <- "../SardineMSE/scenarioModels/start2001"
 
 # EM starts in 1981 to test a high data quality scenario
-# EMmodelPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/scenarioModels/start2005"
-EMmodelPath <- "J:/Desiree/Sardine/SardineMSE/scenarioModels/start2005"
+EMmodelPath <- "../SardineMSE/scenarioModels/start2005"
 # EM starter.ss file must indicate init values are to be pulled from control.ss file, not ss.par
 
 # Define Observation Model ------------------------------------------------
@@ -94,11 +92,11 @@ sample_struct_list <- list("constGrow2001OM_constGrow2005EM_RegRecHCR0" = sample
                            "constGrow2001OM_constGrow2005EM_RegRecHCR1" = sample_struct,
                            "constGrow2001OM_constGrow2005EM_RegRecHCR2" = sample_struct,
                            "constGrow2001OM_constGrow2005EM_RegRecHCR3" = sample_struct,
-                           #"constGrow2001OM_constGrow2005EM_RandRecHCR4" = sample_struct,
                            "constGrow2001OM_constGrow2005EM_RegRecHCR5" = sample_struct,
                            "constGrow2001OM_constGrow2005EM_RegRecHCR6" = sample_struct,
                            "constGrow2001OM_constGrow2005EM_RegRecHCR7" = sample_struct,
-                           "constGrow2001OM_constGrow2005EM_RegRecHCR8" = sample_struct)
+                           "constGrow2001OM_constGrow2005EM_RegRecHCR8" = sample_struct,
+                           "constGrow2001OM_constGrow2005EM_RegRecHCR9" = sample_struct)
 
 # figure out the recruitment deviation input ---------------
 
@@ -111,8 +109,9 @@ scenName <- c("constGrow2001OM_constGrow2005EM_RegRecHCR0",
               "constGrow2001OM_constGrow2005EM_RegRecHCR5",
               "constGrow2001OM_constGrow2005EM_RegRecHCR6",
               "constGrow2001OM_constGrow2005EM_RegRecHCR7",
-              "constGrow2001OM_constGrow2005EM_RegRecHCR8")
-iters <- 100
+              "constGrow2001OM_constGrow2005EM_RegRecHCR8",
+              "constGrow2001OM_constGrow2005EM_RegRecHCR9")
+iters <- 400
 
 ### use random recdevs with sd same as to historical
 template_mod_change <- create_future_om_list(example_type = "model_change")
@@ -133,11 +132,10 @@ rand_dev_list <- list(rec_dev_specify)
 # Run the OM --------------------------------------------------------------
 
 # Custom MS fxn location
-# MSfxnPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R"
-MSfxnPath <- "J:/Desiree/Sardine/SardineMSE/R"
-seedNum <- 729
+MSfxnPath <- "../SardineMSE/R"
+seedNum <- 1104
 # logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
-
+# 
 # sink(file = file(logFile), append = TRUE)
 
 startTime <- Sys.time()
@@ -278,6 +276,24 @@ out8 <- run_SSMSE(scen_name_vec = scenName[8], # name of the scenario
 cat("\n \n")
 out8
 
+out9 <- run_SSMSE(scen_name_vec = scenName[9], # name of the scenario
+                  out_dir_scen_vec = mseOutputPath, # directory in which to run the scenario
+                  iter_vec = rep(iters, times = length(scenName[9])), # run with 5 iterations for now
+                  OM_name_vec = NULL, # specify directories instead
+                  OM_in_dir_vec = file.path(OMmodelPath, "constGrowthMidSteepNewSelex_OM"), #rep(OMmodelPath, times = length(scenName)), # OM files
+                  EM_name_vec = "constGrowBothShort", # Can't have number in name for summary diagnostics to work
+                  EM_in_dir_vec = file.path(EMmodelPath, "constGrowthMidSteepNewSelex_EM"),
+                  MS_vec = "MS_sar_hcr9", 
+                  custom_MS_source = file.path(MSfxnPath, "MS_sar_hcr9.R"),
+                  use_SS_boot_vec = TRUE, # use the SS bootstrap module for sampling
+                  nyrs_vec = nyrs,        # Years to project OM forward
+                  nyrs_assess_vec = 1, # Years between assessments
+                  future_om_list = rand_dev_list, 
+                  run_parallel = TRUE, # Run iterations in parallel
+                  sample_struct_list = sample_struct_list[9], # How to sample data for running the EM.
+                  seed = seedNum) #Set a fixed integer seed that allows replication
+cat("\n \n")
+out9
 
 endTime <- Sys.time()
 

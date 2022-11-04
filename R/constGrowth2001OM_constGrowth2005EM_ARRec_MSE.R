@@ -16,7 +16,7 @@ packageVersion("SSMSE")
 
 # directory for MSE output
 # mseOutputPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
-mseOutputPath <- "J:/Desiree/Sardine/SardineScenarios"
+mseOutputPath <- "J:/Desiree/Sardine/SardineScenarios/addlRuns"
 
 # Set Operating and Estimation Model ----------------------------------------
 
@@ -92,11 +92,11 @@ sample_struct_list <- list("constGrow2001OM_constGrow2005EM_ARRecHCR0" = sample_
                            "constGrow2001OM_constGrow2005EM_ARRecHCR1" = sample_struct,
                            "constGrow2001OM_constGrow2005EM_ARRecHCR2" = sample_struct,
                            "constGrow2001OM_constGrow2005EM_ARRecHCR3" = sample_struct,
-                           #"constGrow2001OM_constGrow2005EM_ARRecHCR4" = sample_struct,
                            "constGrow2001OM_constGrow2005EM_ARRecHCR5" = sample_struct,
                            "constGrow2001OM_constGrow2005EM_ARRecHCR6" = sample_struct,
                            "constGrow2001OM_constGrow2005EM_ARRecHCR7" = sample_struct,
-                           "constGrow2001OM_constGrow2005EM_ARRecHCR8" = sample_struct)
+                           "constGrow2001OM_constGrow2005EM_ARRecHCR8" = sample_struct,
+                           "constGrow2001OM_constGrow2005EM_ARRecHCR9" = sample_struct)
 
 # figure out the recruitment deviation input ---------------
 
@@ -105,12 +105,12 @@ scenName <- c("constGrow2001OM_constGrow2005EM_ARRecHCR0",
               "constGrow2001OM_constGrow2005EM_ARRecHCR1",
               "constGrow2001OM_constGrow2005EM_ARRecHCR2",
               "constGrow2001OM_constGrow2005EM_ARRecHCR3",
-              #"constGrow2001OM_constGrow2005EM_ARRecHCR4",
               "constGrow2001OM_constGrow2005EM_ARRecHCR5",
               "constGrow2001OM_constGrow2005EM_ARRecHCR6",
               "constGrow2001OM_constGrow2005EM_ARRecHCR7",
-              "constGrow2001OM_constGrow2005EM_ARRecHCR8")
-iters <- 100
+              "constGrow2001OM_constGrow2005EM_ARRecHCR8",
+              "constGrow2001OM_constGrow2005EM_ARRecHCR9")
+iters <- 400
 
 ### use random recdevs with sd same as to historical
 template_mod_change <- create_future_om_list(example_type = "model_change")
@@ -142,7 +142,7 @@ rand_dev_list <- list(rec_dev_specify)
 # Custon MS fxn location
 MSfxnPath <- "../SardineMSE/R"
 
-seedNum <- 729
+seedNum <- 1104
 
 # logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
 # 
@@ -286,6 +286,24 @@ out8 <- run_SSMSE(scen_name_vec = scenName[8], # name of the scenario
 cat("\n \n")
 out8
 
+out9 <- run_SSMSE(scen_name_vec = scenName[9], # name of the scenario
+                  out_dir_scen_vec = mseOutputPath, # directory in which to run the scenario
+                  iter_vec = rep(iters, times = length(scenName[9])), # run with 5 iterations for now
+                  OM_name_vec = NULL, # specify directories instead
+                  OM_in_dir_vec = file.path(OMmodelPath, "constGrowthMidSteepNewSelex_OM"), #rep(OMmodelPath, times = length(scenName)), # OM files
+                  EM_name_vec = "constGrowBothShort", # Can't have number in name for summary diagnostics to work
+                  EM_in_dir_vec = file.path(EMmodelPath, "constGrowthMidSteepNewSelex_EM"),
+                  MS_vec = "MS_sar_hcr9", 
+                  custom_MS_source = file.path(MSfxnPath, "MS_sar_hcr9.R"),
+                  use_SS_boot_vec = TRUE, # use the SS bootstrap module for sampling
+                  nyrs_vec = nyrs,        # Years to project OM forward
+                  nyrs_assess_vec = 1, # Years between assessments
+                  future_om_list = rand_dev_list, 
+                  run_parallel = TRUE, # Run iterations in parallel
+                  sample_struct_list = sample_struct_list[9], # How to sample data for running the EM.
+                  seed = seedNum) #Set a fixed integer seed that allows replication
+cat("\n \n")
+out9
 
 endTime <- Sys.time()
 
@@ -298,7 +316,7 @@ print(procDiff)
 cat("\n \n")
 
 # close log connection
-# sink()
+#sink()
 # Summarize results -------------------------------------------------------
 
 # Summarize 1 iteration of output

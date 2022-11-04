@@ -135,7 +135,7 @@ sampleDat <- termTS %>% filter(model_run == omName, HCR == "HCR0",
             lowAge1Plus = quantile(Bio_smry, probs = 0.1, na.rm = TRUE),
             hiAge1Plus = quantile(Bio_smry, probs = 0.9, na.rm = TRUE)) 
 
-itSamp <- sample(unique(termTS$iteration), size = 5)
+itSamp <- sample(unique(termTS$iteration), size = 3)
 
 p1 <- sampleDat %>%
   ggplot(aes(x = year, y = meanAge1Plus)) +
@@ -538,15 +538,18 @@ metricsTbl <- metricsTbl %>% left_join(y = rebuildTime,
 
 metricLabs <- c("Frequency Bt < 150,000 mt", "Frequency Bt < 50,000 mt",
                 "Mean Collapse Severity", "Number of Closures", 
-                "Mean Rebuilding Time (yrs)", "Catch SD (mt)")
+                "Mean Rebuilding Time (yrs)", "Catch SD (mt)",
+                "Mean Minimum Age", "Mean Minimum Length")
 names(metricLabs) <- c("closuresFreq", "collapseFreq", "meanCollapseSever",
-                         "nClosures", "meanRebuildTime", "sdCatch")
+                         "nClosures", "meanRebuildTime", "sdCatch",
+                       "minAge", "minLen")
 
-metricsTbl %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
+fishMetPlots <- metricsTbl %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
   select(iteration, scenario, model_run, HCR, nameHCR, recScen, closuresFreq, 
-         collapseFreq, meanCollapseSever, nClosures, meanRebuildTime, sdCatch) %>%
+         collapseFreq, meanCollapseSever, nClosures, meanRebuildTime, sdCatch,
+         minAge, minLen) %>%
   pivot_longer(cols = c(closuresFreq, collapseFreq, meanCollapseSever, nClosures,
-                        meanRebuildTime, sdCatch),
+                        meanRebuildTime, sdCatch, minAge, minLen),
                names_to = "Metric", values_to = "vals") %>%
   group_by(HCR, Metric) %>%
   summarize(meanMetric = mean(vals, na.rm = TRUE),
@@ -556,6 +559,7 @@ metricsTbl %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
             q1Metric = quantile(vals, probs = 0.25, na.rm = TRUE),
             q3Metric = quantile(vals, probs = 0.75, na.rm = TRUE),
             nMetric = n()) %>% 
+  # filter(Metric %in% c("closuresFreq", "sdCatch")) %>%
   ggplot(aes(x = HCR, fill = HCR)) +
   geom_boxplot(aes(ymin = loMetric, lower = q1Metric, middle = medMetric, 
                    upper = q3Metric, ymax = hiMetric),
@@ -571,7 +575,7 @@ metricsTbl %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
         strip.background = element_blank()) +
   labs(x = "HCR")
 
-annualRelBioCat %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
+bioCatPlots <- annualRelBioCat %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
   select(iteration, scenario, model_run, HCR, nameHCR, recScen, 
          relAnnBioMax, relAnnCatMax) %>%
   pivot_longer(cols = c(relAnnBioMax, relAnnCatMax),
@@ -599,6 +603,8 @@ annualRelBioCat %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
         strip.placement = "outside",
         strip.background = element_blank()) +
   labs(x = "HCR")
+
+grid.arrange(bioCatPlots, fishMetPlots)
 # Error metrics -----------------------------------------------------------
 
 metricsTbl %>% filter(!recScen %in% c("RegRec", "SSTRec"), 
