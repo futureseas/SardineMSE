@@ -24,6 +24,8 @@ CalcPerformance <- function(runSmryOutput){
   collapseThresh <- 50000
   # biomass at which maximum catch of 200000 reached when Fmsy = 0.05
   maxcat <- 4150000
+  # bonanza biomass defined in Hurtado-Ferro & Punt 2014 performance metrics
+  bonanzaBio <- 400000
   
   # biomass metrics
   tsBio <- runSmryOutput$tsSmry %>% filter(model_run == omName) %>%
@@ -31,7 +33,7 @@ CalcPerformance <- function(runSmryOutput){
                      year > 2019) %>%
               mutate(closure = Bio_smry < cutoff,
                      collapse = Bio_smry < collapseThresh,
-                     bonanza = Bio_smry > maxcat) %>%
+                     bonanza = Bio_smry > bonanzaBio) %>%
               group_by(model_run, iteration, scenario) %>%
               mutate(closureLength = sequence(rle(closure)$lengths),
                      collapseLength = sequence(rle(collapse)$lengths),
@@ -53,6 +55,11 @@ CalcPerformance <- function(runSmryOutput){
   maxBonanzaLength <- tsBio %>% group_by(model_run, iteration, scenario, bonanza) %>%
                         summarize(bonanzaLengthMax = max(bonanzaLength)) %>%
                         filter(bonanza == TRUE)
+  
+  belowBonanza <- tsBio %>% group_by(model_run, iteration, scenario, bonanza) %>%
+                    summarize(belowBonanzaLenMax = max(bonanzaLength),
+                              belowBonanzaLenMean = mean(bonanzaLength)) %>%
+                    filter(bonanza == FALSE)
   
   # catch metrics
   smryCat <- runSmryOutput$tsSmry %>% filter(model_run == omName, year > 2019) %>%
@@ -99,6 +106,7 @@ CalcPerformance <- function(runSmryOutput){
   metrics <- full_join(x = smryConvrg, y = smryBio, by = c("iteration", "scenario")) %>% # no model_run in smryConvrg because over EM runs
               full_join(y = maxRebuildLength, by = c("iteration", "model_run", "scenario")) %>%
               full_join(y = maxBonanzaLength, by = c("iteration", "model_run", "scenario")) %>%
+              full_join(y = belowBonanza, by = c("iteration", "model_run", "scenario")) %>%
               full_join(y = smryCat, by = c("iteration", "model_run", "scenario")) %>%
               full_join(y = smryAge, by = c("iteration", "model_run", "scenario")) %>%
               full_join(y = smryLen, by = c("iteration", "model_run", "scenario"))

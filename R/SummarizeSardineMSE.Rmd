@@ -144,18 +144,19 @@ Plots of simulated (OM) biomass of age 1+ fish with 80% confidence intervals (gr
 ```{r, tsBiomass, echo=FALSE, warning=FALSE, message=FALSE}
 
 # timeseries plot for presentation
-sampleDat <- termTS %>% filter(model_run == omName, HCR == "HCR0") %>%
-  select(Bio_smry, year, model_run, iteration, scenario, HCR, recScen) %>%
-  group_by(year, scenario, HCR, recScen) %>%
+sampleDat <- termTS %>% filter(model_run == omName, HCR == "HCR0", Seas == 1) %>%
+  select(Bio_smry, year, model_run, iteration, scenario, HCR, recScen, invScen) %>%
+  group_by(year, scenario, HCR, recScen, invScen) %>%
   summarize(meanAge1Plus = mean(Bio_smry),
             lowAge1Plus = quantile(Bio_smry, probs = 0.1, na.rm = TRUE),
-            hiAge1Plus = quantile(Bio_smry, probs = 0.9, na.rm = TRUE)) 
+            hiAge1Plus = quantile(Bio_smry, probs = 0.9, na.rm = TRUE)) #%>%
+  mutate(invScen = grepl("inv", recScen, fixed = TRUE))
 
 sampleDat %>%
   ggplot(aes(x = year, y = meanAge1Plus)) +
   geom_line() +
   geom_ribbon(aes(ymin = lowAge1Plus, ymax = hiAge1Plus, alpha = 0.3)) +
-  facet_grid(rows = vars(HCR), cols = vars(recScen)) +
+  facet_grid(rows = vars(invScen), cols = vars(recScen)) +
   theme_minimal() +
   labs(x = "Year", y = "Age 1+ Biomass (mt)",
        caption = "Mean (solid line), 80% CI (grey shaded ribbon), and five sample trajectories under a No Catch (HCR0) management rule\n for each recruitment scenario.") +
