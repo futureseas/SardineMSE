@@ -7,8 +7,9 @@ library(RColorBrewer)
 library(scales)
 library(gridExtra)
 
-source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/CalcPerformance.R")
-source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/CalcTermTS.R")
+source("../SardineMSE/R/CalcPerformance.R")
+source("../SardineMSE/R/CalcTermTS.R")
+source("../SardineMSE/R/CalcRelMetric.R")
 
 memory.limit(size = 30000)
 
@@ -17,69 +18,8 @@ memory.limit(size = 30000)
 mseDir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
 termYr <- 2068
 
-scenarios <- c(#"constGrow2001OM_constGrow2005EM_RegRecHCR0",
-               # "constGrow2001OM_constGrow2005EM_RegRecHCR1",
-               # "constGrow2001OM_constGrow2005EM_RegRecHCR2",
-               # "constGrow2001OM_constGrow2005EM_RegRecHCR3",
-               # "constGrow2001OM_constGrow2005EM_RegRecHCR9",
-               # "constGrow2001OM_constGrow2005EM_RegRecHCR5",
-               # "constGrow2001OM_constGrow2005EM_RegRecHCR6",
-               # "constGrow2001OM_constGrow2005EM_RegRecHCR7",
-               # "constGrow2001OM_constGrow2005EM_RegRecHCR8",
-               
-               "constGrow2001OM_constGrow2005EM_ARRecHCR0",
-               "constGrow2001OM_constGrow2005EM_ARRecHCR1",
-               "constGrow2001OM_constGrow2005EM_ARRecHCR2",
-               "constGrow2001OM_constGrow2005EM_ARRecHCR3",
-               "constGrow2001OM_constGrow2005EM_ARRecHCR9",
-               "constGrow2001OM_constGrow2005EM_ARRecHCR5",
-               "constGrow2001OM_constGrow2005EM_ARRecHCR6",
-               "constGrow2001OM_constGrow2005EM_ARRecHCR7",
-               "constGrow2001OM_constGrow2005EM_ARRecHCR8",
-               
-               # "constGrow2001OM_constGrow2005EM_SSTRecHCR0",
-               # "constGrow2001OM_constGrow2005EM_SSTRecHCR1",
-               # "constGrow2001OM_constGrow2005EM_SSTRecHCR2",
-               # "constGrow2001OM_constGrow2005EM_SSTRecHCR3",
-               # "constGrow2001OM_constGrow2005EM_SSTRecHCR9",
-               # "constGrow2001OM_constGrow2005EM_SSTRecHCR5",
-               # "constGrow2001OM_constGrow2005EM_SSTRecHCR6",
-               # "constGrow2001OM_constGrow2005EM_SSTRecHCR7",
-               # "constGrow2001OM_constGrow2005EM_SSTRecHCR8",
-               
-               
-               "constGrow2001OM_constGrow2005EM_PDOclimRecHCR0",
-               "constGrow2001OM_constGrow2005EM_PDOclimRecHCR1",
-               "constGrow2001OM_constGrow2005EM_PDOclimRecHCR2",
-               "constGrow2001OM_constGrow2005EM_PDOclimRecHCR3",
-               "constGrow2001OM_constGrow2005EM_PDOclimRecHCR9",
-               "constGrow2001OM_constGrow2005EM_PDOclimRecHCR5",
-               "constGrow2001OM_constGrow2005EM_PDOclimRecHCR6",
-               "constGrow2001OM_constGrow2005EM_PDOclimRecHCR7",
-               "constGrow2001OM_constGrow2005EM_PDOclimRecHCR8",
-               
-               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR0",
-               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR1",
-               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR2",
-               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR3",
-               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR9",
-               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR5",
-               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR6",
-               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR7",
-               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR8",
-               
-               "constGrow2001OM_constGrow2005EM_MICERecHCR0",
-               "constGrow2001OM_constGrow2005EM_MICERecHCR1",
-               "constGrow2001OM_constGrow2005EM_MICERecHCR2",
-               "constGrow2001OM_constGrow2005EM_MICERecHCR3",
-               "constGrow2001OM_constGrow2005EM_MICERecHCR9",
-               "constGrow2001OM_constGrow2005EM_MICERecHCR5",
-               "constGrow2001OM_constGrow2005EM_MICERecHCR6",
-               "constGrow2001OM_constGrow2005EM_MICERecHCR7",
-               "constGrow2001OM_constGrow2005EM_MICERecHCR8")
-
 smryOutputList <- readRDS(file.path(mseDir, 
-                                    "serverRegARPDOcyclPDOclimSSTMICE_allHCRs_results.RDS"))
+                                    "serverRegARPDOcyclPDOclimSSTMICE_allHCRs_addlResults.RDS"))
 
 performanceList <- CalcPerformance(smryOutputList)
 
@@ -90,33 +30,27 @@ smryOutputList$lenComp <- NULL
 smryOutputList$ageComp <- NULL
 
 # parse out HCR and recruitment scenario
-metricsTbl <- metricsTbl %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
-                                    recScen = sub(pattern = "HCR.*","", scenario)) %>%
-  mutate(recScen = sub(pattern = ".*EM_","", recScen),
-         nameHCR = case_when(HCR == "HCR0" ~ "NoCat",
-                             HCR == "HCR1" ~ "PFMCF018",
-                             HCR == "HCR2" ~ "PFMCFSST",
-                             HCR == "HCR3" ~ "ConstF",
-                             HCR == "HCR5" ~ "Pikitch",
-                             HCR == "HCR6" ~ "40-10",
-                             HCR == "HCR7" ~ "DynPik",
-                             HCR == "HCR8" ~ "Dyn40-10",
-                             HCR == "HCR9" ~ "Index"))
+metricsTbl <- metricsTbl %>% mutate(nameHCR = case_when(HCR == "HCR0" ~ "NoCat",
+                                                        HCR == "HCR1" ~ "PFMCF018",
+                                                        HCR == "HCR2" ~ "PFMCFSST",
+                                                        HCR == "HCR3" ~ "ConstF",
+                                                        HCR == "HCR5" ~ "Pikitch",
+                                                        HCR == "HCR6" ~ "40-10",
+                                                        HCR == "HCR7" ~ "DynPik",
+                                                        HCR == "HCR8" ~ "Dyn40-10",
+                                                        HCR == "HCR9" ~ "Index"))
 
 # get terminal estimates of these values for timeseries plots
 termTS <- CalcTermTS(smryOutputList, termYr = termYr) %>%
-  mutate(HCR = sub(pattern = ".*Rec","", scenario),
-         recScen = sub(pattern = "HCR.*","", scenario)) %>%
-  mutate(recScen = sub(pattern = ".*EM_","", recScen),
-         nameHCR = case_when(HCR == "HCR0" ~ "NoCat",
-                             HCR == "HCR1" ~ "PFMCF018",
-                             HCR == "HCR2" ~ "PFMCFSST",
-                             HCR == "HCR3" ~ "ConstF",
-                             HCR == "HCR5" ~ "Pikitch",
-                             HCR == "HCR6" ~ "40-10",
-                             HCR == "HCR7" ~ "DynPik",
-                             HCR == "HCR8" ~ "Dyn40-10",
-                             HCR == "HCR9" ~ "Index"))
+            mutate(nameHCR = case_when(HCR == "HCR0" ~ "NoCat",
+                                       HCR == "HCR1" ~ "PFMCF018",
+                                       HCR == "HCR2" ~ "PFMCFSST",
+                                       HCR == "HCR3" ~ "ConstF",
+                                       HCR == "HCR5" ~ "Pikitch",
+                                       HCR == "HCR6" ~ "40-10",
+                                       HCR == "HCR7" ~ "DynPik",
+                                       HCR == "HCR8" ~ "Dyn40-10",
+                                       HCR == "HCR9" ~ "Index"))
                        
 
 omName <- grep("_OM", smryOutputList$tsSmry$model_run,
@@ -126,9 +60,12 @@ hcrPal <- brewer.pal(11, "Set3")[-2]
 hcrLabels <- c("NoCat", "PFMCF018", "PFMCFSST", "ConstF", "Pikitch", "40-10",
                "DynPik", "Dyn40-10", "Index")
 
+# define reference scenarios to use in plot calculations
+refScens <- c("ARRec", "MICERec", "PDOclimRec", "PDOcyclRec")
+
 # timeseries plot for presentation
 sampleDat <- termTS %>% filter(model_run == omName, HCR == "HCR0",
-                               !recScen %in% c("RegRec", "SSTRec")) %>%
+                               recScen %in% refScens) %>%
   select(Bio_smry, year, model_run, iteration, scenario, HCR, recScen) %>%
   group_by(year, scenario, HCR, recScen) %>%
   summarize(meanAge1Plus = mean(Bio_smry),
@@ -150,7 +87,7 @@ p1 <- sampleDat %>%
   geom_line(data = subset(termTS, model_run == omName & 
                             HCR == "HCR0" & 
                             iteration %in% itSamp & 
-                            !recScen %in% c("RegRec", "SSTRec")),
+                            recScen %in% refScens),
             mapping = aes(x = year, y = Bio_smry, 
                           linetype = as.character(iteration), 
                           color = as.character(iteration)),
@@ -168,7 +105,7 @@ p1 <- sampleDat %>%
 # sample recruitment deviations
 p2 <- termTS %>% filter(model_run == omName,
                   HCR == "HCR0", iteration %in% itSamp,
-                  !recScen %in% c("RegRec", "SSTRec")) %>%
+                  recScen %in% refScens) %>%
   ggplot(aes(x = year, y = rec_dev)) +
   geom_line(aes(linetype = as.character(iteration), 
                 color = as.character(iteration))) + 
@@ -291,38 +228,30 @@ grid.arrange(emErrPlot1, emErrPlot2, emErrPlot3)
 # Metrics plots -----------------------------------------------------------
 
 # Calculate relative biomass and catch metrics
-relDenoms <- metricsTbl %>% group_by(recScen, iteration) %>%
-  summarize(maxMeanBio = max(meanB1plus),
-            maxMeanCat = max(meanCatch)) %>%
-  full_join(y = metricsTbl %>% filter(HCR == "HCR0") %>% 
-              select(recScen, iteration, meanB1plus),
-            by = c("recScen", "iteration")) %>%
-  rename("meanHCR0Bio" = "meanB1plus")
-
-metricsTbl <- metricsTbl %>% full_join(y = relDenoms,
-                                       by = c("recScen", "iteration")) %>%
-  mutate(relBioMax = meanB1plus/maxMeanBio,
-         relBioHCR0 = meanB1plus/meanHCR0Bio,
-         relCatMax = meanCatch/maxMeanCat)
-
-
-
-annualRelBioCat <- termTS %>% filter(year > 2019, year != 2070,
-                                     model_run == omName) %>%
-    full_join(y = relDenoms,
-              by = c("recScen", "iteration")) %>%
-  mutate(relAnnBioMax = Bio_smry/maxMeanBio,
-         relAnnCatMax = totCatch/maxMeanCat)
+annualRelBioCat <- CalcRelMetric(metricData = termTS %>% 
+                                   filter(year > 2019, year != 2070,
+                                          model_run == omName), 
+                                 metricCol = "Bio_smry") %>%
+                      full_join(y = CalcRelMetric(metricData = termTS %>% 
+                                                    filter(year > 2019, 
+                                                           year != 2070,
+                                                           model_run == omName), 
+                                                  metricCol = "totCatch"),
+                                by = c("Bio_smry", "rec_dev", "year", "Seas", 
+                                       "model_run", "iteration", "scenario", 
+                                       "HCR", "recScen", "totCatch",  
+                                       "Value.Recr", "Value.SSB", "emYear")) %>%
+                      select(!contains("Metric"))
 
 # plot annual relative biomass metrics
-relBioAll <- annualRelBioCat %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
+relBioAll <- annualRelBioCat %>% filter(recScen %in% refScens) %>%
   group_by(nameHCR) %>%
-  summarize(meanRelBio = mean(relAnnBioMax),
-            medRelBio = median(relAnnBioMax),
-            hiRelBio = quantile(relAnnBioMax, probs = 0.975),
-            loRelBio = quantile(relAnnBioMax, probs = 0.025),
-            q1RelBio = quantile(relAnnBioMax, probs = 0.25),
-            q3RelBio = quantile(relAnnBioMax, probs = 0.75),
+  summarize(meanRelBio = mean(relBio_smryMean),
+            medRelBio = median(relBio_smryMean),
+            hiRelBio = quantile(relBio_smryMean, probs = 0.95),
+            loRelBio = quantile(relBio_smryMean, probs = 0.05),
+            q1RelBio = quantile(relBio_smryMean, probs = 0.25),
+            q3RelBio = quantile(relBio_smryMean, probs = 0.75),
             nRelBio = n()) %>% 
   ggplot(aes(x = nameHCR, fill = nameHCR)) +
   geom_boxplot(aes(ymin = loRelBio, lower = q1RelBio, middle = medRelBio, 
@@ -338,11 +267,11 @@ relBioAll <- annualRelBioCat %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Annual Age1+ Biomass:Max", x = "HCR") 
+  labs(y = "Annual Age1+ Biomass:Mean", x = "HCR") 
 
-relBioColl <- annualRelBioCat %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
+relBioColl <- annualRelBioCat %>% filter(recScen %in% refScens) %>%
   filter(Bio_smry <= 50000) %>%
-  ggplot(aes(x = HCR, y = relAnnBioMax)) +
+  ggplot(aes(x = HCR, y = relBio_smryMean)) +
   #geom_hline(yintercept = c(50000, 150000), color = "red") +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
   # geom_jitter(aes(color = recScen, alpha = 0.03)) +
@@ -350,11 +279,11 @@ relBioColl <- annualRelBioCat %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = hcrLabels) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Annual Age1+ Biomass:Max", x = "HCR") 
+  labs(y = "Annual Age1+ Biomass:Mean", x = "HCR") 
 
-relBioClose <- annualRelBioCat %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
+relBioClose <- annualRelBioCat %>% filter(recScen %in% refScens) %>%
   filter(Bio_smry <= 150000) %>%
-  ggplot(aes(x = HCR, y = relAnnBioMax)) +
+  ggplot(aes(x = HCR, y = relBio_smryMean)) +
   #geom_hline(yintercept = c(50000, 150000), color = "red") +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
   # geom_jitter(aes(color = recScen, alpha = 0.03)) +
@@ -362,14 +291,14 @@ relBioClose <- annualRelBioCat %>% filter(!recScen %in% c("RegRec", "SSTRec")) %
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = hcrLabels) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Annual Age1+ Biomass:Max", x = "HCR") 
+  labs(y = "Annual Age1+ Biomass:Mean", x = "HCR") 
 
-sever <- metricsTbl %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
+sever <- metricsTbl %>% filter(recScen %in% refScens) %>%
   group_by(nameHCR) %>%
   summarize(meanCollSevr = mean(meanCollapseSever),
             medCollSevr = median(meanCollapseSever),
-            hiCollSevr = quantile(meanCollapseSever, probs = 0.975),
-            loCollSevr = quantile(meanCollapseSever, probs = 0.025),
+            hiCollSevr = quantile(meanCollapseSever, probs = 0.95),
+            loCollSevr = quantile(meanCollapseSever, probs = 0.05),
             q1CollSevr = quantile(meanCollapseSever, probs = 0.25),
             q3CollSevr = quantile(meanCollapseSever, probs = 0.75),
             nCollSevr = n()) %>% 
@@ -385,15 +314,15 @@ sever <- metricsTbl %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   labs(y = "Collapse severity", x = "HCR") 
 
-relCatAll <- annualRelBioCat %>% filter(HCR != "HCR0", !recScen %in% c("RegRec", "SSTRec")) %>%
+relCatAll <- annualRelBioCat %>% filter(HCR != "HCR0", recScen %in% refScens) %>%
   #filter(Bio_smry <= 150000) %>%
   group_by(nameHCR) %>%
-  summarize(meanRelCat = mean(relAnnCatMax),
-            medRelCat = median(relAnnCatMax),
-            hiRelCat = quantile(relAnnCatMax, probs = 0.975),
-            loRelCat = quantile(relAnnCatMax, probs = 0.025),
-            q1RelCat = quantile(relAnnCatMax, probs = 0.25),
-            q3RelCat = quantile(relAnnCatMax, probs = 0.75),
+  summarize(meanRelCat = mean(reltotCatchMean),
+            medRelCat = median(reltotCatchMean),
+            hiRelCat = quantile(reltotCatchMean, probs = 0.95),
+            loRelCat = quantile(reltotCatchMean, probs = 0.05),
+            q1RelCat = quantile(reltotCatchMean, probs = 0.25),
+            q3RelCat = quantile(reltotCatchMean, probs = 0.75),
             nRelCat = n()) %>% 
   ggplot(aes(x = nameHCR, fill = nameHCR)) +
   geom_boxplot(aes(ymin = loRelCat, lower = q1RelCat, middle = medRelCat, 
@@ -409,14 +338,14 @@ relCatAll <- annualRelBioCat %>% filter(HCR != "HCR0", !recScen %in% c("RegRec",
   theme_minimal() +
   scale_fill_manual(values = hcrPal[-1], labels = hcrLabels[-1], name = "HCR") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Annual Catch:Max", x = "HCR") 
+  labs(y = "Annual Catch:Mean", x = "HCR") 
 
-sdCatAll <- metricsTbl %>%  filter(HCR != "HCR0", !recScen %in% c("RegRec", "SSTRec")) %>%
+sdCatAll <- metricsTbl %>%  filter(HCR != "HCR0", recScen %in% refScens) %>%
   group_by(nameHCR) %>%
   summarize(meanRelCatSD = mean(sdCatch),
             medRelCatSD = median(sdCatch),
-            hiRelCatSD = quantile(sdCatch, probs = 0.975),
-            loRelCatSD = quantile(sdCatch, probs = 0.025),
+            hiRelCatSD = quantile(sdCatch, probs = 0.95),
+            loRelCatSD = quantile(sdCatch, probs = 0.05),
             q1RelCatSD = quantile(sdCatch, probs = 0.25),
             q3RelCatSD = quantile(sdCatch, probs = 0.75),
             nRelCatSD = n()) %>% 
@@ -432,12 +361,12 @@ sdCatAll <- metricsTbl %>%  filter(HCR != "HCR0", !recScen %in% c("RegRec", "SST
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   labs(y = "Catch SD (mt)", x = "HCR")
 
-closeFreq <- metricsTbl %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
+closeFreq <- metricsTbl %>% filter(recScen %in% refScens) %>%
   group_by(nameHCR) %>%
   summarize(meanFrqClose = mean(closuresFreq),
             medFrqClose = median(closuresFreq),
-            hiFrqClose = quantile(closuresFreq, probs = 0.975),
-            loFrqClose = quantile(closuresFreq, probs = 0.025),
+            hiFrqClose = quantile(closuresFreq, probs = 0.95),
+            loFrqClose = quantile(closuresFreq, probs = 0.05),
             q1FrqClose = quantile(closuresFreq, probs = 0.25),
             q3FrqClose = quantile(closuresFreq, probs = 0.75),
             nFrqClose = n()) %>% 
@@ -453,12 +382,12 @@ closeFreq <- metricsTbl %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   labs(y = "Frequency Bt < 150,000 mt", x = "HCR")
 
-collapseFreq <- metricsTbl %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
+collapseFreq <- metricsTbl %>% filter(recScen %in% refScens) %>%
   group_by(nameHCR) %>%
   summarize(meanFrqColl = mean(collapseFreq),
             medFrqColl = median(collapseFreq),
-            hiFrqColl = quantile(collapseFreq, probs = 0.975),
-            loFrqColl = quantile(collapseFreq, probs = 0.025),
+            hiFrqColl = quantile(collapseFreq, probs = 0.95),
+            loFrqColl = quantile(collapseFreq, probs = 0.05),
             q1FrqColl = quantile(collapseFreq, probs = 0.25),
             q3FrqColl = quantile(collapseFreq, probs = 0.75),
             nFrqColl = n()) %>% 
@@ -474,33 +403,30 @@ collapseFreq <- metricsTbl %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   labs(y = "Frequency Bt < 50,000 mt", x = "HCR")
 
-rebuildTime <- performanceList$tsSmry %>% select(Bio_smry , year, model_run, iteration, scenario, closure, closureLength) %>%
-  filter(closure) %>% arrange(scenario, iteration, year) #%>% filter(year == 2020)
-#all(rebuildTime$closure)
-rebuildTime$isRebuilt <- NA
-for(i in 1:(nrow(rebuildTime)-1)){
-  rebuildTime$isRebuilt[i] <- if(rebuildTime$closureLength[i] != rebuildTime$closureLength[i+1]-1){
-    TRUE
-  } else { FALSE }
-}
-rebuildTime <- rebuildTime %>% filter(isRebuilt, year != 2069) %>% # remove last year b/c can't guarantee stock is rebuilt
-  mutate(HCR = sub(pattern = ".*Rec","", scenario),
-         recScen = sub(pattern = "HCR.*","", scenario)) %>%
-  mutate(recScen = sub(pattern = ".*EM_","", recScen))
+# Calculate rebuilding
+rebuildTime <- CalcRebuildTime(tsSmry = performanceList$tsSmry) %>% 
+                  mutate(nameHCR = case_when(HCR == "HCR0" ~ "NoCat",
+                                             HCR == "HCR1" ~ "PFMCF018",
+                                             HCR == "HCR2" ~ "PFMCFSST",
+                                             HCR == "HCR3" ~ "ConstF",
+                                             HCR == "HCR5" ~ "Pikitch",
+                                             HCR == "HCR6" ~ "40-10",
+                                             HCR == "HCR7" ~ "DynPik",
+                                             HCR == "HCR8" ~ "Dyn40-10",
+                                             HCR == "HCR9" ~ "Index"))
 
-rebuildTime <- rebuildTime %>% group_by(model_run, iteration, scenario, HCR, recScen) %>%
-  summarize(nClosures = n(),
-            meanRebuildTime = mean(closureLength),
-            medRebuildTime = median(closureLength)) 
+# look at how many iterations never rebuilt
+performanceList$tsSmry %>% filter(closureLength == 50) %>% group_by(HCR, recScen)%>% summarize(nvrRebuiltN = n())
+# only 1 iteration in reference set didn't rebuild (iter 77) except under HCR1
 
-rebuild <- rebuildTime %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>% 
+rebuild <- rebuildTime %>% filter(recScen %in% refScens) %>% 
   group_by(nameHCR) %>%
   summarize(meanRebuild = mean(meanRebuildTime),
-            medRebuild = median(meanRebuildTime),
-            hiRebuild = quantile(meanRebuildTime, probs = 0.975),
-            loRebuild = quantile(meanRebuildTime, probs = 0.025),
-            q1Rebuild = quantile(meanRebuildTime, probs = 0.25),
-            q3Rebuild = quantile(meanRebuildTime, probs = 0.75),
+            medRebuild = median(medRebuildTime),
+            hiRebuild = quantile(medRebuildTime, probs = 0.95),
+            loRebuild = quantile(medRebuildTime, probs = 0.05),
+            q1Rebuild = quantile(medRebuildTime, probs = 0.25),
+            q3Rebuild = quantile(medRebuildTime, probs = 0.75),
             nRebuild = n()) %>% 
   ggplot(aes(x = nameHCR, fill = nameHCR)) +
   geom_boxplot(aes(ymin = loRebuild, lower = q1Rebuild, middle = medRebuild, 
@@ -516,7 +442,7 @@ rebuild <- rebuildTime %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
 
 grid.arrange(closeFreq, rebuild, collapseFreq, sever)
 
-rebuildTime %>%  filter(!recScen %in% c("RegRec", "SSTRec")) %>% 
+rebuildTime %>%  filter(recScen %in% refScens) %>% 
   ggplot(aes(x = HCR, y = nClosures)) +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
   #facet_wrap(~recScen, scales = "free") + 
@@ -525,7 +451,7 @@ rebuildTime %>%  filter(!recScen %in% c("RegRec", "SSTRec")) %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   labs(y = "Number of Closures", x = "HCR")
 
-rebuildTime %>%  filter(!recScen %in% c("RegRec", "SSTRec")) %>%
+rebuildTime %>%  filter(recScen %in% refScens) %>%
   group_by(HCR) %>%
   summarize(meanNclose = mean(nClosures),
             medNclose = median(nClosures),
@@ -544,7 +470,7 @@ names(metricLabs) <- c("closuresFreq", "collapseFreq", "meanCollapseSever",
                          "nClosures", "meanRebuildTime", "sdCatch",
                        "minAge", "minLen")
 
-fishMetPlots <- metricsTbl %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
+fishMetPlots <- metricsTbl %>% filter(recScen %in% refScens) %>%
   select(iteration, scenario, model_run, HCR, nameHCR, recScen, closuresFreq, 
          collapseFreq, meanCollapseSever, nClosures, meanRebuildTime, sdCatch,
          minAge, minLen) %>%
@@ -575,7 +501,7 @@ fishMetPlots <- metricsTbl %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
         strip.background = element_blank()) +
   labs(x = "HCR")
 
-bioCatPlots <- annualRelBioCat %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
+bioCatPlots <- annualRelBioCat %>% filter(recScen %in% refScens) %>%
   select(iteration, scenario, model_run, HCR, nameHCR, recScen, 
          relAnnBioMax, relAnnCatMax) %>%
   pivot_longer(cols = c(relAnnBioMax, relAnnCatMax),
@@ -607,8 +533,7 @@ bioCatPlots <- annualRelBioCat %>% filter(!recScen %in% c("RegRec", "SSTRec")) %
 grid.arrange(bioCatPlots, fishMetPlots)
 # Error metrics -----------------------------------------------------------
 
-metricsTbl %>% filter(!recScen %in% c("RegRec", "SSTRec"), 
-                      !is.na(frqNonConvg)) %>% 
+metricsTbl %>% filter(recScen %in% refScens, !is.na(frqNonConvg)) %>% 
   group_by(HCR, recScen) %>%
   summarize(maxNonConvrg = max(frqNonConvg, na.rm = TRUE), 
             minNonConvrg = min(frqNonConvg, na.rm = TRUE)) %>%
@@ -623,32 +548,16 @@ convrgCheck <- smryOutputList$sclSmry %>%
                                                  model_run))))
 
 # Bring in simulated data series used for HCR9 biomass ests
-simBioObsHCR9 <- readRDS(file.path(mseDir, 
-                                   "serverRegARPDOcyclPDOclimSSTMICE_HCR9_simData.RDS"))
-# find columns for directory parsing
-dirsCol <- ncol(str_split(simBioObsHCR9$obsCPUE$resDir, 
-                          pattern = "/", simplify = TRUE))
-simBioObsHCR9 <- simBioObsHCR9$obsCPUE %>%
-                  # need to parse out iteration, model run and scenario
-                  mutate(model_run = str_split(resDir, pattern = "/", 
-                                               simplify = TRUE)[, dirsCol], 
-                         iteration = as.integer(str_split(resDir, pattern = "/", 
-                                                          simplify = TRUE)[, dirsCol-1]), 
-                         scenario = str_split(resDir, pattern = "/", 
-                                              simplify = TRUE)[, dirsCol-2],
-                         emYear = as.numeric(regmatches(model_run,
+simBioObsHCR9 <- smryOutputList$obsCPUE %>%
+                  mutate(emYear = as.numeric(regmatches(model_run,
                                                         gregexpr("[[:digit:]]+", 
                                                                  model_run))),
                          plotGroup = "ATsurvey") %>%
-                  mutate(HCR = sub(pattern = ".*Rec","", scenario),
-                         recScen = sub(pattern = "HCR.*","", scenario)) %>%
-                  mutate(recScen = sub(pattern = ".*EM_","", recScen)) %>%
                   # need to filter to data used in final assessment per MSE run
                   filter(emYear == termYr, index == 4, year > 2019, HCR == "HCR9") %>%
                   select(year, obs, emYear, model_run, iteration, scenario, HCR, 
                          recScen, plotGroup) %>%
                   rename(Bio_smry = obs)
-
 
 cnvrgTS <- smryOutputList$tsSmry  %>%
   left_join(y = convrgCheck, by = c("iteration", "model_run", "scenario")) %>%
@@ -672,6 +581,9 @@ errCompare <- cnvrgTS %>% filter(Seas == 1, model_run != omName) %>%
          recDevState = case_when(rec_dev <= -1.25 ~ "poor",
                                  rec_dev >= 1.25 ~ "high",
                                  TRUE ~ "avg"))
+
+errCompare <- CalcRelErr(smryOutputList = smryOutputList,
+                         termYr = termyr)
 
 # Error among assessments within year
 annualRE <- errCompare %>% filter(year <= emYear.x | plotGroup == "ATsurvey") %>%
@@ -727,8 +639,7 @@ names(hcrLabels) <- c("HCR0", "HCR1" ,"HCR2", "HCR3", "HCR5",
 bioStateLabs <- c("Biomass >150K mt", "Biomass <150K mt")
 names(bioStateLabs) <- c(TRUE, FALSE)
 
-termRE %>% filter(plotGroup != "non-convrg", 
-                  !recScen %in% c("RegRec", "SSTRec")) %>%
+termRE %>% filter(plotGroup != "non-convrg", recScen %in% refScens) %>%
   group_by(recDevState, closeYr, HCR) %>%#recScen,iteration,scenario,model_run.x, HCR,
   summarize(meanYrRE = mean(errSmryBio),
             medYrRE = median(errSmryBio),
@@ -753,8 +664,7 @@ termRE %>% filter(plotGroup != "non-convrg",
   theme(legend.position = "none")
 
 # Relative error in terminal years by rec dev state
-termRE %>% filter(plotGroup != "non-convrg", 
-                  !recScen %in% c("RegRec", "SSTRec")) %>%
+termRE %>% filter(plotGroup != "non-convrg", recScen %in% refScens) %>%
   group_by(year,  recDevState, closeYr) %>% #HCR,
   summarize(meanYrRE = mean(errSmryBio),
             medYrRE = median(errSmryBio),
@@ -850,7 +760,7 @@ names(errLabs) <- c("closeFalseNegRate", "collapseFalseNegRate", "closePropFalse
                     "collapsePropFalseNeg", "closeErrRate", "collapseErrRate")
 
 
-confErrXHCR <- confErr %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>% 
+confErrXHCR <- confErr %>% filter(recScen %in% refScens) %>% 
   select(scenario, HCR, recScen, closeFalseNegRate, collapseFalseNegRate, 
          closePropFalseNeg, collapsePropFalseNeg,
          closeErrRate, collapseErrRate) %>%
@@ -865,7 +775,7 @@ confErrXHCR <- confErr %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   labs(y = "Error Rate", x = "HCR", fill = "Recruitment\nScenario")
 
-propErrXHCR <- confErr %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>% 
+propErrXHCR <- confErr %>% filter(recScen %in% refScens) %>% 
   select(scenario, HCR, recScen, closePropFalsePos, closePropFalseNeg, 
          collapsePropFalsePos, collapsePropFalseNeg) %>%
   pivot_longer(c(closePropFalsePos, closePropFalseNeg, 
@@ -878,7 +788,7 @@ propErrXHCR <- confErr %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   labs(y = "Mean Proportional Error (%)", x = "HCR")
 
-confErrViolin <- confErr %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>% 
+confErrViolin <- confErr %>% filter(recScen %in% refScens) %>% 
   select(scenario, HCR, recScen, closeFalseNegRate, collapseFalseNegRate,
          closeErrRate, collapseErrRate) %>%
   pivot_longer(c(closeFalseNegRate, collapseFalseNegRate, closeErrRate, collapseErrRate), 
@@ -894,7 +804,7 @@ confErrViolin <- confErr %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
 grid.arrange(confErrXHCR, confErrViolin)
 
 # Plot errors in receiver operating characteristic space
-confErr %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
+confErr %>% filter(recScen %in% refScens) %>%
   ggplot() +
   geom_point(aes(x = closeFalsePosRate, y = 1-closeFalseNegRate, color = HCR)) +
   geom_abline(slope = 1, intercept = 0, color = "red") +
@@ -902,7 +812,7 @@ confErr %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
   ylim(0,1) +
   facet_wrap(~recScen)
 
-confErr %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>% 
+confErr %>% filter(recScen %in% refScens) %>% 
   select(scenario, HCR, recScen, closeFalsePosRate, collapseFalsePosRate) %>%
   pivot_longer(c(closeFalsePosRate, collapseFalsePosRate), names_to = "errRate", values_to = "vals") %>%
   ggplot(aes(x = HCR, y = vals, fill = recScen)) +
@@ -912,7 +822,7 @@ confErr %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   labs(y = "False Closure Error Rate", x = "HCR")
 
-confErr %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>% 
+confErr %>% filter(recScen %in% refScens) %>% 
   select(scenario, HCR, recScen, closeFalsePosRate, collapseFalsePosRate) %>%
   pivot_longer(c(closeFalsePosRate, collapseFalsePosRate), names_to = "errRate", values_to = "vals") %>%
   ggplot(aes(x = errRate, y = vals)) +
@@ -923,7 +833,7 @@ confErr %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
   # theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   labs(y = "False Closure Error Rate", x = "HCR")
 
-confErr %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>% 
+confErr %>% filter(recScen %in% refScens) %>% 
   select(scenario, HCR, recScen, closeFalseNegRate, collapseFalseNegRate) %>%
   pivot_longer(c(closeFalseNegRate, collapseFalseNegRate), names_to = "errRate", values_to = "vals") %>%
   ggplot(aes(x = HCR, y = vals, fill = recScen)) +
@@ -936,7 +846,7 @@ confErr %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
 # Metrics in iterations with poor biomass -----------------------------
 
 sampleDat %>% filter(year > 2019, meanAge1Plus >= 150000, 
-                     recScen %in% c("ARRec", "MICERec", "PDOclimRec", "PDOcyclRec"))
+                     recScen %in% refScens)
 # population typically recovers by 2025 in reference scenarios
 
 poorBio <- smryOutputList$tsSmry %>% filter(model_run == omName, 
@@ -1017,7 +927,7 @@ annualRelBioCatPoorBio <- poorBioTermTS %>% filter(year > 2019, year != 2070,
          relAnnCatMax = totCatch/maxMeanCat)
 
 # plot annual relative biomass metrics
-relBioPoorBio <- annualRelBioCatPoorBio %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
+relBioPoorBio <- annualRelBioCatPoorBio %>% filter(recScen %in% refScens) %>%
   group_by(HCR) %>%
   summarize(meanRelBio = mean(relAnnBioMax),
             medRelBio = median(relAnnBioMax),
@@ -1044,7 +954,7 @@ relBioPoorBio <- annualRelBioCatPoorBio %>% filter(!recScen %in% c("RegRec", "SS
 grid.arrange(relBioAll, relBioPoorBio)
 
 relCatPoorBio <- annualRelBioCatPoorBio %>% filter(HCR != "HCR0",
-                                                   !recScen %in% c("RegRec", "SSTRec")) %>%
+                                                   recScen %in% refScens) %>%
   ggplot(aes(x = HCR, y = relAnnCatMax)) +
   # geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
   geom_boxplot(aes(fill = HCR), outlier.shape = NA) +
@@ -1059,7 +969,7 @@ relCatPoorBio <- annualRelBioCatPoorBio %>% filter(HCR != "HCR0",
 grid.arrange(relCatAll, relCatPoorBio)
 
 sdCatPoorBio <- poorBioMetrics %>%  filter(HCR != "HCR0", 
-                                           !recScen %in% c("RegRec", "SSTRec")) %>%
+                                           recScen %in% refScens) %>%
   ggplot(aes(x = HCR, y = sdCatch)) +
   geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
   #facet_wrap(~recScen, scales = "free") + 
@@ -1108,8 +1018,7 @@ poorRec %>% filter(NyrsPoorRec > 5) %>%
 poorRecOutList <- readRDS(file.path(mseDir, 
                                     "serverRegARPDOcyclPDOclimSSTMICE_allHCRs_results.RDS"))
 poorRecSamps <- poorRec %>% filter(NyrsPoorRec > 5,
-                                   recScen %in% c("ARRec", "MICERec", 
-                                                  "PDOclimRec", "PDOcyclRec")) %>% 
+                                   recScen %in% refScens) %>% 
                   select(recScen, iteration)
 
 poorRecOutList$dqSmry <- poorRecOutList$dqSmry %>%
@@ -1155,7 +1064,7 @@ annualRelBioCatPoorRec <- poorRecTermTS %>% filter(year > 2019, year != 2070,
          relAnnCatMax = totCatch/maxMeanCat)
 
 # plot annual relative biomass metrics
-relBioPoorRec <- annualRelBioCatPoorRec %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
+relBioPoorRec <- annualRelBioCatPoorRec %>% filter(recScen %in% refScens) %>%
   group_by(HCR) %>%
   summarize(meanRelBio = mean(relAnnBioMax),
             medRelBio = median(relAnnBioMax),
@@ -1182,7 +1091,7 @@ grid.arrange(relBioAll, relBioPoorRec,
 grid.arrange(relBioAll, relBioPoorRec, relBioPoorBio, nrow = 2)
 
 relCatPoorRec <- annualRelBioCatPoorRec %>% filter(HCR != "HCR0",
-                                                   !recScen %in% c("RegRec", "SSTRec")) %>%
+                                                   recScen %in% refScens) %>%
   group_by(HCR) %>%
   summarize(meanRelCat = mean(relAnnCatMax),
             medRelCat = median(relAnnCatMax),
@@ -1205,7 +1114,7 @@ relCatPoorRec <- annualRelBioCatPoorRec %>% filter(HCR != "HCR0",
   labs(y = "Annual Catch:Max in Poor Recruitment Iters", x = "HCR")
 
 sdCatPoorRec <- poorRecMetrics %>%  filter(HCR != "HCR0", 
-                                           !recScen %in% c("RegRec", "SSTRec"),
+                                           recScen %in% refScens,
                                            !is.na(sdCatch)) %>% # NOTE: has all iterations, but non-poor rec its are all NA
   group_by(HCR) %>%
   summarize(meanRelCatSD = mean(sdCatch),
@@ -1230,7 +1139,7 @@ sdCatPoorRec <- poorRecMetrics %>%  filter(HCR != "HCR0",
 grid.arrange(relCatAll, sdCatAll,
              relCatPoorRec, sdCatPoorRec)
 
-annualRelBioCat %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
+annualRelBioCat %>% filter(recScen %in% refScens) %>%
   group_by(HCR) %>%
   summarize(meanRelCat = mean(relAnnCatMax),
             medRelCat = median(relAnnCatMax),
@@ -1241,7 +1150,7 @@ annualRelBioCat %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
             high90RelBio = quantile(relAnnBioMax, probs = 0.9),
             low10RelBio = quantile(relAnnBioMax, probs = 0.1))
 
-annualRelBioCatPoorRec %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
+annualRelBioCatPoorRec %>% filter(recScen %in% refScens) %>%
   group_by(HCR) %>%
   summarize(meanRelCat = mean(relAnnCatMax),
             medRelCat = median(relAnnCatMax),
@@ -1252,7 +1161,7 @@ annualRelBioCatPoorRec %>% filter(!recScen %in% c("RegRec", "SSTRec")) %>%
             high90RelBio = quantile(relAnnBioMax, probs = 0.9),
             low10RelBio = quantile(relAnnBioMax, probs = 0.1))
 
-annualRelBioCat %>% filter(!recScen %in% c("RegRec", "SSTRec"),
+annualRelBioCat %>% filter(recScen %in% refScens,
                            Bio_smry < 150000) %>%
   group_by(HCR) %>%
   summarize(meanRelBio = mean(relAnnBioMax),
@@ -1260,7 +1169,7 @@ annualRelBioCat %>% filter(!recScen %in% c("RegRec", "SSTRec"),
             high90RelBio = quantile(relAnnBioMax, probs = 0.9),
             low10RelBio = quantile(relAnnBioMax, probs = 0.1))
 
-annualRelBioCat %>% filter(!recScen %in% c("RegRec", "SSTRec"),
+annualRelBioCat %>% filter(recScen %in% refScens,
                            Bio_smry < 50000) %>%
   group_by(HCR) %>%
   summarize(meanRelBio = mean(relAnnBioMax),
