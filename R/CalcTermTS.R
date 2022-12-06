@@ -27,7 +27,7 @@ CalcTermTS <- function(runSmryOutput,
   # catch timeseries
   tsTotCat <- runSmryOutput$tsSmry %>% 
                 mutate(totCatch = retainB_1 + retainB_2 + retainB_3) %>%
-                group_by(year, model_run, iteration, scenario) %>%
+                group_by(year, model_run, iteration, scenario, HCR, recScen) %>%
                 # summarize total catch within year
                 dplyr::summarize(totCatch = sum(totCatch)) %>%
                 mutate(emYear = as.numeric(regmatches(model_run,
@@ -56,12 +56,14 @@ CalcTermTS <- function(runSmryOutput,
                    tsRec %>% filter(model_run %in% c(omName, initName))) %>%
                 arrange(scenario, iteration, year)
   
-  termTS <- full_join(termTS, termCat, by = c("year", "model_run", "iteration", "scenario")) %>%
-              full_join(y = termRec, by = c("year", "model_run", "iteration", "scenario"))
+  termTS <- full_join(termTS, termCat, by = c("year", "model_run", "iteration", 
+                                              "scenario", "HCR", "recScen")) %>%
+              full_join(y = termRec, by = c("year", "model_run", "iteration", 
+                                            "scenario", "HCR", "recScen"))
   # endTime <- Sys.time()
   
   termTS <- termTS %>% select(Bio_smry, rec_dev, year, Seas, model_run, iteration,
-                              scenario, totCatch, Value.Recr, Value.SSB, emYear)
-
+                              scenario, HCR, recScen, totCatch, Value.Recr, 
+                              Value.SSB, emYear)
   return(termTS)
 }

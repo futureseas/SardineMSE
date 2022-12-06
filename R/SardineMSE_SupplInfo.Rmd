@@ -1,0 +1,206 @@
+---
+title: "SardineMSE_SupplInfo"
+author: "Robert Wildermuth"
+date: "11/4/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(r4ss)
+library(tidyverse)
+library(RColorBrewer)
+library(scales)
+library(gridExtra)
+
+source("../SardineMSE/R/CalcPerformance.R")
+source("../SardineMSE/R/CalcTermTS.R")
+
+memory.limit(size = 30000)
+
+# Read in data and calculate metrics --------------------------------------
+
+mseDir <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
+termYr <- 2068
+
+smryOutputList <- readRDS(file.path(mseDir, 
+                                    "serverRegARPDOcyclPDOclimSSTMICE_allHCRs_addlResults.RDS"))
+
+performanceList <- CalcPerformance(smryOutputList)
+
+metricsTbl <- performanceList$perfomanceMetrics
+
+omName <- grep("_OM", smryOutputList$tsSmry$model_run,
+               fixed = TRUE, value = TRUE)[1]
+
+# find columns for directory parsing
+dirsCol <- ncol(str_split(smryOutputList$ageComp$resDir[1], 
+                          pattern = "/", simplify = TRUE))
+ageComp <- smryOutputList$ageComp %>% filter(Yr > 2019) 
+
+# Clear up some memory
+smryOutputList$lenComp <- NULL
+smryOutputList$ageComp <- NULL
+
+ageComp <- ageComp %>%
+                  # need to parse out iteration, model run and scenario
+                  mutate(model_run = str_split(resDir, pattern = "/", 
+                                               simplify = TRUE)[, dirsCol]) %>%
+                  filter(model_run == omName)
+ageComp <- ageComp %>% mutate(iteration = as.integer(str_split(resDir, pattern = "/", 
+                                                          simplify = TRUE)[, dirsCol-1]), 
+                         scenario = str_split(resDir, pattern = "/", 
+                                              simplify = TRUE)[, dirsCol-2],
+                         HCR = sub(pattern = ".*Rec","", scenario),
+                         recScen = sub(pattern = "HCR.*","", scenario)) %>%
+                  mutate(recScen = sub(pattern = ".*EM_","", recScen),
+                         nameHCR = case_when(HCR == "HCR0" ~ "NoCat",
+                                             HCR == "HCR1" ~ "PFMCF018",
+                                             HCR == "HCR2" ~ "PFMCFSST",
+                                             HCR == "HCR3" ~ "ConstF",
+                                             HCR == "HCR5" ~ "Pikitch",
+                                             HCR == "HCR6" ~ "40-10",
+                                             HCR == "HCR7" ~ "DynPik",
+                                             HCR == "HCR8" ~ "Dyn40-10",
+                                             HCR == "HCR9" ~ "Index"))
+ageComp <- ageComp %>% select("Fleet", "Fleet_Name", "Yr", "Seas", "All_exp_mean",
+                              "model_run", "iteration", "scenario", "HCR", 
+                              "nameHCR", "recScen")
+popAgeComp <- ageComp %>% filter(recScen %in% c("ARRec", "PDOclimRec",
+                                                "PDOcyclRec", "MICERec")) %>%
+                mutate(Surv_OR_Fleet = case_when(Fleet == 4 ~ "Survey",
+                                                 Fleet != 4 ~ "Catch")) %>%
+                group_by(Surv_OR_Fleet, nameHCR) %>%
+                summarize(meanAge = mean(All_exp_mean),
+                          medMeanAge = median(All_exp_mean),
+                          hi95MeanAge = quantile(All_exp_mean, probs = 0.95),
+                          low05MeanAge = quantile(All_exp_mean, probs = 0.05))
+
+
+```
+
+Biomass and Catch metrics
+
+```{r}
+age1PlusBio <- smryOutputList$tsSmry %>% filter(year > 2019, Seas == 1,
+                                                model_run == omName) %>% 
+                mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                       recScen = sub(pattern = "HCR.*","", scenario)) %>%
+                mutate(recScen = sub(pattern = ".*EM_","", recScen),
+                       nameHCR = case_when(HCR == "HCR0" ~ "NoCat",
+                                           HCR == "HCR1" ~ "PFMCF018",
+                                           HCR == "HCR2" ~ "PFMCFSST",
+                                           HCR == "HCR3" ~ "ConstF",
+                                           HCR == "HCR5" ~ "Pikitch",
+                                           HCR == "HCR6" ~ "40-10",
+                                           HCR == "HCR7" ~ "DynPik",
+                                           HCR == "HCR8" ~ "Dyn40-10",
+                                           HCR == "HCR9" ~ "Index")) %>%
+                select(Bio_smry, year, model_run, iteration, scenario, 
+                       HCR, recScen, nameHCR)
+
+ssbBio <- smryOutputList$dqSmry %>% filter(year > 2019, year < 2070,
+                                           model_run == omName) %>% 
+                mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                       recScen = sub(pattern = "HCR.*","", scenario)) %>%
+                mutate(recScen = sub(pattern = ".*EM_","", recScen),
+                       nameHCR = case_when(HCR == "HCR0" ~ "NoCat",
+                                           HCR == "HCR1" ~ "PFMCF018",
+                                           HCR == "HCR2" ~ "PFMCFSST",
+                                           HCR == "HCR3" ~ "ConstF",
+                                           HCR == "HCR5" ~ "Pikitch",
+                                           HCR == "HCR6" ~ "40-10",
+                                           HCR == "HCR7" ~ "DynPik",
+                                           HCR == "HCR8" ~ "Dyn40-10",
+                                           HCR == "HCR9" ~ "Index")) %>%
+                select(Value.SSB, year, model_run, iteration, scenario, 
+                       HCR, recScen, nameHCR)
+
+totCatch <- smryOutputList$tsSmry %>% filter(year > 2019, 
+                                             model_run == omName) %>% 
+                mutate(totCatch = retainB_1 + retainB_2 + retainB_3) %>%
+                group_by(year, model_run, iteration, scenario) %>%
+                # summarize total catch within year
+                dplyr::summarize(totCatch = sum(totCatch)) %>%
+                mutate(HCR = sub(pattern = ".*Rec","", scenario),
+                       recScen = sub(pattern = "HCR.*","", scenario)) %>%
+                mutate(recScen = sub(pattern = ".*EM_","", recScen),
+                       nameHCR = case_when(HCR == "HCR0" ~ "NoCat",
+                                           HCR == "HCR1" ~ "PFMCF018",
+                                           HCR == "HCR2" ~ "PFMCFSST",
+                                           HCR == "HCR3" ~ "ConstF",
+                                           HCR == "HCR5" ~ "Pikitch",
+                                           HCR == "HCR6" ~ "40-10",
+                                           HCR == "HCR7" ~ "DynPik",
+                                           HCR == "HCR8" ~ "Dyn40-10",
+                                           HCR == "HCR9" ~ "Index"),
+                       posTotCatch = case_when(totCatch == 0 ~ NA_real_, # to summarize non-zero catch stats
+                                               TRUE ~ totCatch)) %>%
+                select(totCatch, posTotCatch, year, model_run, iteration,  
+                       scenario, HCR, recScen, nameHCR)
+
+bioCat <- age1PlusBio %>% full_join(y = ssbBio, 
+                                    by = c("year", "model_run", 
+                                           "iteration", "scenario", 
+                                           "HCR", "recScen", "nameHCR")) %>% 
+            full_join(y = totCatch, by = c("year", "model_run", 
+                                           "iteration", "scenario", 
+                                           "HCR", "recScen", "nameHCR")) %>%
+            pivot_longer(cols = c(totCatch, posTotCatch, Value.SSB, Bio_smry),
+                         names_to = "Metric",
+                         values_to = "biomass_mt") %>%
+            filter(recScen %in% c("ARRec", "PDOclimRec",
+                                  "PDOcyclRec", "MICERec")) %>%
+            group_by(Metric, nameHCR) %>%
+            summarize(mean = mean(biomass_mt, na.rm = TRUE),
+                      median = median(biomass_mt, na.rm = TRUE),
+                      hi95 = quantile(biomass_mt, probs = 0.95, na.rm = TRUE),
+                      low05 = quantile(biomass_mt, probs = 0.05, na.rm = TRUE),
+                      sd = sd(biomass_mt, na.rm = TRUE))
+
+```
+
+Calculate zero catch and catch below 50Kt metrics from Hurtado-Ferro and Punt 2014
+```{r}
+
+lowCatCount <- totCatch %>%
+                mutate(zeroCat = totCatch == 0,
+                       lowCat = totCatch < 50000) %>%
+                group_by(model_run, iteration, scenario, HCR, recScen, nameHCR) %>%
+                mutate(zeroCatLength = sequence(rle(zeroCat)$lengths),
+                       lowCatLength = sequence(rle(lowCat)$lengths))
+  
+lowCatFreq <- lowCatCount %>% group_by(model_run, iteration, scenario, HCR, 
+                                       recScen, nameHCR) %>%
+                summarize(yrsN = n(),
+                          zeroCatFreq = sum(zeroCat)/yrsN,
+                          lowCatFreq = sum(lowCat)/yrsN)
+  
+zeroCatLen <- lowCatCount %>% group_by(model_run, iteration, scenario, zeroCat, 
+                                       HCR, recScen, nameHCR) %>%
+                summarize(zeroCatLenMax = max(zeroCatLength)) %>%
+                filter(zeroCat == TRUE)
+lowCatLen <- lowCatCount %>% group_by(model_run, iteration, scenario, lowCat, 
+                                      HCR, recScen, nameHCR) %>%
+                summarize(lowCatLenMax = max(lowCatLength)) %>%
+                filter(lowCat == TRUE)
+
+lowCatFreq %>% full_join(y = zeroCatLen, 
+                                    by = c("model_run", "iteration", "scenario", 
+                                           "HCR", "recScen", "nameHCR")) %>% 
+            full_join(y = lowCatLen, by = c("model_run", "iteration", "scenario", 
+                                           "HCR", "recScen", "nameHCR")) %>%
+            pivot_longer(cols = c(zeroCatFreq, lowCatFreq, zeroCatLenMax, lowCatLenMax),
+                         names_to = "Metric",
+                         values_to = "value") %>%
+            filter(recScen %in% c("ARRec", "PDOclimRec",
+                                  "PDOcyclRec", "MICERec")) %>%
+            group_by(Metric, nameHCR) %>%
+            summarize(mean = mean(value, na.rm = TRUE),
+                      median = median(value, na.rm = TRUE),
+                      hi95 = quantile(value, probs = 0.95, na.rm = TRUE),
+                      low05 = quantile(value, probs = 0.05, na.rm = TRUE))
+```

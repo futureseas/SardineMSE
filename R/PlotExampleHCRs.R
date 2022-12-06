@@ -66,3 +66,42 @@ flexPts %>% pivot_longer(cols = -SmryBio, names_to = "HCR", values_to = "Ftarget
                color = hcrPal[8], size = 1, linetype = "dashed") +
   theme_classic() +
   labs(x = "Age1+ Biomass (log-mt)", y = "Target F Rate")
+
+# break out for better visibility
+flexPts %>% pivot_longer(cols = -SmryBio, names_to = "HCR", values_to = "Ftarget") %>%
+  mutate(HCR = factor(HCR, levels = c("NoCat", "PFMCF018", "ConstF", 
+                                      "Pikitch", "Rule40.10"))) %>%
+  filter(HCR %in% c("NoCat", "PFMCF018", "ConstF")) %>%
+  ggplot(aes(x = log(SmryBio), y = Ftarget)) +
+  geom_polygon(data = sstFs, aes(fill = PFMCFSST, group = PFMCFSST)) +
+  scale_fill_gradient(low = lighten(hcrPal[3], 0.85), high = hcrPal[3]) +
+  geom_line(aes(color = HCR), size = 1.5) +
+  scale_color_manual(values = hcrPal[-3]) +
+  # geom_segment(data = data.frame(x1 = c(0.1*Bsmry0, 0.4*Bsmry0, 0.8*Bsmry0),
+  #                                x2 = c(0.1*Bsmry0, 0.4*Bsmry0, 0.8*Bsmry0),
+  #                                y1 = rep(0, times = 3),
+  #                                y2 = rep(0.18, times = 3),
+  #                                HCR = rep("Dyn", times = 3)),
+  #              aes(x = log(x1), xend = log(x2), y = y1, yend = y2),
+  #              color = hcrPal[8], size = 1, linetype = "dashed") +
+  theme_classic() +
+  labs(x = "Age1+ Biomass (log-mt)", y = "Target F Rate")
+
+flexPts %>% pivot_longer(cols = -SmryBio, names_to = "HCR", values_to = "Ftarget") %>%
+  mutate(HCR = factor(HCR, levels = c("NoCat", "PFMCF018", "ConstF", 
+                                      "Pikitch", "Rule40.10"))) %>%
+  filter(HCR %in% c("PFMCF018", "Pikitch", "Rule40.10")) %>%
+  ggplot(aes(x = log(SmryBio), y = Ftarget)) +
+  # geom_polygon(data = sstFs, aes(fill = PFMCFSST, group = PFMCFSST)) +
+  # scale_fill_gradient(low = lighten(hcrPal[3], 0.85), high = hcrPal[3]) +
+  geom_line(aes(color = HCR), size = 1.5) +
+  scale_color_manual(values = hcrPal[-3]) +
+  geom_segment(data = data.frame(x1 = c(0.1*Bsmry0, 0.4*Bsmry0, 0.8*Bsmry0),
+                                 x2 = c(0.1*Bsmry0, 0.4*Bsmry0, 0.8*Bsmry0),
+                                 y1 = rep(0, times = 3),
+                                 y2 = rep(0.18, times = 3),
+                                 HCR = rep("Dyn", times = 3)),
+               aes(x = log(x1), xend = log(x2), y = y1, yend = y2),
+               color = hcrPal[8], size = 1, linetype = "dashed") +
+  theme_classic() +
+  labs(x = "Age1+ Biomass (log-mt)", y = "Target F Rate")
