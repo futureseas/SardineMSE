@@ -10,6 +10,8 @@ library(gridExtra)
 source("../SardineMSE/R/CalcPerformance.R")
 source("../SardineMSE/R/CalcTermTS.R")
 source("../SardineMSE/R/CalcRelMetric.R")
+source("../SardineMSE/R/CalcRebuildTime.R")
+source("../SardineMSE/R/CalcRelErr.R")
 
 memory.limit(size = 30000)
 
@@ -239,7 +241,7 @@ annualRelBioCat <- CalcRelMetric(metricData = termTS %>%
                                                   metricCol = "totCatch"),
                                 by = c("Bio_smry", "rec_dev", "year", "Seas", 
                                        "model_run", "iteration", "scenario", 
-                                       "HCR", "recScen", "totCatch",  
+                                       "HCR", "recScen", "nameHCR", "totCatch",  
                                        "Value.Recr", "Value.SSB", "emYear")) %>%
                       select(!contains("Metric"))
 
@@ -459,7 +461,7 @@ rebuildTime %>%  filter(recScen %in% refScens) %>%
   
 # join tables for clean faceted plots
 metricsTbl <- metricsTbl %>% left_join(y = rebuildTime, 
-                                       by = c("iteration", "scenario", 
+                                       by = c("iteration", "scenario", "nameHCR",
                                               "model_run", "HCR", "recScen"))
 
 metricLabs <- c("Frequency Bt < 150,000 mt", "Frequency Bt < 50,000 mt",
@@ -503,8 +505,8 @@ fishMetPlots <- metricsTbl %>% filter(recScen %in% refScens) %>%
 
 bioCatPlots <- annualRelBioCat %>% filter(recScen %in% refScens) %>%
   select(iteration, scenario, model_run, HCR, nameHCR, recScen, 
-         relAnnBioMax, relAnnCatMax) %>%
-  pivot_longer(cols = c(relAnnBioMax, relAnnCatMax),
+         relBio_smryMean, reltotCatchMean) %>%
+  pivot_longer(cols = c(relBio_smryMean, reltotCatchMean),
                names_to = "Metric", values_to = "vals") %>%
   group_by(HCR, Metric) %>%
   summarize(meanMetric = mean(vals, na.rm = TRUE),
@@ -583,7 +585,7 @@ errCompare <- cnvrgTS %>% filter(Seas == 1, model_run != omName) %>%
                                  TRUE ~ "avg"))
 
 errCompare <- CalcRelErr(smryOutputList = smryOutputList,
-                         termYr = termyr)
+                         termYr = termYr)
 
 # Error among assessments within year
 annualRE <- errCompare %>% filter(year <= emYear.x | plotGroup == "ATsurvey") %>%
