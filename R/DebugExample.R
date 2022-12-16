@@ -56,12 +56,10 @@ yrsrt <- datfile$endyr +1
 yrend <- datfile$endyr + nyrs
 
 #sample_struct$CPUE = sample_struct$CPUE[1:nyrs,]
-CPUE <- data.frame(Yr= rep(yrsrt:yrend, times = 2),
-                   # Need to provide seasons in terms of months for index
-                   Seas= rep(c(1, 10), each = length(yrsrt:yrend)),
+CPUE <- data.frame(Yr= yrsrt:yrend, 
+                   Seas= 1, 
                    FltSvy = 4,
                    SE = 0.25)
-CPUE <- CPUE %>% filter(Seas == 1)
 
 #specify the number of catch fleets
 ncdat <- 3
@@ -84,7 +82,8 @@ lencomp <- data.frame(Yr = rep(c(yrsrt:yrend),nldat),
                      FltSvy = c(rep(4,nyrs),rep(1,nyrs),rep(2,nyrs),rep(3,nyrs)),
                      Sex = rep(0,nyrs*nldat),
                      Part = rep(0,nyrs*nldat),
-                     Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
+                     Nsamp = c(rep(60,nyrs),rep(50,nyrs),rep(70,nyrs),rep(90,nyrs)))
+                     # Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
 
 #for age comps same surveys as as lcomps
 nadat <- 4
@@ -96,15 +95,18 @@ agecomp <- data.frame(Yr = rep(c(yrsrt:yrend),nadat),
                      Ageerr = c(rep(4,nyrs),rep(4,nyrs),rep(4,nyrs),rep(4,nyrs)),
                      Lbin_lo = c(rep(-1,nyrs),rep(-1,nyrs),rep(-1,nyrs),rep(-1,nyrs)),
                      Lbin_hi = c(rep(-1,nyrs),rep(-1,nyrs),rep(-1,nyrs),rep(-1,nyrs)),
-                     Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
+                     Nsamp = c(rep(80,nyrs),rep(40,nyrs),rep(60,nyrs),rep(80,nyrs)))
+                     # Nsamp = c(rep(20,nyrs),rep(20,nyrs),rep(20,nyrs),rep(20,nyrs)))
 
 sample_struct <- list(catch = catch, CPUE = CPUE, lencomp = lencomp, agecomp = agecomp)
-sample_struct_list <- list("constGrowthShortOMandEM_RandRec_HCR9" = sample_struct)
+sample_struct_list <- list("constGrow2001OM_constGrow2005EM_ARRecHCR0" = sample_struct,
+                           "constGrow2001OM_constGrow2005EM_ARRecHCR1" = sample_struct)
 
 # figure out the recruitment deviation input ---------------
 
 # define scenario name
-scenName <- "constGrowthShortOMandEM_RandRec_HCR9"
+scenName <- c("constGrow2001OM_constGrow2005EM_ARRecHCR0",
+              "constGrow2001OM_constGrow2005EM_ARRecHCR1")
 iters <- 3
 
 ### Define custom rec devs based on environment
@@ -165,15 +167,15 @@ rec_dev_specify$input$value <- 1.25
 #                                     value = c(1.25, -1))#, -2.25458))
 
 ### Add autocorrelation ###
-# new_vals <- data.frame(first_yr_averaging = NA,
-#                        last_yr_averaging  = NA, 
-#                        last_yr_orig_val   = 2019,
-#                        first_yr_final_val = 2020, 
-#                        ts_param = "ar_1_phi", 
-#                        method = "absolute",
-#                        value = 0.5) # 1 for random walk
-# rec_dev_specify$input <- rbind(rec_dev_specify$input,
-#                                new_vals)
+new_vals <- data.frame(first_yr_averaging = NA,
+                       last_yr_averaging  = NA,
+                       last_yr_orig_val   = 2019,
+                       first_yr_final_val = 2020,
+                       ts_param = "ar_1_phi",
+                       method = "absolute",
+                       value = 0.678) # 1 for random walk
+rec_dev_specify$input <- rbind(rec_dev_specify$input,
+                               new_vals)
 
 
 # ### use random recdevs with higher R0 estimated from 1981 research model
@@ -197,6 +199,9 @@ rand_dev_list <- list(rec_dev_specify)
 #run_res_path <- file.path("C:/Users/rwildermuth/Documents/FutureSeas/SardineMSE", "results")
 # dir.create(mseOutputPath)
 
+# Custon MS fxn location
+MSfxnPath <- "../SardineMSE/R"
+
 logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
 
 sink(file(logFile), append = TRUE)
@@ -207,7 +212,26 @@ ptm <- proc.time()
 # Ctemp=read.csv("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/calcofi_sst_projected.csv")
 # Works if not in parallel 
 
-out <- run_SSMSE(scen_name_vec = scenName, # name of the scenario
+out0and1 <- run_SSMSE(scen_name_vec = paste0(scenName, "tand"), # name of the scenario
+                      out_dir_scen_vec = mseOutputPath, # directory in which to run the scenario
+                      iter_vec = rep(iters, times = length(scenName)), # run with 5 iterations for now
+                      OM_name_vec = NULL, # specify directories instead
+                      OM_in_dir_vec = file.path(OMmodelPath, "constGrowthMidSteepNewSelex_OM"), #rep(OMmodelPath, times = length(scenName)), # OM files
+                      EM_name_vec = c(NA, "constGrowBothShort"), # Can't have number in name for summary diagnostics to work
+                      EM_in_dir_vec = c(NA,
+                                        file.path(EMmodelPath, "constGrowthMidSteepNewSelex_EM")),
+                      MS_vec = c("no_catch",
+                                 "MS_sar_hcr1"),
+                      custom_MS_source = file.path(MSfxnPath, "MS_sar_hcr1.R"),
+                      use_SS_boot_vec = TRUE, # use the SS bootstrap module for sampling
+                      nyrs_vec = nyrs,        # Years to project OM forward
+                      nyrs_assess_vec = 1, # Years between assessments
+                      future_om_list = rand_dev_list,
+                      run_parallel = TRUE, # Run iterations in parallel
+                      sample_struct_list = sample_struct_list, # How to sample data for running the EM.
+                      seed = 12349) #Set a fixed integer seed that allows replication
+
+out1only <- run_SSMSE(scen_name_vec = paste0(scenName[2], "just1"), # name of the scenario
                  out_dir_scen_vec = mseOutputPath, # directory in which to run the scenario
                  iter_vec = c(iters), # run with 5 iterations for now
                  OM_name_vec = NULL, # specify directories instead
@@ -216,15 +240,15 @@ out <- run_SSMSE(scen_name_vec = scenName, # name of the scenario
                  EM_in_dir_vec = file.path(EMmodelPath, "constGrowthMidSteepNewSelex_EM"), # EM files
                  # MS_vec = "EM",
                  # MS_vec = "no_catch",
-                 MS_vec = "MS_sar_hcr9",       # The management strategy is specified in the custom function
-                 custom_MS_source = "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/MS_sar_hcr9.R", # file location of the MS function
+                 MS_vec = "MS_sar_hcr1",       # The management strategy is specified in the custom function
+                 custom_MS_source = file.path(MSfxnPath, "MS_sar_hcr1.R"), # file location of the MS function
                  use_SS_boot_vec = TRUE, # use the SS bootstrap module for sampling
                  nyrs_vec = nyrs,        # Years to project OM forward
                  nyrs_assess_vec = 1, # Years between assessments
                  future_om_list =  rand_dev_list, # envt_dev_list, #
                  run_parallel = TRUE, # Run iterations in parallel
-                 n_cores = 4, # number of cores to use in parallel
-                 sample_struct_list = sample_struct_list, # How to sample data for running the EM.
+                 # n_cores = 4, # number of cores to use in parallel
+                 sample_struct_list = sample_struct_list[2], # How to sample data for running the EM.
                  seed = 12349,
                  verbose = FALSE) #Set a fixed integer seed that allows replication
 endTime <- Sys.time()

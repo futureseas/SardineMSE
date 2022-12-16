@@ -10,6 +10,8 @@ library(gridExtra)
 source("../SardineMSE/R/CalcPerformance.R")
 source("../SardineMSE/R/CalcTermTS.R")
 source("../SardineMSE/R/CalcRelMetric.R")
+source("../SardineMSE/R/CalcRebuildTime.R")
+source("../SardineMSE/R/CalcRelErr.R")
 
 memory.limit(size = 30000)
 

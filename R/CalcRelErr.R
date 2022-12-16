@@ -15,11 +15,12 @@ CalcRelErr <- function(smryOutputList,
                                                                    model_run))))
   
   cnvrgTS <- smryOutputList$tsSmry  %>%
-    left_join(y = convrgCheck, by = c("iteration", "model_run", "scenario", "HCR", "recScen")) %>%
-    mutate(plotGroup = case_when(model_run == omName ~ "OM",
-                                 max_grad > 0.01 ~ "non-convrg",
-                                 max_grad < 0.01 ~ "convrg"))
-  
+                left_join(y = convrgCheck, by = c("iteration", "model_run", 
+                                                  "scenario", "HCR", "recScen")) %>%
+                mutate(plotGroup = case_when(model_run == omName ~ "OM",
+                                             max_grad > 0.01 ~ "non-convrg",
+                                             max_grad < 0.01 ~ "convrg"))
+
   # Bring in simulated data series used for HCR9 biomass ests
   simBioObsHCR9 <- smryOutputList$obsCPUE %>%
                       mutate(emYear = as.numeric(regmatches(model_run,
