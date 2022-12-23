@@ -16,7 +16,7 @@ packageVersion("SSMSE")
 
 # directory for MSE output
 # mseOutputPath <- "C:/Users/r.wildermuth/Documents/FutureSeas/SardineScenarios"
-mseOutputPath <- "J:/Desiree/Sardine/SardineScenarios" #/addlRuns"
+mseOutputPath <- "J:/Desiree/Sardine/SardineScenarios/addlRuns"
 
 # Set Operating and Estimation Model ----------------------------------------
 
@@ -111,7 +111,7 @@ scenName <- c("constGrow2001OM_constGrow2005EM_RegRecHCR0",
               "constGrow2001OM_constGrow2005EM_RegRecHCR7",
               "constGrow2001OM_constGrow2005EM_RegRecHCR8",
               "constGrow2001OM_constGrow2005EM_RegRecHCR9")
-iters <- 100
+iters <- 400
 
 ### use random recdevs with sd same as to historical
 template_mod_change <- create_future_om_list(example_type = "model_change")
@@ -133,8 +133,8 @@ rand_dev_list <- list(rec_dev_specify)
 
 # Custom MS fxn location
 MSfxnPath <- "../SardineMSE/R"
-seedNum <- 729 # for first 100
-# seedNum <- 1104 # for addlRuns
+# seedNum <- 729 # for first 100
+seedNum <- 1104 # for addlRuns
 
 # logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
 # 
@@ -330,5 +330,5 @@ cat("\n \n")
 
 # Summarize 1 iteration of output
 sumry <- SSMSE_summary_all(mseOutputPath,
-                           scenarios = scenName, 
+                           scenarios = scenNam, 
                            run_parallel = TRUE)
