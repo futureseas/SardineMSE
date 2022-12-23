@@ -4,6 +4,13 @@ author: "Robert Wildermuth"
 date: "11/4/2022"
 output: pdf_document
 ---
+# Evaluating robustness of harvest control rules to climate-driven variability in Pacific sardine recruitment
+Robert P. Wildermuth^1,2^, Desiree Tommasi^1,2^, Peter Kuriyama^2^, James Smith^1,2^, and Isaac Kaplan^3^
+^1^ University of California, Santa Cruz, Institute of Marine Sciences’ Fisheries Collaborative Program, 1156 High Street, Santa Cruz, California 95064, U.S.A.
+^2^ Fisheries Research Division, Southwest Fisheries Science Center, National Marine Fisheries Service, National Oceanic and Atmospheric Administration, 8901 La Jolla Shores Drive, La Jolla, California 92037, U.S.A.
+^3^ Conservation Biology Division, Northwest Fisheries Science Center, National Marine Fisheries Service, National Oceanic and Atmospheric Administration, 2725 Montlake Boulevard, East Seattle, Washington 98112, U.S.A.
+
+**Supplementary Information: Tables and Figures**
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -36,36 +43,24 @@ metricsTbl <- performanceList$perfomanceMetrics
 omName <- grep("_OM", smryOutputList$tsSmry$model_run,
                fixed = TRUE, value = TRUE)[1]
 
-# find columns for directory parsing
-dirsCol <- ncol(str_split(smryOutputList$ageComp$resDir[1], 
-                          pattern = "/", simplify = TRUE))
 ageComp <- smryOutputList$ageComp %>% filter(Yr > 2019) 
 
 # Clear up some memory
 smryOutputList$lenComp <- NULL
 smryOutputList$ageComp <- NULL
+```
 
-ageComp <- ageComp %>%
-                  # need to parse out iteration, model run and scenario
-                  mutate(model_run = str_split(resDir, pattern = "/", 
-                                               simplify = TRUE)[, dirsCol]) %>%
-                  filter(model_run == omName)
-ageComp <- ageComp %>% mutate(iteration = as.integer(str_split(resDir, pattern = "/", 
-                                                          simplify = TRUE)[, dirsCol-1]), 
-                         scenario = str_split(resDir, pattern = "/", 
-                                              simplify = TRUE)[, dirsCol-2],
-                         HCR = sub(pattern = ".*Rec","", scenario),
-                         recScen = sub(pattern = "HCR.*","", scenario)) %>%
-                  mutate(recScen = sub(pattern = ".*EM_","", recScen),
-                         nameHCR = case_when(HCR == "HCR0" ~ "NoCat",
-                                             HCR == "HCR1" ~ "PFMCF018",
-                                             HCR == "HCR2" ~ "PFMCFSST",
-                                             HCR == "HCR3" ~ "ConstF",
-                                             HCR == "HCR5" ~ "Pikitch",
-                                             HCR == "HCR6" ~ "40-10",
-                                             HCR == "HCR7" ~ "DynPik",
-                                             HCR == "HCR8" ~ "Dyn40-10",
-                                             HCR == "HCR9" ~ "Index"))
+```{r, ageComp, echo=FALSE, warning=FALSE}
+ageComp <- ageComp %>% filter(model_run == omName) %>% 
+              mutate(nameHCR = case_when(HCR == "HCR0" ~ "NoCat",
+                                         HCR == "HCR1" ~ "PFMCF018",
+                                         HCR == "HCR2" ~ "PFMCFSST",
+                                         HCR == "HCR3" ~ "ConstF",
+                                         HCR == "HCR5" ~ "Pikitch",
+                                         HCR == "HCR6" ~ "40-10",
+                                         HCR == "HCR7" ~ "DynPik",
+                                         HCR == "HCR8" ~ "Dyn40-10",
+                                         HCR == "HCR9" ~ "Index"))
 ageComp <- ageComp %>% select("Fleet", "Fleet_Name", "Yr", "Seas", "All_exp_mean",
                               "model_run", "iteration", "scenario", "HCR", 
                               "nameHCR", "recScen")
@@ -81,6 +76,12 @@ popAgeComp <- ageComp %>% filter(recScen %in% c("ARRec", "PDOclimRec",
 
 
 ```
+
+## Operating model behavior
+
+## Estimation model fit
+
+## Performance metrics by scenario
 
 Biomass and Catch metrics
 
@@ -163,6 +164,7 @@ bioCat <- age1PlusBio %>% full_join(y = ssbBio,
 
 ```
 
+### Additional metrics from Hurtado-Ferro and Punt 2014
 Calculate zero catch and catch below 50Kt metrics from Hurtado-Ferro and Punt 2014
 ```{r}
 
@@ -204,3 +206,73 @@ lowCatFreq %>% full_join(y = zeroCatLen,
                       hi95 = quantile(value, probs = 0.95, na.rm = TRUE),
                       low05 = quantile(value, probs = 0.05, na.rm = TRUE))
 ```
+
+### Comparison of PFMC control rules by scenario
+```{r}
+# Compare performance of HCR2 among scenarios -----------------------------
+
+annualRelBioCat %>% filter(HCR %in% c("HCR1", "HCR2")) %>%
+  pivot_longer(cols = c(relAnnBioMax, relAnnCatMax), names_to = "Metric",
+               values_to = "relAnn") %>%
+  group_by(recScen, HCR, Metric) %>%
+  summarize(meanRel = mean(relAnn),
+            medRel = median(relAnn),
+            hiRel = quantile(relAnn, probs = 0.975),
+            loRel = quantile(relAnn, probs = 0.025),
+            q1Rel = quantile(relAnn, probs = 0.25),
+            q3Rel = quantile(relAnn, probs = 0.75),
+            nRel = n()) %>% 
+  ggplot(aes(x = recScen, fill = HCR)) +
+  geom_boxplot(aes(ymin = loRel, lower = q1Rel, middle = medRel, 
+                   upper = q3Rel, ymax = hiRel),
+               stat = "identity") +
+  theme_minimal() +
+  facet_wrap(~Metric, scales = "free") +
+  scale_fill_manual(values = hcrPal[2:3], labels = hcrLabels[2:3]) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
+  # labs(y = "Annual Age1+ Biomass:Max in Poor Recruitment Iters", x = "HCR")
+
+rebuildTime %>% filter(HCR %in% c("HCR1", "HCR2")) %>% 
+  pivot_longer(cols = c(nClosures, meanRebuildTime, medRebuildTime), 
+               names_to = "Metric", values_to = "value") %>%
+  group_by(recScen, HCR, Metric) %>%
+  summarize(meanRebuild = mean(value),
+            medRebuild = median(value),
+            hiRebuild = quantile(value, probs = 0.975),
+            loRebuild = quantile(value, probs = 0.025),
+            q1Rebuild = quantile(value, probs = 0.25),
+            q3Rebuild = quantile(value, probs = 0.75),
+            nRebuild = n()) %>% 
+  ggplot(aes(x = recScen, fill = HCR)) +
+  geom_boxplot(aes(ymin = loRebuild, lower = q1Rebuild, middle = medRebuild, 
+                   upper = q3Rebuild, ymax = hiRebuild),
+               stat = "identity") +
+  theme_minimal() +
+  facet_wrap(~Metric, scales = "free") +
+  scale_fill_manual(values = hcrPal[2:3], labels = hcrLabels[2:3]) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+metricsTbl %>% filter(HCR %in% c("HCR1", "HCR2")) %>% 
+  pivot_longer(cols = c(closuresFreq, collapseFreq, bonanzaFreq, 
+                        meanCollapseSever, rebuildLengthMax), 
+               names_to = "Metric", values_to = "value") %>%
+  group_by(recScen, HCR, Metric) %>%
+  summarize(meanRebuild = mean(value),
+            medRebuild = median(value),
+            hiRebuild = quantile(value, probs = 0.975),
+            loRebuild = quantile(value, probs = 0.025),
+            q1Rebuild = quantile(value, probs = 0.25),
+            q3Rebuild = quantile(value, probs = 0.75),
+            nRebuild = n()) %>% 
+  ggplot(aes(x = recScen, fill = HCR)) +
+  geom_boxplot(aes(ymin = loRebuild, lower = q1Rebuild, middle = medRebuild, 
+                   upper = q3Rebuild, ymax = hiRebuild),
+               stat = "identity") +
+  theme_minimal() +
+  facet_wrap(~Metric, scales = "free") +
+  scale_fill_manual(values = hcrPal[2:3], labels = hcrLabels[2:3]) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+```
+
+## Confusion tables
