@@ -151,9 +151,9 @@ MSfxnPath <- "../SardineMSE/R"
 
 seedNum <- 1104
 
-# logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
-# 
-# sink(file = file(logFile), append = TRUE)
+logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
+
+sink(file = file(logFile), append = TRUE)
 
 startTime <- Sys.time()
 ptm <- proc.time()
@@ -179,7 +179,8 @@ out0and1 <- run_SSMSE(scen_name_vec = scenName[1:2], # name of the scenario
                  future_om_list = envt_dev_list0and1, 
                  run_parallel = TRUE, # Run iterations in parallel
                  sample_struct_list = sample_struct_list[1:2], # How to sample data for running the EM.
-                 seed = seedNum) #Set a fixed integer seed that allows replication
+                 seed = seedNum, #Set a fixed integer seed that allows replication
+                 n_cores = 35) 
 cat("\n \n")
 out0and1
 
@@ -201,7 +202,8 @@ out2 <- run_SSMSE(scen_name_vec = scenName[3], # name of the scenario
                   future_om_list = envt_dev_list2, 
                   run_parallel = TRUE, # Run iterations in parallel
                   sample_struct_list = sample_struct_list[3], # How to sample data for running the EM.
-                  seed = seedNum) #Set a fixed integer seed that allows replication
+                  seed = seedNum, #Set a fixed integer seed that allows replication
+                  n_cores = 35) 
 cat("\n \n")
 out2
 
@@ -223,7 +225,8 @@ out3 <- run_SSMSE(scen_name_vec = scenName[4], # name of the scenario
                       future_om_list = envt_dev_list3, 
                       run_parallel = TRUE, # Run iterations in parallel
                       sample_struct_list = sample_struct_list[4], # How to sample data for running the EM.
-                      seed = seedNum) #Set a fixed integer seed that allows replication
+                      seed = seedNum, #Set a fixed integer seed that allows replication
+                  n_cores = 35) 
 cat("\n \n")
 out3
 
@@ -245,7 +248,8 @@ out5 <- run_SSMSE(scen_name_vec = scenName[5], # name of the scenario
                       future_om_list = envt_dev_list5, 
                       run_parallel = TRUE, # Run iterations in parallel
                       sample_struct_list = sample_struct_list[5], # How to sample data for running the EM.
-                      seed = seedNum) #Set a fixed integer seed that allows replication
+                      seed = seedNum, #Set a fixed integer seed that allows replication
+                  n_cores = 35) 
 cat("\n \n")
 out5
 
@@ -267,7 +271,8 @@ out6 <- run_SSMSE(scen_name_vec = scenName[6], # name of the scenario
                   future_om_list = envt_dev_list6, 
                   run_parallel = TRUE, # Run iterations in parallel
                   sample_struct_list = sample_struct_list[6], # How to sample data for running the EM.
-                  seed = seedNum) #Set a fixed integer seed that allows replication
+                  seed = seedNum, #Set a fixed integer seed that allows replication
+                  n_cores = 35) 
 cat("\n \n")
 out6
 
@@ -289,7 +294,8 @@ out7 <- run_SSMSE(scen_name_vec = scenName[7], # name of the scenario
                   future_om_list = envt_dev_list7, 
                   run_parallel = TRUE, # Run iterations in parallel
                   sample_struct_list = sample_struct_list[7], # How to sample data for running the EM.
-                  seed = seedNum) #Set a fixed integer seed that allows replication
+                  seed = seedNum, #Set a fixed integer seed that allows replication
+                  n_cores = 35) 
 cat("\n \n")
 out7
 
@@ -311,7 +317,8 @@ out8 <- run_SSMSE(scen_name_vec = scenName[8], # name of the scenario
                   future_om_list = envt_dev_list8, 
                   run_parallel = TRUE, # Run iterations in parallel
                   sample_struct_list = sample_struct_list[8], # How to sample data for running the EM.
-                  seed = seedNum) #Set a fixed integer seed that allows replication
+                  seed = seedNum, #Set a fixed integer seed that allows replication
+                  n_cores = 35) 
 cat("\n \n")
 out8
 
@@ -333,7 +340,8 @@ out9 <- run_SSMSE(scen_name_vec = scenName[9], # name of the scenario
                   future_om_list = envt_dev_list9, 
                   run_parallel = TRUE, # Run iterations in parallel
                   sample_struct_list = sample_struct_list[9], # How to sample data for running the EM.
-                  seed = seedNum) #Set a fixed integer seed that allows replication
+                  seed = seedNum, #Set a fixed integer seed that allows replication
+                  n_cores = 35) 
 cat("\n \n")
 out9
 
@@ -347,11 +355,12 @@ cat("Processor time difference: \n")
 print(procDiff)
 cat("\n \n")
 
-# close log connection
-# sink()
+
 # Summarize results -------------------------------------------------------
 
 # Summarize 1 iteration of output
 sumry <- SSMSE_summary_all(mseOutputPath,
                            scenarios = scenName, 
                            run_parallel = TRUE)
+# close log connection
+sink()

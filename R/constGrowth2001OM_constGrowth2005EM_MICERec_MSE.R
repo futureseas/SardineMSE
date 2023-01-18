@@ -151,9 +151,9 @@ MSfxnPath <- "../SardineMSE/R"
 
 seedNum <- 1104
 
-# logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
-# 
-# sink(file = file(logFile), append = TRUE)
+logFile <- paste0(mseOutputPath, "/SardineMSElog_", Sys.Date(), ".log")
+
+sink(file = file(logFile), append = TRUE)
 
 startTime <- Sys.time()
 ptm <- proc.time()
@@ -346,11 +346,13 @@ cat("Processor time difference: \n")
 print(procDiff)
 cat("\n \n")
 
-# close log connection
-#sink()
+
 # Summarize results -------------------------------------------------------
 
 # Summarize 1 iteration of output
 sumry <- SSMSE_summary_all(mseOutputPath,
                            scenarios = scenName, 
                            run_parallel = TRUE)
+
+# close log connection
+sink()
