@@ -247,9 +247,14 @@ annualRelBioCat <- CalcRelMetric(metricData = termTS %>%
                                        "Value.Recr", "Value.SSB", "emYear")) %>%
                       select(!contains("Metric"))
 
+# Add grouping variable for non/climate scenarios
+annualRelBioCat <- annualRelBioCat %>% 
+  mutate(climGroup = case_when(recScen %in% c("ARRec", "PDOcyclRec", "RegRec") ~ "noClim",
+                               recScen %in% c("MICERec", "PDOclimRec", "SSTRec") ~ "clim"))
+
 # plot annual relative biomass metrics
 relBioAll <- annualRelBioCat %>% filter(recScen %in% refScens) %>%
-  group_by(nameHCR) %>%
+  group_by(nameHCR, climGroup) %>%
   summarize(meanRelBio = mean(relBio_smryMean),
             medRelBio = median(relBio_smryMean),
             hiRelBio = quantile(relBio_smryMean, probs = 0.95),
@@ -257,10 +262,10 @@ relBioAll <- annualRelBioCat %>% filter(recScen %in% refScens) %>%
             q1RelBio = quantile(relBio_smryMean, probs = 0.25),
             q3RelBio = quantile(relBio_smryMean, probs = 0.75),
             nRelBio = n()) %>% 
-  ggplot(aes(x = nameHCR, fill = nameHCR)) +
+  ggplot(aes(x = nameHCR, fill = climGroup)) +
   geom_boxplot(aes(ymin = loRelBio, lower = q1RelBio, middle = medRelBio, 
                    upper = q3RelBio, ymax = hiRelBio),
-               stat = "identity") +
+               stat = "identity", position = position_dodge(0.95)) +
   # ggplot(aes(x = HCR, y = relAnnBioMax)) +
   # #geom_hline(yintercept = c(50000, 150000), color = "red") +
   # # geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
@@ -269,8 +274,8 @@ relBioAll <- annualRelBioCat %>% filter(recScen %in% refScens) %>%
   # geom_jitter(aes(color = recScen, alpha = 0.03)) +
   #facet_wrap(~recScen, scales = "free") + 
   theme_minimal() +
-  scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  #scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1)) +
   labs(y = "Annual Age1+ Biomass:Mean", x = "HCR") 
 
 relBioColl <- annualRelBioCat %>% filter(recScen %in% refScens) %>%
@@ -320,7 +325,7 @@ sever <- metricsTbl %>% filter(recScen %in% refScens) %>%
 
 relCatAll <- annualRelBioCat %>% filter(HCR != "HCR0", recScen %in% refScens) %>%
   #filter(Bio_smry <= 150000) %>%
-  group_by(nameHCR) %>%
+  group_by(nameHCR, climGroup) %>%
   summarize(meanRelCat = mean(reltotCatchMean),
             medRelCat = median(reltotCatchMean),
             hiRelCat = quantile(reltotCatchMean, probs = 0.95),
@@ -328,10 +333,10 @@ relCatAll <- annualRelBioCat %>% filter(HCR != "HCR0", recScen %in% refScens) %>
             q1RelCat = quantile(reltotCatchMean, probs = 0.25),
             q3RelCat = quantile(reltotCatchMean, probs = 0.75),
             nRelCat = n()) %>% 
-  ggplot(aes(x = nameHCR, fill = nameHCR)) +
+  ggplot(aes(x = nameHCR, fill = climGroup)) +
   geom_boxplot(aes(ymin = loRelCat, lower = q1RelCat, middle = medRelCat, 
                    upper = q3RelCat, ymax = hiRelCat),
-               stat = "identity") +
+               stat = "identity", position = position_dodge(0.95)) +
   # ggplot(aes(x = HCR, y = relAnnCatMax)) +
   # #geom_hline(yintercept = c(50000, 150000), color = "red") +
   # # geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
@@ -340,7 +345,7 @@ relCatAll <- annualRelBioCat %>% filter(HCR != "HCR0", recScen %in% refScens) %>
   # geom_jitter(aes(color = recScen, alpha = 0.03)) +
   #facet_wrap(~recScen, scales = "free") + 
   theme_minimal() +
-  scale_fill_manual(values = hcrPal[-1], labels = hcrLabels[-1], name = "HCR") +
+  #scale_fill_manual(values = hcrPal[-1], labels = hcrLabels[-1], name = "HCR") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   labs(y = "Annual Catch:Mean", x = "HCR") 
 
@@ -464,7 +469,12 @@ rebuildTime %>%  filter(recScen %in% refScens) %>%
 # join tables for clean faceted plots
 metricsTbl <- metricsTbl %>% left_join(y = rebuildTime, 
                                        by = c("iteration", "scenario", "nameHCR",
-                                              "model_run", "HCR", "recScen"))
+                                              "model_run", "HCR", "recScen")) %>%
+                # Add grouping variable for non/climate scenarios
+                mutate(climGroup = case_when(recScen %in% c("ARRec", "PDOcyclRec", 
+                                                            "RegRec") ~ "noClim",
+                                             recScen %in% c("MICERec", "PDOclimRec", 
+                                                            "SSTRec") ~ "clim"))
 
 metricLabs <- c("Frequency Bt < 150,000 mt", "Frequency Bt < 50,000 mt",
                 "Mean Collapse Severity", "Number of Closures", 
@@ -477,11 +487,11 @@ names(metricLabs) <- c("closuresFreq", "collapseFreq", "meanCollapseSever",
 fishMetPlots <- metricsTbl %>% filter(recScen %in% refScens) %>%
   select(iteration, scenario, model_run, HCR, nameHCR, recScen, closuresFreq, 
          collapseFreq, meanCollapseSever, nClosures, meanRebuildTime, sdCatch,
-         minAge, minLen) %>%
+         minAge, minLen, climGroup) %>%
   pivot_longer(cols = c(closuresFreq, collapseFreq, meanCollapseSever, nClosures,
                         meanRebuildTime, sdCatch, minAge, minLen),
                names_to = "Metric", values_to = "vals") %>%
-  group_by(HCR, Metric) %>%
+  group_by(HCR, Metric, climGroup) %>%
   summarize(meanMetric = mean(vals, na.rm = TRUE),
             medMetric = median(vals, na.rm = TRUE),
             hiMetric = quantile(vals, probs = 0.975, na.rm = TRUE),
@@ -490,27 +500,27 @@ fishMetPlots <- metricsTbl %>% filter(recScen %in% refScens) %>%
             q3Metric = quantile(vals, probs = 0.75, na.rm = TRUE),
             nMetric = n()) %>% 
   # filter(Metric %in% c("closuresFreq", "sdCatch")) %>%
-  ggplot(aes(x = HCR, fill = HCR)) +
+  ggplot(aes(x = HCR, fill = climGroup)) +
   geom_boxplot(aes(ymin = loMetric, lower = q1Metric, middle = medMetric, 
                    upper = q3Metric, ymax = hiMetric),
-               stat = "identity") +
+               stat = "identity", position = position_dodge(0.95)) +
   facet_wrap(~Metric, scales = "free_y",
              strip.position = "left",
              labeller = labeller(Metric = metricLabs),
              ncol = 2) +
   theme_classic() +
-  scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
+  #scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
   theme(axis.text.x = element_blank(),
         strip.placement = "outside",
         strip.background = element_blank()) +
   labs(x = "HCR")
 
 bioCatPlots <- annualRelBioCat %>% filter(recScen %in% refScens) %>%
-  select(iteration, scenario, model_run, HCR, nameHCR, recScen, 
+  select(iteration, scenario, model_run, HCR, nameHCR, recScen, climGroup,
          relBio_smryMean, reltotCatchMean) %>%
   pivot_longer(cols = c(relBio_smryMean, reltotCatchMean),
                names_to = "Metric", values_to = "vals") %>%
-  group_by(HCR, Metric) %>%
+  group_by(HCR, Metric, climGroup) %>%
   summarize(meanMetric = mean(vals, na.rm = TRUE),
             medMetric = median(vals, na.rm = TRUE),
             hiMetric = quantile(vals, probs = 0.975, na.rm = TRUE),
@@ -518,17 +528,17 @@ bioCatPlots <- annualRelBioCat %>% filter(recScen %in% refScens) %>%
             q1Metric = quantile(vals, probs = 0.25, na.rm = TRUE),
             q3Metric = quantile(vals, probs = 0.75, na.rm = TRUE),
             nMetric = n()) %>% 
-  ggplot(aes(x = HCR, fill = HCR)) +
+  ggplot(aes(x = HCR, fill = climGroup)) +
   geom_boxplot(aes(ymin = loMetric, lower = q1Metric, middle = medMetric, 
                    upper = q3Metric, ymax = hiMetric),
-               stat = "identity") +
+               stat = "identity", position = position_dodge(0.95)) +
   facet_wrap(~Metric, scales = "free_y",
              strip.position = "left",
              labeller = as_labeller(c(relAnnBioMax = "Annual Age1+ Biomass:Max",
                                       relAnnCatMax = "Annual Catch:Max")),
              ncol = 2) +
   theme_classic() +
-  scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
+  #scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
   theme(axis.text.x = element_blank(),
         strip.placement = "outside",
         strip.background = element_blank()) +
