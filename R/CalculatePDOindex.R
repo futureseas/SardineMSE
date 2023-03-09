@@ -6,7 +6,7 @@ library(tidyverse)
 library(r4ss)
 source("R/MakeRecruitDevs.R")
 
-moPDO <- read.csv("C:/Users/r.wildermuth/Documents/FutureSeas/Recruitment Index/monthlyPDO.csv")
+moPDO <- read.csv("C:/Users/r.wildermuth/Documents/FutureSeas/RecruitmentIndex/monthlyPDO.csv")
 
 # remove last year (2021)
 moPDO <- moPDO %>% filter(Year < 2021)

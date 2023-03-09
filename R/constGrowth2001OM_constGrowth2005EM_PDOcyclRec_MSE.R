@@ -118,7 +118,7 @@ template <- create_future_om_list(example_type = "custom")
 
 recUserDef <- read.csv("../SardineMSE/dat/recdevPDOnoclim2120.csv")
 
-sdPDO <- recUserDef %>% filter(year >2019) %>% 
+sdPDO <- recUserDef %>% filter(Year >2019) %>% 
             summarize(devPDOcycl = sd(recDevPDO))
 
 recUserDef <- recUserDef %>% select(Year, recDevPDO) %>%
