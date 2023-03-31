@@ -22,56 +22,56 @@ scenarios <- c("constGrow2001OM_constGrow2005EM_RegRecHCR0",
                "constGrow2001OM_constGrow2005EM_RegRecHCR7",
                "constGrow2001OM_constGrow2005EM_RegRecHCR8",
   
-               # "constGrow2001OM_constGrow2005EM_ARRecHCR0",
-               # "constGrow2001OM_constGrow2005EM_ARRecHCR1",
-               # "constGrow2001OM_constGrow2005EM_ARRecHCR2",
-               # "constGrow2001OM_constGrow2005EM_ARRecHCR3",
-               # "constGrow2001OM_constGrow2005EM_ARRecHCR9",
-               # "constGrow2001OM_constGrow2005EM_ARRecHCR5",
-               # "constGrow2001OM_constGrow2005EM_ARRecHCR6",
-               # "constGrow2001OM_constGrow2005EM_ARRecHCR7",
-               # "constGrow2001OM_constGrow2005EM_ARRecHCR8",
-               # 
-               # "constGrow2001OM_constGrow2005EM_SSTRecHCR0",
-               # "constGrow2001OM_constGrow2005EM_SSTRecHCR1",
-               # "constGrow2001OM_constGrow2005EM_SSTRecHCR2",
-               # "constGrow2001OM_constGrow2005EM_SSTRecHCR3",
-               # "constGrow2001OM_constGrow2005EM_SSTRecHCR9",
-               # "constGrow2001OM_constGrow2005EM_SSTRecHCR5",
-               # "constGrow2001OM_constGrow2005EM_SSTRecHCR6",
-               # "constGrow2001OM_constGrow2005EM_SSTRecHCR7",
-               # "constGrow2001OM_constGrow2005EM_SSTRecHCR8",
-               # 
-               # "constGrow2001OM_constGrow2005EM_PDOclimRecHCR0",
-               # "constGrow2001OM_constGrow2005EM_PDOclimRecHCR1",
-               # "constGrow2001OM_constGrow2005EM_PDOclimRecHCR2",
-               # "constGrow2001OM_constGrow2005EM_PDOclimRecHCR3",
-               # "constGrow2001OM_constGrow2005EM_PDOclimRecHCR9",
-               # "constGrow2001OM_constGrow2005EM_PDOclimRecHCR5",
-               # "constGrow2001OM_constGrow2005EM_PDOclimRecHCR6",
-               # "constGrow2001OM_constGrow2005EM_PDOclimRecHCR7",
-               # "constGrow2001OM_constGrow2005EM_PDOclimRecHCR8",
-               # 
-               # "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR0",
-               # "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR1",
-               # "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR2",
-               # "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR3",
-               # "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR9",
-               # "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR5",
-               # "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR6",
-               # "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR7",
-               # "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR8",
-               # 
-               # "constGrow2001OM_constGrow2005EM_MICERecHCR0",
-               # "constGrow2001OM_constGrow2005EM_MICERecHCR1",
-               # "constGrow2001OM_constGrow2005EM_MICERecHCR2",
-               # "constGrow2001OM_constGrow2005EM_MICERecHCR3",
-               # "constGrow2001OM_constGrow2005EM_MICERecHCR9",
-               # "constGrow2001OM_constGrow2005EM_MICERecHCR5",
-               # "constGrow2001OM_constGrow2005EM_MICERecHCR6",
-               # "constGrow2001OM_constGrow2005EM_MICERecHCR7",
-               # "constGrow2001OM_constGrow2005EM_MICERecHCR8",
-               # 
+               "constGrow2001OM_constGrow2005EM_ARRecHCR0",
+               "constGrow2001OM_constGrow2005EM_ARRecHCR1",
+               "constGrow2001OM_constGrow2005EM_ARRecHCR2",
+               "constGrow2001OM_constGrow2005EM_ARRecHCR3",
+               "constGrow2001OM_constGrow2005EM_ARRecHCR9",
+               "constGrow2001OM_constGrow2005EM_ARRecHCR5",
+               "constGrow2001OM_constGrow2005EM_ARRecHCR6",
+               "constGrow2001OM_constGrow2005EM_ARRecHCR7",
+               "constGrow2001OM_constGrow2005EM_ARRecHCR8",
+
+               "constGrow2001OM_constGrow2005EM_SSTRecHCR0",
+               "constGrow2001OM_constGrow2005EM_SSTRecHCR1",
+               "constGrow2001OM_constGrow2005EM_SSTRecHCR2",
+               "constGrow2001OM_constGrow2005EM_SSTRecHCR3",
+               "constGrow2001OM_constGrow2005EM_SSTRecHCR9",
+               "constGrow2001OM_constGrow2005EM_SSTRecHCR5",
+               "constGrow2001OM_constGrow2005EM_SSTRecHCR6",
+               "constGrow2001OM_constGrow2005EM_SSTRecHCR7",
+               "constGrow2001OM_constGrow2005EM_SSTRecHCR8",
+
+               "constGrow2001OM_constGrow2005EM_PDOclimRecHCR0",
+               "constGrow2001OM_constGrow2005EM_PDOclimRecHCR1",
+               "constGrow2001OM_constGrow2005EM_PDOclimRecHCR2",
+               "constGrow2001OM_constGrow2005EM_PDOclimRecHCR3",
+               "constGrow2001OM_constGrow2005EM_PDOclimRecHCR9",
+               "constGrow2001OM_constGrow2005EM_PDOclimRecHCR5",
+               "constGrow2001OM_constGrow2005EM_PDOclimRecHCR6",
+               "constGrow2001OM_constGrow2005EM_PDOclimRecHCR7",
+               "constGrow2001OM_constGrow2005EM_PDOclimRecHCR8",
+
+               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR0",
+               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR1",
+               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR2",
+               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR3",
+               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR9",
+               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR5",
+               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR6",
+               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR7",
+               "constGrow2001OM_constGrow2005EM_PDOcyclRecHCR8",
+
+               "constGrow2001OM_constGrow2005EM_MICERecHCR0",
+               "constGrow2001OM_constGrow2005EM_MICERecHCR1",
+               "constGrow2001OM_constGrow2005EM_MICERecHCR2",
+               "constGrow2001OM_constGrow2005EM_MICERecHCR3",
+               "constGrow2001OM_constGrow2005EM_MICERecHCR9",
+               "constGrow2001OM_constGrow2005EM_MICERecHCR5",
+               "constGrow2001OM_constGrow2005EM_MICERecHCR6",
+               "constGrow2001OM_constGrow2005EM_MICERecHCR7",
+               "constGrow2001OM_constGrow2005EM_MICERecHCR8")
+
                # "constGrow2001OM_constGrow2005EM_invRegRecHCR0",
                # "constGrow2001OM_constGrow2005EM_invRegRecHCR1",
                # "constGrow2001OM_constGrow2005EM_invRegRecHCR2",
@@ -122,22 +122,68 @@ scenarios <- c("constGrow2001OM_constGrow2005EM_RegRecHCR0",
                # "constGrow2001OM_constGrow2005EM_invPDOcyclRecHCR7",
                # "constGrow2001OM_constGrow2005EM_invPDOcyclRecHCR8",
                
-               "constGrow2001OM_constGrow2005EM_invMICERecHCR0",
-               "constGrow2001OM_constGrow2005EM_invMICERecHCR1",
-               "constGrow2001OM_constGrow2005EM_invMICERecHCR2",
-               "constGrow2001OM_constGrow2005EM_invMICERecHCR3",
-               "constGrow2001OM_constGrow2005EM_invMICERecHCR9",
-               "constGrow2001OM_constGrow2005EM_invMICERecHCR5",
-               "constGrow2001OM_constGrow2005EM_invMICERecHCR6",
-               "constGrow2001OM_constGrow2005EM_invMICERecHCR7",
-               "constGrow2001OM_constGrow2005EM_invMICERecHCR8")
+               # "constGrow2001OM_constGrow2005EM_invMICERecHCR0",
+               # "constGrow2001OM_constGrow2005EM_invMICERecHCR1",
+               # "constGrow2001OM_constGrow2005EM_invMICERecHCR2",
+               # "constGrow2001OM_constGrow2005EM_invMICERecHCR3",
+               # "constGrow2001OM_constGrow2005EM_invMICERecHCR9",
+               # "constGrow2001OM_constGrow2005EM_invMICERecHCR5",
+               # "constGrow2001OM_constGrow2005EM_invMICERecHCR6",
+               # "constGrow2001OM_constGrow2005EM_invMICERecHCR7",
+               # "constGrow2001OM_constGrow2005EM_invMICERecHCR8")
 
 smryOutputList <- GetSumryOutput(dirSSMSE = mseDir, scenarios = scenarios,
                                  comps = TRUE, simData = TRUE)
-
-smryAddlOutputList <- GetSumryOutput(dirSSMSE = addlOutputPath, 
-                                     scenarios = scenarios,
+saveRDS(smryOutputList, 
+        file = file.path(mseDir, "server100its_allHCRS.RDS"))
+smryOutputList <- readRDS(file = file.path(mseDir, "server100its_allHCRS.RDS"))
+# have to split for parallel processing
+smryAddlOutputList1 <- GetSumryOutput(dirSSMSE = addlOutputPath, 
+                                     scenarios = scenarios[1:9],
                                      comps = TRUE, simData = TRUE)
+saveRDS(smryAddlOutputList1, 
+        file = file.path(mseDir, "server400itsRegRec_allHCRs.RDS"))
+smryAddlOutputList1 <- readRDS(file = file.path(mseDir, "server400itsRegRec_allHCRs.RDS"))
+smryAddlOutputList2 <- GetSumryOutput(dirSSMSE = addlOutputPath, 
+                                      scenarios = scenarios[10:18],
+                                      comps = TRUE, simData = TRUE)
+saveRDS(smryAddlOutputList2, 
+        file = file.path(mseDir, "server400itsARRec_allHCRs.RDS"))
+smryAddlOutputList2 <- readRDS(file = file.path(mseDir, "server400itsARRec_allHCRs.RDS"))
+smryAddlOutputList3 <- GetSumryOutput(dirSSMSE = addlOutputPath, 
+                                     scenarios = scenarios[19:27],
+                                     comps = TRUE, simData = TRUE)
+saveRDS(smryAddlOutputList3, 
+        file = file.path(mseDir, "server400itsSSTRec_allHCRs.RDS"))
+smryAddlOutputList3 <- readRDS(file = file.path(mseDir, "server400itsSSTRec_allHCRs.RDS"))
+smryAddlOutputList4 <- GetSumryOutput(dirSSMSE = addlOutputPath, 
+                                      scenarios = scenarios[28:36],
+                                      comps = TRUE, simData = TRUE)
+saveRDS(smryAddlOutputList4, 
+        file = file.path(mseDir, "server400itsPDOclimRec_allHCRs.RDS"))
+smryAddlOutputList4 <- readRDS(file = file.path(mseDir, "server400itsPDOclimRec_allHCRs.RDS"))
+smryAddlOutputList5 <- GetSumryOutput(dirSSMSE = addlOutputPath, 
+                                      scenarios = scenarios[37:45],
+                                      comps = TRUE, simData = TRUE)
+saveRDS(smryAddlOutputList5, 
+        file = file.path(mseDir, "server400itsPDOcyclRec_allHCRs.RDS"))
+smryAddlOutputList5 <- readRDS(file = file.path(mseDir, "server400itsPDOcyclRec_allHCRs.RDS"))
+smryAddlOutputList6 <- GetSumryOutput(dirSSMSE = addlOutputPath, 
+                                      scenarios = scenarios[46:54],
+                                      comps = TRUE, simData = TRUE)
+saveRDS(smryAddlOutputList6, 
+        file = file.path(mseDir, "server400itsMICERec_allHCRs.RDS"))
+smryAddlOutputList6 <- readRDS(file = file.path(mseDir, "server400itsMICERec_allHCRs.RDS"))
+
+# combine output
+smryAddlOutputList1$dqSmry <- smryAddlOutputList1$dqSmry %>% bind_rows(smryAddlOutputList2$dqSmry, smryAddlOutputList3$dqSmry, smryAddlOutputList4$dqSmry, smryAddlOutputList5$dqSmry, smryAddlOutputList6$dqSmry)
+smryAddlOutputList1$sclSmry <- smryAddlOutputList1$sclSmry %>% bind_rows(smryAddlOutputList2$sclSmry, smryAddlOutputList3$sclSmry, smryAddlOutputList4$sclSmry, smryAddlOutputList5$sclSmry, smryAddlOutputList6$sclSmry)
+smryAddlOutputList1$tsSmry <- smryAddlOutputList1$tsSmry %>% bind_rows(smryAddlOutputList2$tsSmry, smryAddlOutputList3$tsSmry, smryAddlOutputList4$tsSmry, smryAddlOutputList5$tsSmry, smryAddlOutputList6$tsSmry)
+smryAddlOutputList1$ageComp <- smryAddlOutputList1$ageComp %>% bind_rows(smryAddlOutputList2$ageComp, smryAddlOutputList3$ageComp,smryAddlOutputList4$ageComp, smryAddlOutputList5$ageComp,smryAddlOutputList6$ageComp)
+smryAddlOutputList1$lenComp <- smryAddlOutputList1$lenComp %>% bind_rows(smryAddlOutputList2$lenComp, smryAddlOutputList3$lenComp, smryAddlOutputList4$lenComp, smryAddlOutputList5$lenComp, smryAddlOutputList6$lenComp)
+smryAddlOutputList1$obsCPUE <- smryAddlOutputList1$obsCPUE %>% bind_rows(smryAddlOutputList2$obsCPUE, smryAddlOutputList3$obsCPUE, smryAddlOutputList4$obsCPUE, smryAddlOutputList5$obsCPUE, smryAddlOutputList6$obsCPUE)
+smryAddlOutputList1$obsCatch <- smryAddlOutputList1$obsCatch %>% bind_rows(smryAddlOutputList2$obsCatch, smryAddlOutputList3$obsCatch, smryAddlOutputList4$obsCatch, smryAddlOutputList5$obsCatch, smryAddlOutputList6$obsCatch)
+
 
 # parse iteration, scenario, and model_run from composition and simDat tables
 # find columns for directory parsing
@@ -181,10 +227,10 @@ smryOutputList$obsCatch <- smryOutputList$obsCatch %>%
                                                         simplify = TRUE)[, dirsCol-2])
 
 # find columns for directory parsing
-dirsCol <- ncol(str_split(smryAddlOutputList$ageComp$resDir[1], 
+dirsCol <- ncol(str_split(smryAddlOutputList1$ageComp$resDir[1], 
                           pattern = "/", simplify = TRUE))
 
-smryAddlOutputList$ageComp <- smryAddlOutputList$ageComp %>%
+smryAddlOutputList1$ageComp <- smryAddlOutputList1$ageComp %>%
   mutate(model_run = str_split(resDir, pattern = "/", 
                                simplify = TRUE)[, dirsCol],
          iteration = as.integer(str_split(resDir, 
@@ -193,7 +239,7 @@ smryAddlOutputList$ageComp <- smryAddlOutputList$ageComp %>%
          scenario = str_split(resDir, pattern = "/",
                               simplify = TRUE)[, dirsCol-2])
 
-smryAddlOutputList$lenComp <- smryAddlOutputList$lenComp %>%
+smryAddlOutputList1$lenComp <- smryAddlOutputList1$lenComp %>%
   mutate(model_run = str_split(resDir, pattern = "/", 
                                simplify = TRUE)[, dirsCol],
          iteration = as.integer(str_split(resDir, 
@@ -202,7 +248,7 @@ smryAddlOutputList$lenComp <- smryAddlOutputList$lenComp %>%
          scenario = str_split(resDir, pattern = "/",
                               simplify = TRUE)[, dirsCol-2])
 
-smryAddlOutputList$obsCPUE <- smryAddlOutputList$obsCPUE %>%
+smryAddlOutputList1$obsCPUE <- smryAddlOutputList1$obsCPUE %>%
   mutate(model_run = str_split(resDir, pattern = "/", 
                                simplify = TRUE)[, dirsCol],
          iteration = as.integer(str_split(resDir, 
@@ -211,7 +257,7 @@ smryAddlOutputList$obsCPUE <- smryAddlOutputList$obsCPUE %>%
          scenario = str_split(resDir, pattern = "/",
                               simplify = TRUE)[, dirsCol-2])
 
-smryAddlOutputList$obsCatch <- smryAddlOutputList$obsCatch %>%
+smryAddlOutputList1$obsCatch <- smryAddlOutputList1$obsCatch %>%
   mutate(model_run = str_split(resDir, pattern = "/", 
                                simplify = TRUE)[, dirsCol],
          iteration = as.integer(str_split(resDir, 
@@ -223,22 +269,22 @@ smryAddlOutputList$obsCatch <- smryAddlOutputList$obsCatch %>%
 # add original iteration number to additional iterations to be unique
 maxIts <- max(smryOutputList$dqSmry$iteration)
 
-smryAddlOutputList$dqSmry <- smryAddlOutputList$dqSmry %>% mutate(iteration = iteration + maxIts)
-smryAddlOutputList$sclSmry <- smryAddlOutputList$sclSmry %>% mutate(iteration = iteration + maxIts)
-smryAddlOutputList$tsSmry <- smryAddlOutputList$tsSmry %>% mutate(iteration = iteration + maxIts)
-smryAddlOutputList$ageComp <- smryAddlOutputList$ageComp %>% mutate(iteration = iteration + maxIts)
-smryAddlOutputList$lenComp <- smryAddlOutputList$lenComp %>% mutate(iteration = iteration + maxIts)
-smryAddlOutputList$obsCPUE <- smryAddlOutputList$obsCPUE %>% mutate(iteration = iteration + maxIts)
-smryAddlOutputList$obsCatch <- smryAddlOutputList$obsCatch %>% mutate(iteration = iteration + maxIts)
+smryAddlOutputList1$dqSmry <- smryAddlOutputList1$dqSmry %>% mutate(iteration = iteration + maxIts)
+smryAddlOutputList1$sclSmry <- smryAddlOutputList1$sclSmry %>% mutate(iteration = iteration + maxIts)
+smryAddlOutputList1$tsSmry <- smryAddlOutputList1$tsSmry %>% mutate(iteration = iteration + maxIts)
+smryAddlOutputList1$ageComp <- smryAddlOutputList1$ageComp %>% mutate(iteration = iteration + maxIts)
+smryAddlOutputList1$lenComp <- smryAddlOutputList1$lenComp %>% mutate(iteration = iteration + maxIts)
+smryAddlOutputList1$obsCPUE <- smryAddlOutputList1$obsCPUE %>% mutate(iteration = iteration + maxIts)
+smryAddlOutputList1$obsCatch <- smryAddlOutputList1$obsCatch %>% mutate(iteration = iteration + maxIts)
 
 # combine output
-smryOutputList$dqSmry <- smryOutputList$dqSmry %>% bind_rows(smryAddlOutputList$dqSmry)
-smryOutputList$sclSmry <- smryOutputList$sclSmry %>% bind_rows(smryAddlOutputList$sclSmry)
-smryOutputList$tsSmry <- smryOutputList$tsSmry %>% bind_rows(smryAddlOutputList$tsSmry)
-smryOutputList$ageComp <- smryOutputList$ageComp %>% bind_rows(smryAddlOutputList$ageComp)
-smryOutputList$lenComp <- smryOutputList$lenComp %>% bind_rows(smryAddlOutputList$lenComp)
-smryOutputList$obsCPUE <- smryOutputList$obsCPUE %>% bind_rows(smryAddlOutputList$obsCPUE)
-smryOutputList$obsCatch <- smryOutputList$obsCatch %>% bind_rows(smryAddlOutputList$obsCatch)
+smryOutputList$dqSmry <- smryOutputList$dqSmry %>% bind_rows(smryAddlOutputList1$dqSmry)
+smryOutputList$sclSmry <- smryOutputList$sclSmry %>% bind_rows(smryAddlOutputList1$sclSmry)
+smryOutputList$tsSmry <- smryOutputList$tsSmry %>% bind_rows(smryAddlOutputList1$tsSmry)
+smryOutputList$ageComp <- smryOutputList$ageComp %>% bind_rows(smryAddlOutputList1$ageComp)
+smryOutputList$lenComp <- smryOutputList$lenComp %>% bind_rows(smryAddlOutputList1$lenComp)
+smryOutputList$obsCPUE <- smryOutputList$obsCPUE %>% bind_rows(smryAddlOutputList1$obsCPUE)
+smryOutputList$obsCatch <- smryOutputList$obsCatch %>% bind_rows(smryAddlOutputList1$obsCatch)
 
 # Parse HCR and recruitment scenario
 smryOutputList$dqSmry <- smryOutputList$dqSmry %>% 
@@ -271,5 +317,5 @@ smryOutputList$obsCatch <- smryOutputList$obsCatch %>%
   mutate(recScen = sub(pattern = ".*EM_","", recScen))
 
 saveRDS(smryOutputList, 
-        # file = file.path(mseDir, "serverRegARPDOcyclPDOclimSSTMICE_allHCRs_addlResults.RDS"))
-        file = file.path(mseDir, "serverRegARtest_allHCRs_addlResults.RDS"))
+        file = file.path(mseDir, "serverRegARPDOcyclPDOclimSSTMICE_allHCRs_addlResults.RDS"))
+        # file = file.path(mseDir, "serverRegARtest_allHCRs_addlResults.RDS"))

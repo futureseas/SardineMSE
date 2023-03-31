@@ -2,6 +2,7 @@
 # Created: 12/5/2022, Robert Wildermuth
 
 CalcRelErr <- function(smryOutputList,
+                       termTS, # df from CalcTermTS()
                        termYr # last year of EM simulation
                        ){
   

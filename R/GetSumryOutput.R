@@ -71,6 +71,8 @@ GetSumryOutput <- function(dirSSMSE, # SSMSE directory (character)
     resultsDirs <- c(resultsDirs, scnResultsDirs)
   }
   
+  #gc()
+  
   if(comps){
     # extract wanted tables per directory and add data origin
     # start_time <- Sys.time()
