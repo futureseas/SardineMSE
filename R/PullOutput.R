@@ -70,18 +70,18 @@ scenarios <- c("constGrow2001OM_constGrow2005EM_RegRecHCR0",
                "constGrow2001OM_constGrow2005EM_MICERecHCR5",
                "constGrow2001OM_constGrow2005EM_MICERecHCR6",
                "constGrow2001OM_constGrow2005EM_MICERecHCR7",
-               "constGrow2001OM_constGrow2005EM_MICERecHCR8")
+               "constGrow2001OM_constGrow2005EM_MICERecHCR8",
 
-               # "constGrow2001OM_constGrow2005EM_invRegRecHCR0",
-               # "constGrow2001OM_constGrow2005EM_invRegRecHCR1",
-               # "constGrow2001OM_constGrow2005EM_invRegRecHCR2",
-               # "constGrow2001OM_constGrow2005EM_invRegRecHCR3",
-               # "constGrow2001OM_constGrow2005EM_invRegRecHCR9",
-               # "constGrow2001OM_constGrow2005EM_invRegRecHCR5",
-               # "constGrow2001OM_constGrow2005EM_invRegRecHCR6",
-               # "constGrow2001OM_constGrow2005EM_invRegRecHCR7",
-               # "constGrow2001OM_constGrow2005EM_invRegRecHCR8",
-               # 
+               "constGrow2001OM_constGrow2005EM_invRegRecHCR0",
+               "constGrow2001OM_constGrow2005EM_invRegRecHCR1",
+               "constGrow2001OM_constGrow2005EM_invRegRecHCR2",
+               "constGrow2001OM_constGrow2005EM_invRegRecHCR3",
+               "constGrow2001OM_constGrow2005EM_invRegRecHCR9",
+               "constGrow2001OM_constGrow2005EM_invRegRecHCR5",
+               "constGrow2001OM_constGrow2005EM_invRegRecHCR6",
+               "constGrow2001OM_constGrow2005EM_invRegRecHCR7",
+               "constGrow2001OM_constGrow2005EM_invRegRecHCR8")
+
                # "constGrow2001OM_constGrow2005EM_invARRecHCR0",
                # "constGrow2001OM_constGrow2005EM_invARRecHCR1",
                # "constGrow2001OM_constGrow2005EM_invARRecHCR2",
@@ -138,51 +138,57 @@ saveRDS(smryOutputList,
         file = file.path(mseDir, "server100its_allHCRS.RDS"))
 smryOutputList <- readRDS(file = file.path(mseDir, "server100its_allHCRS.RDS"))
 # have to split for parallel processing
-smryAddlOutputList1 <- GetSumryOutput(dirSSMSE = addlOutputPath, 
-                                     scenarios = scenarios[1:9],
-                                     comps = TRUE, simData = TRUE)
-saveRDS(smryAddlOutputList1, 
-        file = file.path(mseDir, "server400itsRegRec_allHCRs.RDS"))
+# smryAddlOutputList1 <- GetSumryOutput(dirSSMSE = addlOutputPath, 
+#                                      scenarios = scenarios[1:9],
+#                                      comps = TRUE, simData = TRUE)
+# saveRDS(smryAddlOutputList1, 
+#         file = file.path(mseDir, "server400itsRegRec_allHCRs.RDS"))
 smryAddlOutputList1 <- readRDS(file = file.path(mseDir, "server400itsRegRec_allHCRs.RDS"))
-smryAddlOutputList2 <- GetSumryOutput(dirSSMSE = addlOutputPath, 
-                                      scenarios = scenarios[10:18],
-                                      comps = TRUE, simData = TRUE)
-saveRDS(smryAddlOutputList2, 
-        file = file.path(mseDir, "server400itsARRec_allHCRs.RDS"))
+# smryAddlOutputList2 <- GetSumryOutput(dirSSMSE = addlOutputPath, 
+#                                       scenarios = scenarios[10:18],
+#                                       comps = TRUE, simData = TRUE)
+# saveRDS(smryAddlOutputList2, 
+#         file = file.path(mseDir, "server400itsARRec_allHCRs.RDS"))
 smryAddlOutputList2 <- readRDS(file = file.path(mseDir, "server400itsARRec_allHCRs.RDS"))
-smryAddlOutputList3 <- GetSumryOutput(dirSSMSE = addlOutputPath, 
-                                     scenarios = scenarios[19:27],
-                                     comps = TRUE, simData = TRUE)
-saveRDS(smryAddlOutputList3, 
-        file = file.path(mseDir, "server400itsSSTRec_allHCRs.RDS"))
+# smryAddlOutputList3 <- GetSumryOutput(dirSSMSE = addlOutputPath, 
+#                                      scenarios = scenarios[19:27],
+#                                      comps = TRUE, simData = TRUE)
+# saveRDS(smryAddlOutputList3, 
+#         file = file.path(mseDir, "server400itsSSTRec_allHCRs.RDS"))
 smryAddlOutputList3 <- readRDS(file = file.path(mseDir, "server400itsSSTRec_allHCRs.RDS"))
-smryAddlOutputList4 <- GetSumryOutput(dirSSMSE = addlOutputPath, 
-                                      scenarios = scenarios[28:36],
-                                      comps = TRUE, simData = TRUE)
-saveRDS(smryAddlOutputList4, 
-        file = file.path(mseDir, "server400itsPDOclimRec_allHCRs.RDS"))
+# smryAddlOutputList4 <- GetSumryOutput(dirSSMSE = addlOutputPath, 
+#                                       scenarios = scenarios[28:36],
+#                                       comps = TRUE, simData = TRUE)
+# saveRDS(smryAddlOutputList4, 
+#         file = file.path(mseDir, "server400itsPDOclimRec_allHCRs.RDS"))
 smryAddlOutputList4 <- readRDS(file = file.path(mseDir, "server400itsPDOclimRec_allHCRs.RDS"))
-smryAddlOutputList5 <- GetSumryOutput(dirSSMSE = addlOutputPath, 
-                                      scenarios = scenarios[37:45],
-                                      comps = TRUE, simData = TRUE)
-saveRDS(smryAddlOutputList5, 
-        file = file.path(mseDir, "server400itsPDOcyclRec_allHCRs.RDS"))
+# smryAddlOutputList5 <- GetSumryOutput(dirSSMSE = addlOutputPath, 
+#                                       scenarios = scenarios[37:45],
+#                                       comps = TRUE, simData = TRUE)
+# saveRDS(smryAddlOutputList5, 
+#         file = file.path(mseDir, "server400itsPDOcyclRec_allHCRs.RDS"))
 smryAddlOutputList5 <- readRDS(file = file.path(mseDir, "server400itsPDOcyclRec_allHCRs.RDS"))
-smryAddlOutputList6 <- GetSumryOutput(dirSSMSE = addlOutputPath, 
-                                      scenarios = scenarios[46:54],
-                                      comps = TRUE, simData = TRUE)
-saveRDS(smryAddlOutputList6, 
-        file = file.path(mseDir, "server400itsMICERec_allHCRs.RDS"))
+# smryAddlOutputList6 <- GetSumryOutput(dirSSMSE = addlOutputPath, 
+#                                       scenarios = scenarios[46:54],
+#                                       comps = TRUE, simData = TRUE)
+# saveRDS(smryAddlOutputList6, 
+#         file = file.path(mseDir, "server400itsMICERec_allHCRs.RDS"))
 smryAddlOutputList6 <- readRDS(file = file.path(mseDir, "server400itsMICERec_allHCRs.RDS"))
+# smryAddlOutputList7 <- GetSumryOutput(dirSSMSE = addlOutputPath, 
+#                                       scenarios = scenarios[55:63],
+#                                       comps = TRUE, simData = TRUE)
+# saveRDS(smryAddlOutputList7, 
+#         file = file.path(mseDir, "server400itsinvRegRec_allHCRs.RDS"))
+smryAddlOutputList7 <- readRDS(file = file.path(mseDir, "server400itsinvRegRec_allHCRs.RDS"))
 
 # combine output
-smryAddlOutputList1$dqSmry <- smryAddlOutputList1$dqSmry %>% bind_rows(smryAddlOutputList2$dqSmry, smryAddlOutputList3$dqSmry, smryAddlOutputList4$dqSmry, smryAddlOutputList5$dqSmry, smryAddlOutputList6$dqSmry)
-smryAddlOutputList1$sclSmry <- smryAddlOutputList1$sclSmry %>% bind_rows(smryAddlOutputList2$sclSmry, smryAddlOutputList3$sclSmry, smryAddlOutputList4$sclSmry, smryAddlOutputList5$sclSmry, smryAddlOutputList6$sclSmry)
-smryAddlOutputList1$tsSmry <- smryAddlOutputList1$tsSmry %>% bind_rows(smryAddlOutputList2$tsSmry, smryAddlOutputList3$tsSmry, smryAddlOutputList4$tsSmry, smryAddlOutputList5$tsSmry, smryAddlOutputList6$tsSmry)
-smryAddlOutputList1$ageComp <- smryAddlOutputList1$ageComp %>% bind_rows(smryAddlOutputList2$ageComp, smryAddlOutputList3$ageComp,smryAddlOutputList4$ageComp, smryAddlOutputList5$ageComp,smryAddlOutputList6$ageComp)
-smryAddlOutputList1$lenComp <- smryAddlOutputList1$lenComp %>% bind_rows(smryAddlOutputList2$lenComp, smryAddlOutputList3$lenComp, smryAddlOutputList4$lenComp, smryAddlOutputList5$lenComp, smryAddlOutputList6$lenComp)
-smryAddlOutputList1$obsCPUE <- smryAddlOutputList1$obsCPUE %>% bind_rows(smryAddlOutputList2$obsCPUE, smryAddlOutputList3$obsCPUE, smryAddlOutputList4$obsCPUE, smryAddlOutputList5$obsCPUE, smryAddlOutputList6$obsCPUE)
-smryAddlOutputList1$obsCatch <- smryAddlOutputList1$obsCatch %>% bind_rows(smryAddlOutputList2$obsCatch, smryAddlOutputList3$obsCatch, smryAddlOutputList4$obsCatch, smryAddlOutputList5$obsCatch, smryAddlOutputList6$obsCatch)
+smryAddlOutputList1$dqSmry <- smryAddlOutputList1$dqSmry %>% bind_rows(smryAddlOutputList2$dqSmry, smryAddlOutputList3$dqSmry, smryAddlOutputList4$dqSmry, smryAddlOutputList5$dqSmry, smryAddlOutputList6$dqSmry, smryAddlOutputList7$dqSmry)
+smryAddlOutputList1$sclSmry <- smryAddlOutputList1$sclSmry %>% bind_rows(smryAddlOutputList2$sclSmry, smryAddlOutputList3$sclSmry, smryAddlOutputList4$sclSmry, smryAddlOutputList5$sclSmry, smryAddlOutputList6$sclSmry, smryAddlOutputList7$sclSmry)
+smryAddlOutputList1$tsSmry <- smryAddlOutputList1$tsSmry %>% bind_rows(smryAddlOutputList2$tsSmry, smryAddlOutputList3$tsSmry, smryAddlOutputList4$tsSmry, smryAddlOutputList5$tsSmry, smryAddlOutputList6$tsSmry, smryAddlOutputList7$tsSmry)
+smryAddlOutputList1$ageComp <- smryAddlOutputList1$ageComp %>% bind_rows(smryAddlOutputList2$ageComp, smryAddlOutputList3$ageComp,smryAddlOutputList4$ageComp, smryAddlOutputList5$ageComp,smryAddlOutputList6$ageComp, smryAddlOutputList7$ageComp)
+smryAddlOutputList1$lenComp <- smryAddlOutputList1$lenComp %>% bind_rows(smryAddlOutputList2$lenComp, smryAddlOutputList3$lenComp, smryAddlOutputList4$lenComp, smryAddlOutputList5$lenComp, smryAddlOutputList6$lenComp, smryAddlOutputList7$lenComp)
+smryAddlOutputList1$obsCPUE <- smryAddlOutputList1$obsCPUE %>% bind_rows(smryAddlOutputList2$obsCPUE, smryAddlOutputList3$obsCPUE, smryAddlOutputList4$obsCPUE, smryAddlOutputList5$obsCPUE, smryAddlOutputList6$obsCPUE, smryAddlOutputList7$obsCPUE)
+smryAddlOutputList1$obsCatch <- smryAddlOutputList1$obsCatch %>% bind_rows(smryAddlOutputList2$obsCatch, smryAddlOutputList3$obsCatch, smryAddlOutputList4$obsCatch, smryAddlOutputList5$obsCatch, smryAddlOutputList6$obsCatch, smryAddlOutputList7$obsCatch)
 
 
 # parse iteration, scenario, and model_run from composition and simDat tables

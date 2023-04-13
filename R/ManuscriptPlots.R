@@ -78,6 +78,7 @@ sampleDat <- termTS %>% filter(model_run == omName, HCR == "HCR0",
   select(Bio_smry, year, model_run, iteration, scenario, HCR, recScen) %>%
   group_by(year, scenario, HCR, recScen) %>%
   summarize(meanAge1Plus = mean(Bio_smry),
+            medAge1Plus = median(Bio_smry),
             lowAge1Plus = quantile(Bio_smry, probs = 0.05, na.rm = TRUE),
             hiAge1Plus = quantile(Bio_smry, probs = 0.95, na.rm = TRUE)) 
 
@@ -132,7 +133,7 @@ p1alt <- termTS %>% filter(model_run == omName, HCR == "HCR0",
             size = 0.5) +
   scale_linetype_manual(values = rep("solid", 500)) +
   # scale_color_manual(values = brewer.pal(n = 5, "Pastel1")) +
-  geom_line(data = sampleDat, aes(x = year, y = meanAge1Plus)) +
+  geom_line(data = sampleDat, aes(x = year, y = medAge1Plus)) +
   theme(legend.position = "none",
         plot.caption = element_text(hjust = 0),
         plot.caption.position = "plot",
