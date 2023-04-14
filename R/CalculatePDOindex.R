@@ -6,6 +6,7 @@ library(tidyverse)
 library(r4ss)
 source("R/MakeRecruitDevs.R")
 
+# PDO data downloaded from CalCurrent IEA website: https://www.integratedecosystemassessment.noaa.gov/index.php/regions/california-current/california-current-iea-indicators
 moPDO <- read.csv("C:/Users/r.wildermuth/Documents/FutureSeas/RecruitmentIndex/monthlyPDO.csv")
 
 # remove last year (2021)
