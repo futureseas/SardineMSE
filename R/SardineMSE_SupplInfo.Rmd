@@ -85,6 +85,10 @@ termTS <- CalcTermTS(smryOutputList, termYr = termYr) %>%
                    recScen = factor(recScen, levels = c("ARRec", "PDOcyclRec", 
                                                         "MICERec", "PDOclimRec",
                                                         "RegRec", "SSTRec")))
+
+errCompare <- CalcRelErr(smryOutputList = smryOutputList,
+                         termTS = termTS,
+                         termYr = termYr)
 ```
 
 ```{r, ageComp, echo=FALSE, warning=FALSE}
@@ -190,9 +194,6 @@ termTS %>% filter(model_run == omName, HCR == "HCR0") %>%
   geom_hline(yintercept = 150000, color = "red") +
   coord_cartesian(ylim = c(0, 2e7))
 
-errCompare <- CalcRelErr(smryOutputList = smryOutputList,
-                         termTS = termTS,
-                         termYr = termYr)
 ```
  
 Recruitment
