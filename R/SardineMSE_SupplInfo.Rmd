@@ -23,12 +23,14 @@ library(RColorBrewer)
 library(scales)
 library(gridExtra)
 
-localPath <- "C:/Users/r.wildermuth/Documents/FutureSeas"
+localPath <- "J:/Desiree/Sardine"
 
 source(file.path(localPath, "SardineMSE/R/CalcPerformance.R"))
 source(file.path(localPath, "SardineMSE/R/CalcTermTS.R"))
+source(file.path(localPath, "SardineMSE/R/CalcRelMetric.R"))
+source(file.path(localPath, "SardineMSE/R/CalcRebuildTime.R"))
+source(file.path(localPath, "SardineMSE/R/CalcRelErr.R"))
 
-memory.limit(size = 30000)
 
 # Read in data and calculate metrics --------------------------------------
 
@@ -36,7 +38,7 @@ mseDir <- file.path(localPath, "SardineScenarios")
 termYr <- 2068
 
 smryOutputList <- readRDS(file.path(mseDir, 
-                                    "serverRegARPDOcyclPDOclimSSTMICE_allHCRs_Results.RDS"))
+                                    "serverRegARPDOcyclPDOclimSSTMICE_allHCRs_addlResults.RDS"))
 
 performanceList <- CalcPerformance(smryOutputList)
 
@@ -65,8 +67,8 @@ omName <- grep("_OM", smryOutputList$tsSmry$model_run,
                fixed = TRUE, value = TRUE)[1]
 hcrPal <- brewer.pal(11, "Set3")[-2]
 
-hcrLabels <- c("NoCat", "PFMCF018", "PFMCFSST", "ConstF", "Pikitch", "40-10",
-               "DynPik", "Dyn40-10", "Index")
+hcrLabels <- c("NoCat", "PFMCF018", "PFMCFSST", "ConstF", "Index",
+               "Pikitch", "40-10", "DynPik", "Dyn40-10")
 
 # define reference scenarios to use in plot calculations
 refScens <- c("ARRec", "PDOcyclRec", "MICERec", "PDOclimRec")
@@ -84,7 +86,8 @@ termTS <- CalcTermTS(smryOutputList, termYr = termYr) %>%
                                        HCR == "HCR9" ~ "Index"),
                    recScen = factor(recScen, levels = c("ARRec", "PDOcyclRec", 
                                                         "MICERec", "PDOclimRec",
-                                                        "RegRec", "SSTRec")))
+                                                        "RegRec", "invRegRec",
+                                                        "SSTRec")))
 
 errCompare <- CalcRelErr(smryOutputList = smryOutputList,
                          termTS = termTS,
@@ -162,9 +165,9 @@ full_join(parsOM, parsEM, by = "Label") %>%
 Biomass
 ```{r, bioSeries, echo=FALSE, warning=FALSE}
  # timeseries plot for presentation
-sampleDat <- termTS %>% filter(model_run == omName, HCR == "HCR0") %>%
-  select(Bio_smry, totCatch, year, model_run, iteration, scenario, HCR, recScen) %>%
-  group_by(year, scenario, HCR, recScen) %>%
+sampleDat <- termTS %>% filter(model_run == omName) %>%
+  select(Bio_smry, totCatch, year, model_run, iteration, scenario, HCR, nameHCR, recScen) %>%
+  group_by(year, scenario, HCR, nameHCR, recScen) %>%
   summarize(meanAge1Plus = mean(Bio_smry),
             medAge1Plus = median(Bio_smry),
             lowAge1Plus = quantile(Bio_smry, probs = 0.05, na.rm = TRUE),
@@ -182,7 +185,7 @@ termTS %>% filter(model_run == omName, HCR == "HCR0") %>%
   facet_grid(rows = vars(HCR), cols = vars(recScen)) +
   theme_classic() +
   labs(x = NULL, y = "Age 1+ Biomass (mt)",
-  caption = "Median (solid line), 80% CI (grey shaded ribbon) under a No Catch (HCR0) management rule\n for each recruitment scenario.") +
+  caption = "Median (solid line) and individual trajectories (grey lines) under a No Catch (HCR0) management rule\n for each recruitment scenario.") +
   scale_linetype_manual(values = rep("solid", 500)) +
   # scale_color_manual(values = brewer.pal(n = 5, "Pastel1")) +
   geom_line(data = sampleDat, aes(x = year, y = medAge1Plus)) +
@@ -212,7 +215,8 @@ termTS %>% filter(model_run == omName,
   facet_grid(rows = vars(iteration), cols = vars(recScen)) + 
   theme_classic() +
   geom_vline(xintercept = 2019, color = "gray", linetype = "dashed") +
-  labs(x = "Year", y = "Recruitment Deviation") +
+  labs(x = "Year", y = "Recruitment Deviation",
+       caption = "Median (solid line) and individual trajectories (grey lines) under a No Catch (HCR0) management rule\n for each recruitment scenario.") +
   theme(legend.position = "none",
         plot.caption = element_text(hjust = 0),
         plot.caption.position = "plot",
@@ -223,44 +227,59 @@ termTS %>% filter(model_run == omName,
  
 Catch
 ```{r, catSeries, echo=FALSE, warning=FALSE}
- termTS %>% filter(model_run == omName) %>%
+termTS %>% filter(model_run == omName) %>%
   ggplot(aes(x = year, y = totCatch)) +
   geom_vline(xintercept = 2019, color = "gray", linetype = "dashed") +
   geom_line(aes(linetype = as.character(iteration)), color = "grey",alpha = 0.4) +
   # geom_ribbon(aes(ymin = lowCatch, ymax = hiCatch, alpha = 0.3)) +
-  facet_grid(rows = vars(nameHCR), cols = vars(recScen)) +
   theme_classic() +
   labs(x = NULL, y = "Catch (mt)",
-  caption = "Median (solid line), 80% CI (grey shaded ribbon) under each management rule\n for each recruitment scenario.") +
+  caption = "Median (solid line) and individual trajectories (grey lines) under each HCR\n for each recruitment scenario.") +
   scale_linetype_manual(values = rep("solid", 500)) +
   # scale_color_manual(values = brewer.pal(n = 5, "Pastel1")) +
   geom_line(data = sampleDat, aes(x = year, y = medCatch)) +
   theme(legend.position = "none",
         plot.caption = element_text(hjust = 0),
         plot.caption.position = "plot",
-        strip.text.y = element_blank(),
+        # strip.text.y = element_blank(),
         panel.grid = element_blank()) +
+  facet_grid(rows = vars(nameHCR), cols = vars(recScen)) +
   geom_hline(yintercept = 200000, color = "red") +
-  coord_cartesian(ylim = c(0, 210000))
+  coord_cartesian(ylim = c(0, 250000))
 ```
  
 Unfished biomass (B0)
 ```{r, B0Series, echo=FALSE, warning=FALSE}
 # Look at timeseries of B0 and account for non-convergence
-smryOutputList$sclSmry %>% mutate(emYear = as.numeric(regmatches(model_run,
+sampB0 <- smryOutputList$sclSmry %>% mutate(emYear = as.numeric(regmatches(model_run,
                                                         gregexpr("[[:digit:]]+", 
-                                                                 model_run))))  %>%
+                                                                 model_run))),
+                         HCR = sub(pattern = ".*Rec","", scenario),
+                         recScen = sub(pattern = "HCR.*","", scenario)) %>%
+  mutate(recScen = sub(pattern = ".*EM_","", recScen),
+         nameHCR = case_when(HCR == "HCR0" ~ "NoCat",
+                                       HCR == "HCR1" ~ "PFMCF018",
+                                       HCR == "HCR2" ~ "PFMCFSST",
+                                       HCR == "HCR3" ~ "ConstF",
+                                       HCR == "HCR5" ~ "Pikitch",
+                                       HCR == "HCR6" ~ "40-10",
+                                       HCR == "HCR7" ~ "DynPik",
+                                       HCR == "HCR8" ~ "Dyn40-10",
+                                       HCR == "HCR9" ~ "Index"),
+                   recScen = factor(recScen, levels = c("ARRec", "PDOcyclRec", 
+                                                        "MICERec", "PDOclimRec",
+                                                        "RegRec", "invRegRec",
+                                                        "SSTRec")))  %>%
   filter(model_run != omName, HCR != "HCR0", max_grad < 0.01, 
-         iteration == sample(1:max(unique(termTS$iteration)), size = 10)) %>%
-  ggplot(aes(x = emYear, y = log(SSB_Unfished))) +
-  geom_line(ggplot2::aes(linetype = as.character(iteration), color = HCR))+
+         iteration == sample(1:max(unique(termTS$iteration)), size = 10)) 
+
+sampB0 %>% ggplot(aes(x = emYear, y = log(SSB_Unfished))) +
+  geom_line(aes(linetype = as.character(iteration), color = HCR))+
     #ggplot2::scale_color_manual(values = c("#D65F00", "blue")) +
-    ggplot2::scale_linetype_manual(values = rep("solid", 100)) +
-  ggplot2::guides(linetype = "none") +
-    ggplot2::facet_grid(rows = vars(nameHCR), cols = vars(recScen)) +
-    ggplot2::theme_classic() + 
-  #geom_rug(data = convrgCheck, mapping = aes(x = emYear),
-  #                     sides = "b", inherit.aes = FALSE) +
+  scale_linetype_manual(values = rep("solid", 100)) +
+  guides(linetype = "none") +
+  facet_grid(rows = vars(nameHCR), cols = vars(recScen)) +
+  theme_classic() +
   labs(x = "Year", y = "B0 (Unfished SSB)",
        caption = "Sample of estimated unfished SSB (B0) in the assessment under each management rule (rows) and each recruitment\n scenario (columns).") +
   theme(legend.position = "none",
@@ -273,20 +292,32 @@ We provide diagnostics for the fit of the EM in three iterations for the autocor
 
 Time series of OM and terminal EM estimate of age 1+ biomass with simulated data
 ```{r, exAge1PlusFit}
-termTS %>% filter(iteration %in% itSamp) %>%
-  ggplot(aes(x = Yr, y = Bio_Smry.1)) +
+obsIndx <- smryOutputList$obsCPUE %>% filter(iteration %in% itSamp,
+                                  recScen == "ARRec",
+                                  HCR == "HCR2",
+                                  model_run == "constGrowBothShort_EM_2068", seas == 1)
+
+termTS %>% filter(iteration %in% itSamp,
+                  recScen == "ARRec",
+                  HCR == "HCR2",
+                  model_run != "constGrowBothShort_EM_init") %>%
+  ggplot(aes(x = year, y = Bio_smry)) +
     ggplot2::geom_vline(xintercept = 2019, color = "gray") +
     ggplot2::geom_line(ggplot2::aes(linetype = as.character(iteration), color = model_run))+
     ggplot2::scale_color_manual(values = c("#D65F00", "blue")) +
     ggplot2::scale_linetype_manual(values = rep("solid", 50)) +
     ggplot2::guides(linetype = "none") +
+  geom_point(data = obsIndx, aes(y = obs), color = "grey", alpha = 0.4) +
     ggplot2::facet_wrap(. ~ iteration) +
     ggplot2::theme_classic()
 ```
 
 Time series of OM and terminal EM estimate of recruitment and recruitment deviations
 ```{r, exRecFit}
-termTS %>% filter(iteration %in% itSamp) %>%
+termTS %>% filter(iteration %in% itSamp,
+                  recScen == "ARRec",
+                  HCR == "HCR2",
+                  model_run != "constGrowBothShort_EM_init") %>%
   ggplot(aes(x = year, y = Value.Recr)) +
     ggplot2::geom_vline(xintercept = 2019, color = "gray") +
     ggplot2::geom_line(ggplot2::aes(linetype = as.character(iteration), color = model_run))+
@@ -299,17 +330,28 @@ termTS %>% filter(iteration %in% itSamp) %>%
 
 Histograms of age composition
 ```{r, compCompare}
-ageComp %>% filter(iteration %in% itSamp) %>%
-  ggplot() +
-  geom_hist() +
-  facet_grid(rows = iteration, cols = model_run)
+# ageComp %>% filter(iteration %in% itSamp,
+#                    recScen == "ARRec",
+#                   HCR == "HCR2",
+#                   model_run != "constGrowBothShort_EM_init") %>%
+#   ggplot(aes(x = Yr, y = All_exp_mean)) +
+#     ggplot2::geom_vline(xintercept = 2019, color = "gray") +
+#     ggplot2::geom_line(ggplot2::aes(linetype = as.character(iteration), color = model_run))+
+#     ggplot2::scale_color_manual(values = c("#D65F00", "black", "blue")) +
+#     ggplot2::scale_linetype_manual(values = rep("solid", 50)) +
+#     ggplot2::guides(linetype = "none") +
+#     ggplot2::facet_wrap(. ~ iteration) +
+#     ggplot2::theme_classic()
 ```
 
 Evolution of relative error in age 1+ biomass, including survey index, and recruitment deviations
 ```{r, exREseries}
 # biomass error
-errCompare %>% filter(iteration %in% itSamp) %>%
-  ggplot(aes(x = Yr, y = errSmryBio)) +
+errCompare %>% filter(iteration %in% itSamp,
+                   recScen == "ARRec",
+                  HCR == "HCR2",
+                  model_run.x == "constGrowBothShort_EM_2068") %>%
+  ggplot(aes(x = year, y = errSmryBio)) +
     ggplot2::geom_vline(xintercept = 2019, color = "gray") +
     geom_hline(yintercept = 0, color = "black") +
     ggplot2::geom_line(ggplot2::aes(linetype = as.character(iteration), color = 2))+
@@ -336,11 +378,7 @@ annualRE <- errCompare %>% filter(year <= emYear.x | plotGroup == "ATsurvey") %>
             q3YrRE = quantile(errSmryBio, probs = 0.75),
             nErrs = n())
 
-annualRE %>% filter(plotGroup != "non-convrg", HCR == "HCR2",
-                    recScen %in% refScens) %>%
-  mutate(recScen = factor(recScen, levels = c("ARRec", "MICERec",
-                                              "PDOcyclRec", "PDOclimRec",
-                                              "RegRec", "SSTRec"))) %>%
+annualRE %>% filter(plotGroup != "non-convrg", HCR == "HCR2") %>%
   ggplot(aes(x = year, fill = recScen, group = year)) +
   geom_boxplot(aes(ymin = loYrRE, lower = q1YrRE, middle = medYrRE, 
                    upper = q3YrRE, ymax = hiYrRE),
@@ -348,7 +386,7 @@ annualRE %>% filter(plotGroup != "non-convrg", HCR == "HCR2",
   facet_wrap(~recScen, ncol = 2) +
   geom_hline(yintercept = 0) +
   theme_classic() +
-  scale_fill_manual(values = brewer.pal(6, "Set2")[c(1,3,2,4:6)]) +
+  scale_fill_manual(values = brewer.pal(7, "Set2")[c(1,3,2,4:7)]) +
   theme(#axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
         legend.position = "none") +
   labs(x = "Year", y = "Relative Error (%)") 
@@ -367,11 +405,7 @@ annualRE <- errCompare %>% filter(year == emYear.x + 1 | plotGroup == "ATsurvey"
             q3YrRE = quantile(errSmryBio, probs = 0.75),
             nErrs = n())
 
-annualRE %>% filter(plotGroup != "non-convrg", HCR == "HCR2",
-                    recScen %in% refScens) %>%
-  mutate(recScen = factor(recScen, levels = c("ARRec", "MICERec",
-                                              "PDOcyclRec", "PDOclimRec",
-                                              "RegRec", "SSTRec"))) %>%
+annualRE %>% filter(plotGroup != "non-convrg", HCR == "HCR2") %>%
   ggplot(aes(x = year, fill = recScen, group = year)) +
   geom_boxplot(aes(ymin = loYrRE, lower = q1YrRE, middle = medYrRE, 
                    upper = q3YrRE, ymax = hiYrRE),
@@ -379,7 +413,7 @@ annualRE %>% filter(plotGroup != "non-convrg", HCR == "HCR2",
   facet_wrap(~recScen, ncol = 2) +
   geom_hline(yintercept = 0) +
   theme_classic() +
-  scale_fill_manual(values = brewer.pal(6, "Set2")[c(1,3,2,4:6)]) +
+  scale_fill_manual(values = brewer.pal(7, "Set2")[c(1,3,2,4:7)]) +
   theme(#axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
         legend.position = "none") +
   labs(x = "Year", y = "Relative Error (%)") 
@@ -391,7 +425,7 @@ metricsTbl %>% filter(!is.na(frqNonConvg)) %>%
   group_by(HCR, recScen) %>%
   summarize(maxNonConvrg = max(frqNonConvg, na.rm = TRUE), 
             minNonConvrg = min(frqNonConvg, na.rm = TRUE)) %>%
-  print(n = 28)
+  print(n = 50)
 ```
 
 ## Performance metrics by scenario
@@ -466,28 +500,92 @@ bioCat <- age1PlusBio %>% full_join(y = ssbBio,
             pivot_longer(cols = c(totCatch, posTotCatch, Value.SSB, Bio_smry),
                          names_to = "Metric",
                          values_to = "biomass_mt") %>%
-            filter(recScen %in% c("ARRec", "PDOclimRec",
-                                  "PDOcyclRec", "MICERec")) %>%
-            group_by(Metric, nameHCR) %>%
+            group_by(Metric, nameHCR, recScen) %>%
             summarize(mean = mean(biomass_mt, na.rm = TRUE),
                       median = median(biomass_mt, na.rm = TRUE),
                       hi95 = quantile(biomass_mt, probs = 0.95, na.rm = TRUE),
                       low05 = quantile(biomass_mt, probs = 0.05, na.rm = TRUE),
                       sd = sd(biomass_mt, na.rm = TRUE))
 
+# Calculate relative biomass and catch metrics
+annualRelBioCat <- CalcRelMetric(metricData = termTS %>% 
+                                   filter(year > 2019, year != 2070,
+                                          model_run == omName), 
+                                 metricCol = "Bio_smry") %>%
+                      full_join(y = CalcRelMetric(metricData = termTS %>% 
+                                                    filter(year > 2019, 
+                                                           year != 2070,
+                                                           model_run == omName), 
+                                                  metricCol = "totCatch"),
+                                by = c("Bio_smry", "rec_dev", "year", "Seas", 
+                                       "model_run", "iteration", "scenario", 
+                                       "HCR", "recScen", "nameHCR", "totCatch",  
+                                       "Value.Recr", "Value.SSB", "emYear")) %>%
+                      select(!contains("Metric"))
+annualRelBioCat %>% 
+  group_by(nameHCR, recScen) %>%
+  summarize(meanRelBio = mean(relBio_smryMean),
+            medRelBio = median(relBio_smryMean),
+            hiRelBio = quantile(relBio_smryMean, probs = 0.95),
+            loRelBio = quantile(relBio_smryMean, probs = 0.05),
+            q1RelBio = quantile(relBio_smryMean, probs = 0.25),
+            q3RelBio = quantile(relBio_smryMean, probs = 0.75),
+            nRelBio = n()) %>% 
+  ggplot(aes(x = nameHCR, fill = nameHCR)) +
+  geom_boxplot(aes(ymin = loRelBio, lower = q1RelBio, middle = medRelBio, 
+                   upper = q3RelBio, ymax = hiRelBio),
+               stat = "identity", position = position_dodge(0.95)) +
+  # ggplot(aes(x = HCR, y = relAnnBioMax)) +
+  # #geom_hline(yintercept = c(50000, 150000), color = "red") +
+  # # geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
+  # geom_boxplot(aes(fill = HCR), outlier.shape = NA) +
+  # coord_cartesian(ylim = c(0,2.5)) +
+  # geom_jitter(aes(color = recScen, alpha = 0.03)) +
+  facet_wrap(~recScen, scales = "free") +
+  theme_minimal() +
+  scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1),
+        legend.position = "none") +
+  labs(y = "Annual Age1+ Biomass:Mean", x = "HCR")
+
+annualRelBioCat %>% 
+  group_by(nameHCR, recScen) %>%
+  summarize(meanRelBio = mean(reltotCatchMean),
+            medRelBio = median(reltotCatchMean),
+            hiRelBio = quantile(reltotCatchMean, probs = 0.95),
+            loRelBio = quantile(reltotCatchMean, probs = 0.05),
+            q1RelBio = quantile(reltotCatchMean, probs = 0.25),
+            q3RelBio = quantile(reltotCatchMean, probs = 0.75),
+            nRelBio = n()) %>% 
+  ggplot(aes(x = nameHCR, fill = nameHCR)) +
+  geom_boxplot(aes(ymin = loRelBio, lower = q1RelBio, middle = medRelBio, 
+                   upper = q3RelBio, ymax = hiRelBio),
+               stat = "identity", position = position_dodge(0.95)) +
+  # ggplot(aes(x = HCR, y = relAnnBioMax)) +
+  # #geom_hline(yintercept = c(50000, 150000), color = "red") +
+  # # geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
+  # geom_boxplot(aes(fill = HCR), outlier.shape = NA) +
+  # coord_cartesian(ylim = c(0,2.5)) +
+  # geom_jitter(aes(color = recScen, alpha = 0.03)) +
+  facet_wrap(~recScen, scales = "free") +
+  theme_minimal() +
+  scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1),
+        legend.position = "none") +
+  labs(y = "Annual Catch:Mean", x = "HCR")
 ```
 
 - Tradeoff plot
 ```{r, bioCatTradeoff}
-termTS %>% filter(model_run == omName, year > 2019) %>%
-  ggplot(aes(x = log(Bio_smry), y = log(totCatch), color = HCR)) +
+annualRelBioCat %>% filter(model_run == omName, year > 2019) %>%
+  ggplot(aes(x = relBio_smryMean, y = reltotCatchMean, color = HCR)) +
   geom_point() +
   facet_wrap(~recScen) + 
   theme_minimal() +
   scale_color_manual(values = hcrPal, labels = hcrLabels) +
-  labs(y = "Catch (log-mt)", x = "Age1+ Biomass (log-mt)",
+  labs(y = "Catch:Mean", x = "Age1+ Biomass:Mean",
        title = "Annual Biomass x Annual Catch",
-       caption = "Interaction between annual log-catch and annual log-Age1+ biomass under each HCR (colored points) in each recruitment scenario.") +
+       caption = "Interaction between annual catch and annual Age1+ biomass under each HCR (colored points) in each recruitment scenario.") +
   theme(plot.caption = element_text(hjust = 0),
         plot.caption.position = "plot") 
 ```
@@ -533,14 +631,14 @@ metricsTbl <- metricsTbl %>% left_join(y = rebuildTime,
 performanceList$tsSmry %>% filter(closureLength == 50) %>% group_by(HCR, recScen)%>% summarize(nvrRebuiltN = n())
 # only 1 iteration in reference set didn't rebuild (iter 77) except under HCR1
 
-rebuild <- rebuildTime %>% 
+metricsTbl %>% 
   group_by(nameHCR, recScen) %>%
-  summarize(meanRebuild = mean(meanRebuildTime),
-            medRebuild = median(medRebuildTime),
-            hiRebuild = quantile(medRebuildTime, probs = 0.95),
-            loRebuild = quantile(medRebuildTime, probs = 0.05),
-            q1Rebuild = quantile(medRebuildTime, probs = 0.25),
-            q3Rebuild = quantile(medRebuildTime, probs = 0.75),
+  summarize(meanRebuild = mean(meanRebuildTime, na.rm = TRUE),
+            medRebuild = median(medRebuildTime, na.rm = TRUE),
+            hiRebuild = quantile(medRebuildTime, probs = 0.95, na.rm = TRUE),
+            loRebuild = quantile(medRebuildTime, probs = 0.05, na.rm = TRUE),
+            q1Rebuild = quantile(medRebuildTime, probs = 0.25, na.rm = TRUE),
+            q3Rebuild = quantile(medRebuildTime, probs = 0.75, na.rm = TRUE),
             nRebuild = n()) %>% 
   ggplot(aes(x = nameHCR, fill = nameHCR)) +
   geom_boxplot(aes(ymin = loRebuild, lower = q1Rebuild, middle = medRebuild, 
@@ -548,26 +646,30 @@ rebuild <- rebuildTime %>%
                stat = "identity") +
   # ggplot(aes(x = HCR, y = meanRebuildTime)) +
   # geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
-  #facet_wrap(~recScen, scales = "free") + 
+  facet_wrap(~recScen, scales = "free") +
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   labs(y = "Mean Rebuilding Time (yrs)", x = "HCR")
 
-rebuildTime %>%  
-  ggplot(aes(x = HCR, y = nClosures)) +
-  geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
-  #facet_wrap(~recScen, scales = "free") + 
+metricsTbl %>% 
+  group_by(nameHCR, recScen) %>%
+  summarize(meanRebuild = mean(nClosures, na.rm = TRUE),
+            medRebuild = median(nClosures, na.rm = TRUE),
+            hiRebuild = quantile(nClosures, probs = 0.95, na.rm = TRUE),
+            loRebuild = quantile(nClosures, probs = 0.05, na.rm = TRUE),
+            q1Rebuild = quantile(nClosures, probs = 0.25, na.rm = TRUE),
+            q3Rebuild = quantile(nClosures, probs = 0.75, na.rm = TRUE),
+            nRebuild = n()) %>% 
+  ggplot(aes(x = nameHCR, fill = nameHCR)) +
+  geom_boxplot(aes(ymin = loRebuild, lower = q1Rebuild, middle = medRebuild, 
+                   upper = q3Rebuild, ymax = hiRebuild),
+               stat = "identity") +
+  facet_wrap(~recScen, scales = "free") +
   theme_minimal() +
-  scale_fill_manual(values = hcrPal, labels = hcrLabels) +
+  scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Number of Closures", x = "HCR")
-
-rebuildTime %>%  
-  group_by(HCR, recScen) %>%
-  summarize(meanNclose = mean(nClosures),
-            medNclose = median(nClosures),
-            high90 = quantile(nClosures, probs = 0.9))
+  labs(y = "Mean Cutoff Events (yrs)", x = "HCR")
 
 # collapse severity
 metricsTbl %>% 
@@ -585,7 +687,7 @@ metricsTbl %>%
                stat = "identity") +
   # ggplot(aes(x = HCR, y = meanCollapseSever)) +
   # geom_violin(aes(fill = HCR), draw_quantiles = c(0.1, 0.5, 0.9)) +
-  #facet_wrap(~recScen, scales = "free") + 
+  facet_wrap(~recScen, scales = "free") +
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
@@ -660,12 +762,12 @@ metricsTbl %>%
 # closure frequency
 metricsTbl %>% 
   group_by(nameHCR, recScen) %>%
-  summarize(meanFrqClos = mean(noCatFreq),
-            medFrqClos = median(noCatFreq),
-            hiFrqClos = quantile(noCatFreq, probs = 0.95),
-            loFrqClos = quantile(noCatFreq, probs = 0.05),
-            q1FrqClos = quantile(noCatFreq, probs = 0.25),
-            q3FrqClos = quantile(noCatFreq, probs = 0.75),
+  summarize(meanFrqClos = mean(nocatFreq),
+            medFrqClos = median(nocatFreq),
+            hiFrqClos = quantile(nocatFreq, probs = 0.95),
+            loFrqClos = quantile(nocatFreq, probs = 0.05),
+            q1FrqClos = quantile(nocatFreq, probs = 0.25),
+            q3FrqClos = quantile(nocatFreq, probs = 0.75),
             nFrqClos = n()) %>% 
   ggplot(aes(x = nameHCR, fill = nameHCR)) +
   geom_boxplot(aes(ymin = loFrqClos, lower = q1FrqClos, middle = medFrqClos, 
@@ -714,8 +816,6 @@ lowCatFreq %>% full_join(y = zeroCatLen,
             pivot_longer(cols = c(zeroCatFreq, lowCatFreq, zeroCatLenMax, lowCatLenMax),
                          names_to = "Metric",
                          values_to = "value") %>%
-            filter(recScen %in% c("ARRec", "PDOclimRec",
-                                  "PDOcyclRec", "MICERec")) %>%
             group_by(Metric, nameHCR) %>%
             summarize(mean = mean(value, na.rm = TRUE),
                       median = median(value, na.rm = TRUE),
@@ -723,19 +823,42 @@ lowCatFreq %>% full_join(y = zeroCatLen,
                       low05 = quantile(value, probs = 0.05, na.rm = TRUE))
 ```
 
-Table of results by scenario across iterations
-- mean
-- median
-- sd
-- 5th percentile
-- 95th percentile
+Table of results by scenario set across iterations
+```{r, metricStats}
+metricsTbl %>% full_join(y = annualRelBioCat, 
+                         by = c("model_run", "iteration", "scenario", 
+                                "HCR", "recScen", "nameHCR")) %>%
+  full_join(y = lowCatFreq,
+            by = c("model_run", "iteration", "scenario", 
+                  "HCR", "recScen", "nameHCR")) %>% 
+  full_join(y = zeroCatLen, 
+            by = c("model_run", "iteration", "scenario", 
+                   "HCR", "recScen", "nameHCR")) %>% 
+  full_join(y = lowCatLen, 
+            by = c("model_run", "iteration", "scenario", 
+                   "HCR", "recScen", "nameHCR")) %>%
+  pivot_longer(cols = c(zeroCatFreq, lowCatFreq, zeroCatLenMax, lowCatLenMax,
+                        Bio_smry, totCatch, Value.SSB, relBio_smryMean,
+                        reltotCatchMean, closuresFreq, collapseFreq, bonanzaFreq,
+                        meanCollapseSever, belowBonanzaLenMax, belowBonanzaLenMean,
+                        sdCatch, nClosures, meanRebuildTime, nCollapses,
+                        meanCollapseTime, nocatFreq),
+               names_to = "Metric",
+               values_to = "value") %>%
+            group_by(Metric, nameHCR, climGroup) %>%
+            summarize(mean = mean(value, na.rm = TRUE),
+                      median = median(value, na.rm = TRUE),
+                      SD = sd(value, na.rm = TRUE),
+                      hi95 = quantile(value, probs = 0.95, na.rm = TRUE),
+                      low05 = quantile(value, probs = 0.05, na.rm = TRUE))
+```
 
 ### Comparison of PFMC control rules by scenario
 ```{r}
 # Compare performance of HCR2 among scenarios -----------------------------
 
 annualRelBioCat %>% filter(HCR %in% c("HCR1", "HCR2")) %>%
-  pivot_longer(cols = c(relAnnBioMax, relAnnCatMax), names_to = "Metric",
+  pivot_longer(cols = c(relBio_smryMean, reltotCatchMean), names_to = "Metric",
                values_to = "relAnn") %>%
   group_by(recScen, HCR, Metric) %>%
   summarize(meanRel = mean(relAnn),
@@ -759,12 +882,12 @@ rebuildTime %>% filter(HCR %in% c("HCR1", "HCR2")) %>%
   pivot_longer(cols = c(nClosures, meanRebuildTime, medRebuildTime), 
                names_to = "Metric", values_to = "value") %>%
   group_by(recScen, HCR, Metric) %>%
-  summarize(meanRebuild = mean(value),
-            medRebuild = median(value),
-            hiRebuild = quantile(value, probs = 0.975),
-            loRebuild = quantile(value, probs = 0.025),
-            q1Rebuild = quantile(value, probs = 0.25),
-            q3Rebuild = quantile(value, probs = 0.75),
+  summarize(meanRebuild = mean(value, na.rm = TRUE),
+            medRebuild = median(value, na.rm = TRUE),
+            hiRebuild = quantile(value, probs = 0.975, na.rm = TRUE),
+            loRebuild = quantile(value, probs = 0.025, na.rm = TRUE),
+            q1Rebuild = quantile(value, probs = 0.25, na.rm = TRUE),
+            q3Rebuild = quantile(value, probs = 0.75, na.rm = TRUE),
             nRebuild = n()) %>% 
   ggplot(aes(x = recScen, fill = HCR)) +
   geom_boxplot(aes(ymin = loRebuild, lower = q1Rebuild, middle = medRebuild, 
@@ -777,7 +900,9 @@ rebuildTime %>% filter(HCR %in% c("HCR1", "HCR2")) %>%
 
 metricsTbl %>% filter(HCR %in% c("HCR1", "HCR2")) %>% 
   pivot_longer(cols = c(closuresFreq, collapseFreq, bonanzaFreq, 
-                        meanCollapseSever, rebuildLengthMax), 
+                        meanCollapseSever,
+                        sdCatch, nCollapses,
+                        meanCollapseTime, nocatFreq), 
                names_to = "Metric", values_to = "value") %>%
   group_by(recScen, HCR, Metric) %>%
   summarize(meanRebuild = mean(value),
@@ -856,7 +981,7 @@ confErr <- termRE %>% filter(plotGroup != "non-convrg") %>%
                                               "RegRec", "SSTRec", "invRegRec")))
 
 # confusion table for cutoff discrimination
-confErr %>% filter(nAssess, closeTruePos, closeFalsePos, closeTrueNeg, closeFalseNeg, 
+confErr %>% select(nAssess, closeTruePos, closeFalsePos, closeTrueNeg, closeFalseNeg, 
                    nClose, closeErrRate, closeFalsePosRate, closeFalseNegRate,
                    nameHCR, recScen)
 ```
@@ -864,7 +989,7 @@ confErr %>% filter(nAssess, closeTruePos, closeFalsePos, closeTrueNeg, closeFals
 - Discrimination at collapse threshold (50,000 mt)
 ```{r, collapseConf}
 # confusion table for collapse discrimination
-confErr %>% filter(nAssess, collapseTruePos, collapseFalsePos, collapseTrueNeg, collapseFalseNeg, 
+confErr %>% select(nAssess, collapseTruePos, collapseFalsePos, collapseTrueNeg, collapseFalseNeg, 
                    nCollapse, collapseErrRate, collapseFalsePosRate, collapseFalseNegRate,
                    nameHCR, recScen)
 ```
