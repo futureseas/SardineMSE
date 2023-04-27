@@ -2,10 +2,14 @@
 title: "SardineMSE_SupplInfo"
 author: "Robert Wildermuth"
 date: "11/4/2022"
-output: pdf_document
+output: 
+  pdf_document:
+    toc: true
+    toc_depth: 3
 ---
 # Evaluating robustness of harvest control rules to climate-driven variability in Pacific sardine recruitment
 Robert P. Wildermuth^1,2^, Desiree Tommasi^1,2^, Peter Kuriyama^2^, James Smith^1,2^, and Isaac Kaplan^3^
+
 ^1^ University of California, Santa Cruz, Institute of Marine Sciences’ Fisheries Collaborative Program, 1156 High Street, Santa Cruz, California 95064, U.S.A.
 ^2^ Fisheries Research Division, Southwest Fisheries Science Center, National Marine Fisheries Service, National Oceanic and Atmospheric Administration, 8901 La Jolla Shores Drive, La Jolla, California 92037, U.S.A.
 ^3^ Conservation Biology Division, Northwest Fisheries Science Center, National Marine Fisheries Service, National Oceanic and Atmospheric Administration, 2725 Montlake Boulevard, East Seattle, Washington 98112, U.S.A.
@@ -13,7 +17,15 @@ Robert P. Wildermuth^1,2^, Desiree Tommasi^1,2^, Peter Kuriyama^2^, James Smith^
 **Supplementary Information: Tables and Figures**
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE,
+                      warning = FALSE,
+                      message = FALSE)
+```
+
+```{css}
+d-title {
+    display: none;
+  }
 ```
 
 ```{r, echo=FALSE, warning=FALSE}
@@ -125,9 +137,9 @@ popAgeComp <- ageComp %>% filter(recScen %in% c("ARRec", "PDOclimRec",
 
 ### Stock Synthesis model parameterization
 
-- Fit of OM to historical acoustic-trawl index and comparison of age 1+ biomass timeseries by season with Kuriyama et al. 2020 assessment. 
+Fit of OM to historical acoustic-trawl index and comparison of age 1+ biomass timeseries by semester with Kuriyama et al. 2020 assessment. 
 
-```{r, kuriyamaFit, echo=FALSE, warning=FALSE}
+```{r, kuriyamaFit, echo=FALSE, warning=FALSE, fig.cap="Figure S1: Fit of OM Stock Synthesis model (solid line) to acoustic-trawl survey data in calibration period."}
 # read in 2020 assessment files and plot fit
 assessment2020 <- read_csv(file.path(localPath, "SardineMSE/dat/Kuriyamaetal2020_SmryBiobasemodel.csv")) %>%
                     mutate(model = "2020assessment") 
@@ -136,13 +148,18 @@ mseOM <- SS_output(file.path(localPath,
                              "SardineMSE/scenarioModels/start2001/constGrowthMidSteepNewSelex_OM"),
                    verbose = FALSE, printstats = FALSE)
 SSplotIndices(mseOM, subplots = 2, fleets = 4)
+```
 
+```{r, kuriyamaComare}
 mseOM$timeseries %>% select(Yr, Seas, Bio_smry) %>%
   mutate(model = "OM") %>%
   rbind(assessment2020) %>%
   ggplot(aes(x = Yr, y = Bio_smry, col = model)) +
   geom_line() +
-  facet_wrap(~Seas)
+  facet_wrap(~Seas) +
+  theme_minimal() +
+  labs(caption = "Figure S2: Age 1+ biomass in the calibration period for the OM compared to estimated biomass from the Kuriyama et al. (2020) stock assessment for each semester (S1: left, S2: right).",
+       x = "Year", y = "Age 1+ biomass (mt)")
 ```
 
 Table of model parameters for OM and EM Stock Synthesis models, including phase estimation settings for the EM.
@@ -155,15 +172,20 @@ mseEM <- SS_output(file.path(localPath,
                    verbose = FALSE, printstats = FALSE)
 parsEM <- mseEM$parameters %>% select(Label, Value, Phase)
 
-full_join(parsOM, parsEM, by = "Label") %>% 
-  rename(OM_Value = Value.x,
-         EM_Value = Value.y,
-         EM_Phase = Phase)
+kable(x = full_join(parsOM, parsEM, by = "Label") %>% 
+              rename(OM_Value = Value.x,
+                     EM_Value = Value.y,
+                     EM_Phase = Phase),
+      digits = 3,
+      caption = "Table S1: Stock Synthesis model parameters defined for OM and EM models.")
+
 ```
 
-###Timeseries of derived quantities for each scenario
+### Timeseries of derived quantities for each scenario
+
 Biomass
-```{r, bioSeries, echo=FALSE, warning=FALSE}
+
+```{r, bioSeries, echo=FALSE, warning=FALSE, out.height='90%'}
  # timeseries plot for presentation
 sampleDat <- termTS %>% filter(model_run == omName) %>%
   select(Bio_smry, totCatch, year, model_run, iteration, scenario, HCR, nameHCR, recScen) %>%
@@ -185,7 +207,7 @@ termTS %>% filter(model_run == omName, HCR == "HCR0") %>%
   facet_grid(rows = vars(HCR), cols = vars(recScen)) +
   theme_classic() +
   labs(x = NULL, y = "Age 1+ Biomass (mt)",
-  caption = "Median (solid line) and individual trajectories (grey lines) under a No Catch (HCR0) management rule\n for each recruitment scenario.") +
+  caption = "Figure S3: Median (solid line) and individual trajectories (grey lines) under a No Catch (HCR0) management rule\n for each recruitment scenario.") +
   scale_linetype_manual(values = rep("solid", 500)) +
   # scale_color_manual(values = brewer.pal(n = 5, "Pastel1")) +
   geom_line(data = sampleDat, aes(x = year, y = medAge1Plus)) +
@@ -200,8 +222,9 @@ termTS %>% filter(model_run == omName, HCR == "HCR0") %>%
 ```
  
 Recruitment
-```{r, recSeries, echo=FALSE, warning=FALSE}
-itSamp <- sample(unique(termTS$iteration), size = 3)
+
+```{r, recSeries, echo=FALSE, warning=FALSE, out.height='90%'}
+itSamp <- sample(unique(termTS$iteration), size = 6)
 
 termTS %>% filter(model_run == omName,
                   HCR == "HCR0", iteration %in% itSamp) %>%
@@ -216,7 +239,7 @@ termTS %>% filter(model_run == omName,
   theme_classic() +
   geom_vline(xintercept = 2019, color = "gray", linetype = "dashed") +
   labs(x = "Year", y = "Recruitment Deviation",
-       caption = "Median (solid line) and individual trajectories (grey lines) under a No Catch (HCR0) management rule\n for each recruitment scenario.") +
+       caption = "Figure S4: Six individual trajectories under a No Catch (HCR0) management rule for each recruitment scenario.") +
   theme(legend.position = "none",
         plot.caption = element_text(hjust = 0),
         plot.caption.position = "plot",
@@ -226,7 +249,8 @@ termTS %>% filter(model_run == omName,
 ```
  
 Catch
-```{r, catSeries, echo=FALSE, warning=FALSE}
+
+```{r, catSeries, echo=FALSE, warning=FALSE, out.height='90%'}
 termTS %>% filter(model_run == omName) %>%
   ggplot(aes(x = year, y = totCatch)) +
   geom_vline(xintercept = 2019, color = "gray", linetype = "dashed") +
@@ -234,7 +258,7 @@ termTS %>% filter(model_run == omName) %>%
   # geom_ribbon(aes(ymin = lowCatch, ymax = hiCatch, alpha = 0.3)) +
   theme_classic() +
   labs(x = NULL, y = "Catch (mt)",
-  caption = "Median (solid line) and individual trajectories (grey lines) under each HCR\n for each recruitment scenario.") +
+  caption = "Figure S5: Median (solid line) and individual trajectories (grey lines) under each HCR\n for each recruitment scenario.") +
   scale_linetype_manual(values = rep("solid", 500)) +
   # scale_color_manual(values = brewer.pal(n = 5, "Pastel1")) +
   geom_line(data = sampleDat, aes(x = year, y = medCatch)) +
@@ -249,7 +273,8 @@ termTS %>% filter(model_run == omName) %>%
 ```
  
 Unfished biomass (B0)
-```{r, B0Series, echo=FALSE, warning=FALSE}
+
+```{r, B0Series, echo=FALSE, warning=FALSE, out.height='50%'}
 # Look at timeseries of B0 and account for non-convergence
 sampB0 <- smryOutputList$sclSmry %>% mutate(emYear = as.numeric(regmatches(model_run,
                                                         gregexpr("[[:digit:]]+", 
@@ -281,7 +306,7 @@ sampB0 %>% ggplot(aes(x = emYear, y = log(SSB_Unfished))) +
   facet_grid(rows = vars(nameHCR), cols = vars(recScen)) +
   theme_classic() +
   labs(x = "Year", y = "B0 (Unfished SSB)",
-       caption = "Sample of estimated unfished SSB (B0) in the assessment under each management rule (rows) and each recruitment\n scenario (columns).") +
+       caption = "Figure S6: Sample of estimated unfished SSB (B0) in the assessment under each management rule (rows) and each recruitment\n scenario (columns).") +
   theme(legend.position = "none",
         plot.caption = element_text(hjust = 0),
         plot.caption.position = "plot")
@@ -291,7 +316,7 @@ sampB0 %>% ggplot(aes(x = emYear, y = log(SSB_Unfished))) +
 We provide diagnostics for the fit of the EM in three iterations for the autocorrelated recruitment scenario and SST-based HCR application. 
 
 Time series of OM and terminal EM estimate of age 1+ biomass with simulated data
-```{r, exAge1PlusFit}
+```{r, exAge1PlusFit, out.height='90%'}
 obsIndx <- smryOutputList$obsCPUE %>% filter(iteration %in% itSamp,
                                   recScen == "ARRec",
                                   HCR == "HCR2",
@@ -306,14 +331,17 @@ termTS %>% filter(iteration %in% itSamp,
     ggplot2::geom_line(ggplot2::aes(linetype = as.character(iteration), color = model_run))+
     ggplot2::scale_color_manual(values = c("#D65F00", "blue")) +
     ggplot2::scale_linetype_manual(values = rep("solid", 50)) +
+  scale_fill_discrete(labels = c('Terminal EM estimate', 'OM')) +
     ggplot2::guides(linetype = "none") +
   geom_point(data = obsIndx, aes(y = obs), color = "grey", alpha = 0.4) +
     ggplot2::facet_wrap(. ~ iteration) +
-    ggplot2::theme_classic()
+    ggplot2::theme_classic() +
+  labs(caption = "Figure S7: Age 1+ biomass in the OM (blue) and in terminal years of each EM assessment (orange) for a set of six iterations in the autocorrelated recruitment scenario and PFMCFSST HCR. Grey points are simulated acoustic-trawl survey indices provided to the EM.")
 ```
 
 Time series of OM and terminal EM estimate of recruitment and recruitment deviations
-```{r, exRecFit}
+
+```{r, exRecFit, out.height='90%'}
 termTS %>% filter(iteration %in% itSamp,
                   recScen == "ARRec",
                   HCR == "HCR2",
@@ -323,9 +351,11 @@ termTS %>% filter(iteration %in% itSamp,
     ggplot2::geom_line(ggplot2::aes(linetype = as.character(iteration), color = model_run))+
     ggplot2::scale_color_manual(values = c("#D65F00", "black", "blue")) +
     ggplot2::scale_linetype_manual(values = rep("solid", 50)) +
+    scale_fill_discrete(labels = c('Terminal EM estimate', 'OM')) +
     ggplot2::guides(linetype = "none") +
     ggplot2::facet_wrap(. ~ iteration) +
-    ggplot2::theme_classic()
+    ggplot2::theme_classic() +
+  labs(caption = "Figure S8: Recruit abundance in the OM (black) and in terminal years of each EM assessment (orange) for a set of six iterations in the autocorrelated recruitment scenario and PFMCFSST HCR.")
 ```
 
 Histograms of age composition
@@ -341,11 +371,12 @@ Histograms of age composition
 #     ggplot2::scale_linetype_manual(values = rep("solid", 50)) +
 #     ggplot2::guides(linetype = "none") +
 #     ggplot2::facet_wrap(. ~ iteration) +
-#     ggplot2::theme_classic()
+#     ggplot2::theme_classic() +
+  # labs(caption = "Figure S9: ")
 ```
 
 Evolution of relative error in age 1+ biomass, including survey index, and recruitment deviations
-```{r, exREseries}
+```{r, exREseries, out.height='90%'}
 # biomass error
 errCompare %>% filter(iteration %in% itSamp,
                    recScen == "ARRec",
@@ -360,13 +391,15 @@ errCompare %>% filter(iteration %in% itSamp,
     ggplot2::guides(linetype = "none") +
     ggplot2::facet_wrap(. ~ iteration) +
     ggplot2::theme_classic() +
-    ylab("Relative Error (Summary Biomass)")
+    ylab("Relative Error (Summary Biomass)") +
+  labs(caption = "Figure S10: Relative error (%) between terminal year estimates of age 1+ biomass in the EM (blue) and the OM (black)") +
+  theme(legend.position = "none")
 
 # !!RW: need to workshop recruitment error
 ```
 
-- Relative error of EM over all assessment years (similar to Fig 5)
-```{r, REallyrs}
+Relative error of EM over all assessment years (similar to Fig 5)
+```{r, REallyrs, out.height='90%'}
 annualRE <- errCompare %>% filter(year <= emYear.x | plotGroup == "ATsurvey") %>%
   select(age1plusEM, age1plusOM, errSmryBio, year, model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
   group_by(year,  scenario, HCR, recScen, plotGroup) %>%#iteration,
@@ -389,11 +422,12 @@ annualRE %>% filter(plotGroup != "non-convrg", HCR == "HCR2") %>%
   scale_fill_manual(values = brewer.pal(7, "Set2")[c(1,3,2,4:7)]) +
   theme(#axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
         legend.position = "none") +
-  labs(x = "Year", y = "Relative Error (%)") 
+  labs(x = "Year", y = "Relative Error (%)")  +
+  labs(caption = "Figure S11: Relative assessment error in all years of the Stock Synthesis estimation model for each reference recruitment scenario under PFMCFSST. Individual boxplots represent error between the assessment estimate of age 1+ biomass for that year and the operating model biomass across iterations. In each plot, the center horizontal bar is the median, hinges represent the 25% and 75% quartiles and whiskers are the upper and lower 95% confidence intervals.")
 ```
 
-- Relative error of EM in forecast
-```{r, REforecast}
+Relative error of EM in forecast
+```{r, REforecast, out.height='90%'}
 annualRE <- errCompare %>% filter(year == emYear.x + 1 | plotGroup == "ATsurvey") %>%
   select(age1plusEM, age1plusOM, errSmryBio, year, model_run.x, iteration, scenario, HCR, recScen, plotGroup) %>%
   group_by(year,  scenario, HCR, recScen, plotGroup) %>%#iteration,
@@ -416,23 +450,25 @@ annualRE %>% filter(plotGroup != "non-convrg", HCR == "HCR2") %>%
   scale_fill_manual(values = brewer.pal(7, "Set2")[c(1,3,2,4:7)]) +
   theme(#axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
         legend.position = "none") +
-  labs(x = "Year", y = "Relative Error (%)") 
+  labs(x = "Year", y = "Relative Error (%)") +
+  labs(caption = "Figure S12: Relative assessment error in the forecast year (following the terminal assessment year) of the Stock Synthesis estimation model for each reference recruitment scenario under PFMCFSST. Individual boxplots represent error between the assessment estimate of age 1+ biomass for that year and the operating model biomass across iterations. In each plot, the center horizontal bar is the median, hinges represent the 25% and 75% quartiles and whiskers are the upper and lower 95% confidence intervals.")
 ```
 
-- EM convergence statistics
+EM convergence statistics
 ```{r, cnvrg}
-metricsTbl %>% filter(!is.na(frqNonConvg)) %>% 
-  group_by(HCR, recScen) %>%
-  summarize(maxNonConvrg = max(frqNonConvg, na.rm = TRUE), 
-            minNonConvrg = min(frqNonConvg, na.rm = TRUE)) %>%
-  print(n = 50)
+kable(x = metricsTbl %>% filter(!is.na(frqNonConvg)) %>% 
+            group_by(HCR, recScen) %>%
+            summarize(maxNonConvrg = max(frqNonConvg, na.rm = TRUE), 
+                      minNonConvrg = min(frqNonConvg, na.rm = TRUE)),
+      digits = 3,
+      caption = "Table S2: Maximum and minimum frequency of non-converged EM fits for each HCR and recruitment scenario.")
 ```
 
 ## Performance metrics by scenario
 
 Biomass and Catch metrics
 
-```{r}
+```{r, bioCat, out.height='90%'}
 age1PlusBio <- smryOutputList$tsSmry %>% filter(year > 2019, Seas == 1,
                                                 model_run == omName) %>% 
                 mutate(HCR = sub(pattern = ".*Rec","", scenario),
@@ -546,7 +582,8 @@ annualRelBioCat %>%
   scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
   theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1),
         legend.position = "none") +
-  labs(y = "Annual Age1+ Biomass:Mean", x = "HCR")
+  labs(y = "Annual Age1+ Biomass:Mean", x = "HCR",
+       caption = "Figure S13: Annual age 1+ biomass relative to the mean within each recruitment scenario for each HCR. The horizontal bar indicates the median value and whiskers are the central 95th percentiles among samples for each metric.")
 
 annualRelBioCat %>% 
   group_by(nameHCR, recScen) %>%
@@ -572,26 +609,28 @@ annualRelBioCat %>%
   scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
   theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1),
         legend.position = "none") +
-  labs(y = "Annual Catch:Mean", x = "HCR")
+  labs(y = "Annual Catch:Mean", x = "HCR",
+       caption = "Figure S14: Annual catch relative to the mean within each recruitment scenario for each HCR. The horizontal bar indicates the median value and whiskers are the central 95th percentiles among samples for each metric.")
 ```
 
 - Tradeoff plot
-```{r, bioCatTradeoff}
+```{r, bioCatTradeoff, out.height='90%'}
 annualRelBioCat %>% filter(model_run == omName, year > 2019) %>%
+  slice_sample(prop = 0.3, replace = FALSE) %>%
   ggplot(aes(x = relBio_smryMean, y = reltotCatchMean, color = HCR)) +
-  geom_point() +
-  facet_wrap(~recScen) + 
+  geom_point(alpha = 0.1) +
+  facet_wrap(~recScen, scales = "free_y") + 
   theme_minimal() +
   scale_color_manual(values = hcrPal, labels = hcrLabels) +
   labs(y = "Catch:Mean", x = "Age1+ Biomass:Mean",
        title = "Annual Biomass x Annual Catch",
-       caption = "Interaction between annual catch and annual Age1+ biomass under each HCR (colored points) in each recruitment scenario.") +
+       caption = "Figure S15: Interaction between annual catch and annual age 1+ biomass under each HCR (colored points) in each recruitment scenario.") +
   theme(plot.caption = element_text(hjust = 0),
         plot.caption.position = "plot") 
 ```
 
 Other metrics
-```{r}
+```{r, fshryMetrics, out.height='90%'}
 # Calculate rebuilding
 rebuildTime <- CalcRebuildTime(tsSmry = performanceList$tsSmry) %>% 
                   mutate(nameHCR = case_when(HCR == "HCR0" ~ "NoCat",
@@ -628,7 +667,13 @@ metricsTbl <- metricsTbl %>% left_join(y = rebuildTime,
 
 # rebuilding time
 # look at how many iterations never rebuilt
-performanceList$tsSmry %>% filter(closureLength == 50) %>% group_by(HCR, recScen)%>% summarize(nvrRebuiltN = n())
+kable(x = performanceList$tsSmry %>% filter(closureLength == 50) %>% 
+            group_by(HCR, recScen) %>% 
+            summarize(nvrRebuiltN = n()),
+      digits = 3,
+      caption = "Table S3: Number of iterations in which age 1+ biomass did not rebuild after 50 years.")  
+
+
 # only 1 iteration in reference set didn't rebuild (iter 77) except under HCR1
 
 metricsTbl %>% 
@@ -649,8 +694,10 @@ metricsTbl %>%
   facet_wrap(~recScen, scales = "free") +
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Mean Rebuilding Time (yrs)", x = "HCR")
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.position = "none") +
+  labs(y = "Mean Rebuilding Time (yrs)", x = "HCR",
+       caption = "Figure S16: Mean number of years needed to rebuild biomass above the 150,000 mt cutoff threshold within each recruitment scenario for each HCR. The horizontal bar indicates the median value and whiskers are the central 95th percentiles among samples for each metric.")
 
 metricsTbl %>% 
   group_by(nameHCR, recScen) %>%
@@ -668,8 +715,10 @@ metricsTbl %>%
   facet_wrap(~recScen, scales = "free") +
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Mean Cutoff Events (yrs)", x = "HCR")
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.position = "none") +
+  labs(y = "Mean Cutoff Events (yrs)", x = "HCR",
+       caption = "Figure S17: Mean number of cutoff events within each recruitment scenario for each HCR. The horizontal bar indicates the median value and whiskers are the central 95th percentiles among samples for each metric.")
 
 # collapse severity
 metricsTbl %>% 
@@ -690,8 +739,10 @@ metricsTbl %>%
   facet_wrap(~recScen, scales = "free") +
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Collapse severity", x = "HCR")
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.position = "none") +
+  labs(y = "Collapse severity", x = "HCR",
+       caption = "Figure S18: Mean collapse severity within each recruitment scenario for each HCR. The horizontal bar indicates the median value and whiskers are the central 95th percentiles among samples for each metric.")
 
 # Catch variation
 metricsTbl %>%  filter(HCR != "HCR0") %>%
@@ -712,8 +763,10 @@ metricsTbl %>%  filter(HCR != "HCR0") %>%
   facet_wrap(~recScen, scales = "free") +
   theme_minimal() +
   scale_fill_manual(values = hcrPal[-1], labels = hcrLabels[-1], name = "HCR") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Catch SD (mt)", x = "HCR")
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.position = "none") +
+  labs(y = "Catch SD (mt)", x = "HCR",
+       caption = "Figure S19: Catch variability within each recruitment scenario for each HCR. The horizontal bar indicates the median value and whiskers are the central 95th percentiles among samples for each metric.")
 
 # cutoff frequency
 metricsTbl %>% 
@@ -734,8 +787,10 @@ metricsTbl %>%
   facet_wrap(~recScen, scales = "free") +
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Frequency Bt < 150,000 mt", x = "HCR")
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.position = "none") +
+  labs(y = "Frequency Bt < 150,000 mt", x = "HCR",
+       caption = "Figure S20: Cutoff frequency within each recruitment scenario for each HCR. The horizontal bar indicates the median value and whiskers are the central 95th percentiles among samples for each metric.")
 
 # collapse frequency
 metricsTbl %>% 
@@ -756,8 +811,10 @@ metricsTbl %>%
   facet_wrap(~recScen, scales = "free") +
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Frequency Bt < 50,000 mt", x = "HCR")
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.position = "none") +
+  labs(y = "Frequency Bt < 50,000 mt", x = "HCR",
+       caption = "Figure S21: Collapse frequency within each recruitment scenario for each HCR. The horizontal bar indicates the median value and whiskers are the central 95th percentiles among samples for each metric.")
 
 # closure frequency
 metricsTbl %>% 
@@ -778,14 +835,16 @@ metricsTbl %>%
   facet_wrap(~recScen, scales = "free") +
   theme_minimal() +
   scale_fill_manual(values = hcrPal, labels = hcrLabels, name = "HCR") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  labs(y = "Frequency TAC = 0", x = "HCR")
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.position = "none") +
+  labs(y = "Frequency TAC = 0", x = "HCR",
+       caption = "Figure S22: Closure frequency within each recruitment scenario for each HCR. The horizontal bar indicates the median value and whiskers are the central 95th percentiles among samples for each metric.")
 ```
 
 ### Additional metrics from Hurtado-Ferro and Punt 2014
-Calculate zero catch and catch below 50Kt metrics from Hurtado-Ferro and Punt 2014
-```{r}
 
+```{r, addlMetrics}
+#Calculate zero catch and catch below 50Kt metrics from Hurtado-Ferro and Punt 2014
 lowCatCount <- totCatch %>%
                 mutate(zeroCat = totCatch == 0,
                        lowCat = totCatch < 50000) %>%
@@ -808,7 +867,7 @@ lowCatLen <- lowCatCount %>% group_by(model_run, iteration, scenario, lowCat,
                 summarize(lowCatLenMax = max(lowCatLength)) %>%
                 filter(lowCat == TRUE)
 
-lowCatFreq %>% full_join(y = zeroCatLen, 
+kable(x = lowCatFreq %>% full_join(y = zeroCatLen, 
                                     by = c("model_run", "iteration", "scenario", 
                                            "HCR", "recScen", "nameHCR")) %>% 
             full_join(y = lowCatLen, by = c("model_run", "iteration", "scenario", 
@@ -816,45 +875,49 @@ lowCatFreq %>% full_join(y = zeroCatLen,
             pivot_longer(cols = c(zeroCatFreq, lowCatFreq, zeroCatLenMax, lowCatLenMax),
                          names_to = "Metric",
                          values_to = "value") %>%
-            group_by(Metric, nameHCR) %>%
+            group_by(Metric, nameHCR, recScen) %>%
             summarize(mean = mean(value, na.rm = TRUE),
                       median = median(value, na.rm = TRUE),
                       hi95 = quantile(value, probs = 0.95, na.rm = TRUE),
-                      low05 = quantile(value, probs = 0.05, na.rm = TRUE))
+                      low05 = quantile(value, probs = 0.05, na.rm = TRUE)),
+      digits = 3,
+      caption = "Table S4: Additional performance metrics reported in Hurtado-Ferro and Punt (2014) for each HCR and recruitment scenario.")
 ```
 
 Table of results by scenario set across iterations
 ```{r, metricStats}
-metricsTbl %>% full_join(y = annualRelBioCat, 
+kable(x = metricsTbl %>% full_join(y = annualRelBioCat, 
                          by = c("model_run", "iteration", "scenario", 
                                 "HCR", "recScen", "nameHCR")) %>%
-  full_join(y = lowCatFreq,
-            by = c("model_run", "iteration", "scenario", 
-                  "HCR", "recScen", "nameHCR")) %>% 
-  full_join(y = zeroCatLen, 
-            by = c("model_run", "iteration", "scenario", 
-                   "HCR", "recScen", "nameHCR")) %>% 
-  full_join(y = lowCatLen, 
-            by = c("model_run", "iteration", "scenario", 
-                   "HCR", "recScen", "nameHCR")) %>%
-  pivot_longer(cols = c(zeroCatFreq, lowCatFreq, zeroCatLenMax, lowCatLenMax,
-                        Bio_smry, totCatch, Value.SSB, relBio_smryMean,
-                        reltotCatchMean, closuresFreq, collapseFreq, bonanzaFreq,
-                        meanCollapseSever, belowBonanzaLenMax, belowBonanzaLenMean,
-                        sdCatch, nClosures, meanRebuildTime, nCollapses,
-                        meanCollapseTime, nocatFreq),
-               names_to = "Metric",
-               values_to = "value") %>%
-            group_by(Metric, nameHCR, climGroup) %>%
-            summarize(mean = mean(value, na.rm = TRUE),
-                      median = median(value, na.rm = TRUE),
-                      SD = sd(value, na.rm = TRUE),
-                      hi95 = quantile(value, probs = 0.95, na.rm = TRUE),
-                      low05 = quantile(value, probs = 0.05, na.rm = TRUE))
+            full_join(y = lowCatFreq,
+                      by = c("model_run", "iteration", "scenario", 
+                            "HCR", "recScen", "nameHCR")) %>% 
+            full_join(y = zeroCatLen, 
+                      by = c("model_run", "iteration", "scenario", 
+                             "HCR", "recScen", "nameHCR")) %>% 
+            full_join(y = lowCatLen, 
+                      by = c("model_run", "iteration", "scenario", 
+                             "HCR", "recScen", "nameHCR")) %>%
+            pivot_longer(cols = c(zeroCatFreq, lowCatFreq, zeroCatLenMax, lowCatLenMax,
+                                  Bio_smry, totCatch, Value.SSB, relBio_smryMean,
+                                  reltotCatchMean, closuresFreq, collapseFreq, bonanzaFreq,
+                                  meanCollapseSever, belowBonanzaLenMax, belowBonanzaLenMean,
+                                  sdCatch, nClosures, meanRebuildTime, nCollapses,
+                                  meanCollapseTime, nocatFreq),
+                         names_to = "Metric",
+                         values_to = "value") %>%
+                      group_by(Metric, nameHCR, climGroup) %>%
+                      summarize(mean = mean(value, na.rm = TRUE),
+                                median = median(value, na.rm = TRUE),
+                                SD = sd(value, na.rm = TRUE),
+                                hi95 = quantile(value, probs = 0.95, na.rm = TRUE),
+                                low05 = quantile(value, probs = 0.05, na.rm = TRUE)),
+      digits = 3,
+      caption = "Table S5: Summary statistics for all performance metrics by HCR and reference recruitment scenario set.")
 ```
 
 ### Comparison of PFMC control rules by scenario
-```{r}
+```{r, PFMCMetrics, out.height='90%'}
 # Compare performance of HCR2 among scenarios -----------------------------
 
 annualRelBioCat %>% filter(HCR %in% c("HCR1", "HCR2")) %>%
@@ -875,7 +938,8 @@ annualRelBioCat %>% filter(HCR %in% c("HCR1", "HCR2")) %>%
   theme_minimal() +
   facet_wrap(~Metric, scales = "free") +
   scale_fill_manual(values = hcrPal[2:3], labels = hcrLabels[2:3]) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  +
+  labs(caption = "Figure S23: Annual age 1+ biomass (left) and catch (right) relative to the mean within each recruitment scenario for the two PFMC HCRs. The horizontal bar indicates the median value and whiskers are the central 95th percentiles among samples for each metric.")
   # labs(y = "Annual Age1+ Biomass:Max in Poor Recruitment Iters", x = "HCR")
 
 rebuildTime %>% filter(HCR %in% c("HCR1", "HCR2")) %>% 
@@ -896,7 +960,8 @@ rebuildTime %>% filter(HCR %in% c("HCR1", "HCR2")) %>%
   theme_minimal() +
   facet_wrap(~Metric, scales = "free") +
   scale_fill_manual(values = hcrPal[2:3], labels = hcrLabels[2:3]) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(caption = "Figure S24: Mean (left) and median (center) years until age 1+ biomass was rebuilt above the cutoff threshold and number of cutoff (closure) events for each recruitment scenario for the two PFMC HCRs. The horizontal bar indicates the median value and whiskers are the central 95th percentiles among samples for each metric.")
 
 metricsTbl %>% filter(HCR %in% c("HCR1", "HCR2")) %>% 
   pivot_longer(cols = c(closuresFreq, collapseFreq, bonanzaFreq, 
@@ -919,7 +984,8 @@ metricsTbl %>% filter(HCR %in% c("HCR1", "HCR2")) %>%
   theme_minimal() +
   facet_wrap(~Metric, scales = "free") +
   scale_fill_manual(values = hcrPal[2:3], labels = hcrLabels[2:3]) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(caption = "Figure S25: Additional fishery-related performance metrics for each recruitment scenario for the two PFMC HCRs. The horizontal bar indicates the median value and whiskers are the central 95th percentiles among samples for each metric.")
 
 ```
 
@@ -981,15 +1047,21 @@ confErr <- termRE %>% filter(plotGroup != "non-convrg") %>%
                                               "RegRec", "SSTRec", "invRegRec")))
 
 # confusion table for cutoff discrimination
-confErr %>% select(nAssess, closeTruePos, closeFalsePos, closeTrueNeg, closeFalseNeg, 
-                   nClose, closeErrRate, closeFalsePosRate, closeFalseNegRate,
-                   nameHCR, recScen)
+kable(x = confErr %>% ungroup() %>%
+            select(nAssess, closeTruePos, closeFalsePos, closeTrueNeg, closeFalseNeg, 
+                             nClose, closeErrRate, closeFalsePosRate, closeFalseNegRate,
+                             nameHCR, recScen),
+      digits = 3,
+      caption = "Table S6: Confusion table values for discrimination at 150,000 mt, including the number of converged assessments and the number of identified cutoffs for each HCR and recruitment scenario.")
 ```
 
 - Discrimination at collapse threshold (50,000 mt)
 ```{r, collapseConf}
 # confusion table for collapse discrimination
-confErr %>% select(nAssess, collapseTruePos, collapseFalsePos, collapseTrueNeg, collapseFalseNeg, 
-                   nCollapse, collapseErrRate, collapseFalsePosRate, collapseFalseNegRate,
-                   nameHCR, recScen)
+kable(x - confErr %>% ungroup() %>%
+            select(nAssess, collapseTruePos, collapseFalsePos, collapseTrueNeg, collapseFalseNeg, 
+                             nCollapse, collapseErrRate, collapseFalsePosRate, collapseFalseNegRate,
+                             nameHCR, recScen),
+      digits = 3,
+      caption = "Table S7: Confusion table values for discrimination at 150,000 mt, including the number of converged assessments and the number of identified collapses for each HCR and recruitment scenario.")
 ```
