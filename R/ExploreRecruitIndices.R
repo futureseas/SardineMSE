@@ -9,7 +9,7 @@ library(r4ss)
 # the values for Fleet 4 are from the survey and season 1 is summer (July to 
 # December) and season 2 is spring (January to June of following calendar year). 
 
-wtAgeDat <- SS_readwtatage(file="C:/Users/r.wildermuth/Documents/FutureSeas/Recruitment Index/wtatage.ss")
+wtAgeDat <- SS_readwtatage(file="C:/Users/r.wildermuth/Documents/FutureSeas/RecruitmentIndex/wtatage.ss")
 test1 <- wtAgeDat %>% filter(Fleet == 4, Seas == 2)
 matplot(test1$Yr, test1[, 9:ncol(test1)], type = "l", ylim = c(0, 0.5))
 
