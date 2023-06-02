@@ -7,13 +7,16 @@
 compDiagPlots <- function(dir, # SSMSE directory (character)
                           scenario, # scenario name (character)
                           termYr, # terminal year of MSE run
+                          iters = NULL, # iterations to plot
                           surveyInx = 4, # numeric index for the survey fleet (default AT survey)
                           biomass = TRUE, # report comps as biomass? Default is TRUE
                           rawVals = FALSE # include raw values in composition plots? Default is proportions
 ){
   
   # get the iterations
-  iters <- list.dirs(file.path(dir, scenario), recursive = FALSE, full.names = FALSE)
+  if(is.null(iters)){
+    iters <- list.dirs(file.path(dir, scenario), recursive = FALSE, full.names = FALSE)
+  }
   
   # # get the OM, init, and terminal year model directory names
   omName <- grep("_OM", list.dirs(file.path(dir, scenario, iters[1]),

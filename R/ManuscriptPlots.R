@@ -72,15 +72,28 @@ hcrLabels <- c("NoCat", "PFMCF018", "PFMCFSST", "ConstF", "Pikitch", "40-10",
 refScens <- c("ARRec", "PDOcyclRec", "MICERec", "PDOclimRec")
 
 # timeseries plot for presentation
-sampleDat <- termTS %>% filter(model_run == omName, HCR == "HCR0",
-                               recScen %in% refScens) %>%
+sampleDat <- termTS %>% filter(model_run == omName, 
+                               recScen %in% refScens,
+                               HCR == "HCR0") %>%
   #mutate(recScen = factor(recScen, levels = refScens)) %>%
   select(Bio_smry, year, model_run, iteration, scenario, HCR, recScen) %>%
-  group_by(year, scenario, HCR, recScen) %>%
+  # filter(year > 2019, year != 2070) %>%
+  # mutate(year = signif(year-4.5, digits = 3)) %>%
+  group_by(year, 
+           scenario, recScen, 
+           HCR) %>%
   summarize(meanAge1Plus = mean(Bio_smry),
             medAge1Plus = median(Bio_smry),
             lowAge1Plus = quantile(Bio_smry, probs = 0.05, na.rm = TRUE),
-            hiAge1Plus = quantile(Bio_smry, probs = 0.95, na.rm = TRUE)) 
+            hiAge1Plus = quantile(Bio_smry, probs = 0.95, na.rm = TRUE),
+            # add thresholds also
+            denom = n(),
+            less50k = sum(Bio_smry < 50000)/denom,
+            more50kless150k = sum(Bio_smry > 50000 & 
+                                    Bio_smry < 150000)/denom,
+            more150kless400k = sum(Bio_smry > 150000 & 
+                                     Bio_smry < 400000)/denom,
+            more400k = sum(Bio_smry > 400000)/denom) 
 
 itSamp <- sample(unique(termTS$iteration), size = 3)
 
