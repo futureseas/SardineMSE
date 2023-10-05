@@ -406,3 +406,18 @@ ggplot(data=ssbrecsMICE,
   geom_line()
 
 # write.csv(ssbrecsMICE, "C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/dat/recdevMICE2100.csv")
+
+ssbrecsMICE %>% filter(GCM != "gcmMEAN") %>%
+  ggplot(aes(x = Year, y = ensembleRecDevs, group=as.factor(GCM), color=as.factor(GCM))) +
+  geom_vline(xintercept = 2019.5, color = "gray", linetype = "dashed") +
+  geom_hline(yintercept = 0, color = "gray") +
+  geom_line(linewidth = 1) +
+  theme_classic() +
+  labs(y = "Recruitment Deviations", color = "ESM") 
+  
+datMICE %>% mutate(exLogRec = BH_lin(fitMICE2$par, ssb)) %>%
+  ggplot() +
+  geom_point(aes(x = ssb, y = log(rec))) +
+  geom_line(aes(x = ssb, y = exLogRec), linewidth = 1) +
+  theme_classic() +
+  labs(y = "Recruits (log)", x = "SSB")

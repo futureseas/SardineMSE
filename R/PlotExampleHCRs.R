@@ -34,18 +34,22 @@ lines(x, y20, col = "blue", lwd = 4)
 
 # rough median est of SmryBio_Unfished from all assessments
 Bsmry0 <- 314000
-hcrPal <- brewer.pal(11, "Set3")[-2]
+# engineer color palate
+hcrPal <- c(brewer.pal(10, "Set3")[-(2:3)], "#C08E3F")
+hcrPal <- hcrPal[c(1,8,2:7)]
+
 flexPts <- data.frame(SmryBio = c(8000, 0.1*Bsmry0, 0.4*Bsmry0, 150000, 150000, 0.8*Bsmry0,  350000),
-                      NoCat = rep(-0.002, times = 7), 
-                      PFMCF018 = c(0, 0, 0, 0, 0.18, 0.18, 0.18), 
+                      NoCat = rep(-0.001, times = 7), 
+                      
                       PFMCFSSTlow = c(0, 0, 0, 0, 0.05, 0.05, 0.05),
                       PFMCFSSThigh = c(0, 0, 0, 0, 0.2, 0.2, 0.2),
-                      ConstF = rep(0.183, times = 7),
-                      Pikitch = c(0, 0, 0, 
-                                  rep(0.0475, #0.181*(150000-0.4*Bsmry0)/(Bsmry0*(0.8-0.4)), 
-                                      times = 2), 
-                                  0.181, 0.181), 
-                      Rule40.10 = c(0, 0, 0.182, 0.182, 0.182, 0.182, 0.182))
+                      ConstF = rep(0.182, times = 7),
+                      Pikitch = c(0, 0, 0, NA, NA,
+                                  # rep(0.0475, #0.181*(150000-0.4*Bsmry0)/(Bsmry0*(0.8-0.4)), 
+                                  #     times = 2), 
+                                  0.179, 0.179), 
+                      Rule40.10 = c(0, 0, 0.181, 0.181, 0.181, 0.181, 0.181),
+                      PFMCF018 = c(0, 0, 0, 0, 0.18, 0.18, 0.18))
 
 sstFs <- data.frame(PFMCFSST = rep(seq(0.05, 0.19, by = 0.01), each = 4),
                     Ftarget = c(0.05, 0.05, 
@@ -56,32 +60,32 @@ sstFs <- data.frame(PFMCFSST = rep(seq(0.05, 0.19, by = 0.01), each = 4),
 p2 <- flexPts %>% pivot_longer(cols = -SmryBio, names_to = "HCR", 
                                values_to = "Ftarget") %>%
   filter(!(HCR == "Pikitch" & SmryBio == 150000)) %>%
-  mutate(HCR = factor(HCR, levels = c("NoCat", "PFMCF018", "PFMCFSSThigh",  
+  mutate(HCR = factor(HCR, levels = c("NoCat", "PFMCFSSThigh",  
                                       "PFMCFSSTlow", "ConstF", 
-                                      "Pikitch", "Rule40.10"))) %>%
+                                      "Pikitch", "Rule40.10", "PFMCF018"))) %>%
   ggplot(aes(x = SmryBio, y = Ftarget)) +
   # geom_polygon(data = sstFs, aes(fill = PFMCFSST, group = PFMCFSST)) +
   # scale_fill_gradient(low = lighten(hcrPal[3], 0.85), high = hcrPal[3]) +
   geom_line(aes(color = HCR), size = 1.5) +
-  scale_color_manual(values = c(hcrPal[1:3],
-                                lighten(hcrPal[3], 0.25), 
-                                hcrPal[4:6])) +
-  geom_segment(data = data.frame(x1 = c(0.1*Bsmry0, 0.4*Bsmry0, 0.8*Bsmry0),
-                                 x2 = c(0.1*Bsmry0, 0.4*Bsmry0, 0.8*Bsmry0),
-                                 y1 = rep(0, times = 3),
-                                 y2 = rep(0.18, times = 3),
-                                 HCR = rep("Dyn", times = 3)),
+  scale_color_manual(values = c(hcrPal[c(1,3)],
+                                lighten(hcrPal[3], 0.4), 
+                                hcrPal[c(4,6,7, 2)])) +
+  geom_segment(data = data.frame(x1 = c(0.1*Bsmry0, 0.4*Bsmry0, 0.8*Bsmry0, Bsmry0),
+                                 x2 = c(0.1*Bsmry0, 0.4*Bsmry0, 0.8*Bsmry0, Bsmry0),
+                                 y1 = rep(0, times = 4),
+                                 y2 = rep(0.18, times = 4),
+                                 HCR = rep("Dyn", times = 4)),
                aes(x = x1, xend = x2, y = y1, yend = y2),
                color = hcrPal[8], size = 1, linetype = "dashed") +
   # abbreviation of right-hand side of HCR plot
-  geom_segment(data = data.frame(x1 = rep(350000, times = 7),
-                                 x2 = rep(400000, times = 7),
-                                 y1 = c(-0.002, 0.18, 0.2, 0.05, 0.183, 0.1810, 0.182),
-                                 y2 = c(-0.002, 0.18, 0.2, 0.05, 0.183, 0.1810, 0.182),
-                                 HCR = rep("abrv", times = 7)),
-               aes(x = x1, xend = x2, y = y1, yend = y2),
-               color = c(hcrPal[1:3], lighten(hcrPal[3], 0.25), hcrPal[4:6]), 
-               size = 1.5, linetype = "11") +
+  # geom_segment(data = data.frame(x1 = rep(350000, times = 7),
+  #                                x2 = rep(400000, times = 7),
+  #                                y1 = c(-0.002, 0.18, 0.2, 0.05, 0.183, 0.1810, 0.182),
+  #                                y2 = c(-0.002, 0.18, 0.2, 0.05, 0.183, 0.1810, 0.182),
+  #                                HCR = rep("abrv", times = 7)),
+  #              aes(x = x1, xend = x2, y = y1, yend = y2),
+  #              color = c(hcrPal[1:3], lighten(hcrPal[3], 0.25), hcrPal[4:6]), 
+  #              size = 1.5, linetype = "11") +
   theme_classic() +
   labs(x = "Age1+ Biomass (mt)", y = "Exploitation Rate")
 

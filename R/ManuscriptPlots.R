@@ -6,6 +6,7 @@ library(tidyverse)
 library(RColorBrewer)
 library(scales)
 library(gridExtra)
+library(colorspace)
 
 source("../SardineMSE/R/CalcPerformance.R")
 source("../SardineMSE/R/CalcTermTS.R")
@@ -57,7 +58,11 @@ termTS <- CalcTermTS(smryOutputList, termYr = termYr) %>%
 
 omName <- grep("_OM", smryOutputList$tsSmry$model_run,
                fixed = TRUE, value = TRUE)[1]
-hcrPal <- brewer.pal(11, "Set3")[-2]
+# engineer color palate
+hcrPal <- c(brewer.pal(10, "Set3")[-(2:3)])
+hcrPal <- hcrPal[c(1,8,2:7)]
+show_col(c(rbind(hcrPal, lighten(hcrPal, 0.4)),"#C08E3F", "#DAA762" ))
+hcrPal <- c(rbind(hcrPal, lighten(hcrPal, 0.4)),"#C08E3F", "#DAA762")
 
 hcrLabels <- c("NoCat", "PFMCF018", "PFMCFSST", "ConstF", "Pikitch", "40-10",
                "DynPik", "Dyn40-10", "Index")
