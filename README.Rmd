@@ -18,11 +18,16 @@ Management strategy evaluation of Pacific sardine Stock Synthesis assessment
 # An example of SardineMSE workflow
 
 ## Set up the sampling and operating model scenario
-```{r, ScenarioSetUp}
+```{r, include=FALSE}
 library(dplyr)
 library(r4ss)
 library(foreach) #if using run_parallel = TRUE
 library(doParallel) #if using run_parallel = TRUE
+library(DiagrammeR)
+library(DiagrammeRsvg)
+library(knitr)
+library(rsvg)
+
 # # 
 library(SSMSE) 
 packageVersion("SSMSE")
@@ -32,6 +37,8 @@ source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/age1plusDiagPlot
 source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/GetSumryOutput.R")
 source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/CalcPerformance.R")
 source("C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/R/CalcTermTS.R")
+```
+```{r, ScenarioSetUp}
 
 # directory for MSE output
 # NOTE: This must be an external directory
@@ -119,7 +126,7 @@ rand_dev_list <- list(rec_dev_specify)
 ```
 
 Run the MSE
-```{r, runMSE}
+```{r, runMSE, eval=TRUE}
 # NOTE: This takes a while to run
 out <- run_SSMSE(scen_name_vec = scenName, # name of the scenario
                  out_dir_scen_vec = mseOutputPath, # directory in which to run the scenario
@@ -140,22 +147,64 @@ out <- run_SSMSE(scen_name_vec = scenName, # name of the scenario
 ```
 
 Run code to summarize MSE output
-```{r, summarizeMSE}
+```{r, summarizeMSE, eval=TRUE}
 sumry <- SSMSE_summary_all(dir = mseOutputPath, scenarios = scenName, 
                            run_parallel = TRUE)
 
-smryOutputList <- GetSumryOutput(dirSSMSE = mseOutputPath, scenarios = scenName)
+smryOutputList <- GetSumryOutput(dirSSMSE = mseOutputPath, scenarios = scenName,
+                                 comps = TRUE)
 ```
 
 ## Calculate performance and plot diagnostics
 ```{r, performanceDiags}
+
+# Parse HCR and recruitment scenario
+smryOutputList$dqSmry <- smryOutputList$dqSmry %>% 
+                            mutate(HCR = sub(pattern = ".*Rec_","", scenario),
+                                   recScen = sub(pattern = "_HCR.*","", scenario)) %>%
+                            mutate(recScen = sub(pattern = ".*example_","", recScen))
+smryOutputList$sclSmry <- smryOutputList$sclSmry %>% 
+  mutate(HCR = sub(pattern = ".*Rec_","", scenario),
+         recScen = sub(pattern = "_HCR.*","", scenario)) %>%
+  mutate(recScen = sub(pattern = ".*example_","", recScen))
+smryOutputList$tsSmry <- smryOutputList$tsSmry %>% 
+  mutate(HCR = sub(pattern = ".*Rec_","", scenario),
+         recScen = sub(pattern = "_HCR.*","", scenario)) %>%
+  mutate(recScen = sub(pattern = ".*example_","", recScen))
+# parse iteration, scenario, and model_run from composition and simDat tables
+# find columns for directory parsing
+dirsCol <- ncol(str_split(smryOutputList$ageComp$resDir[1], 
+                          pattern = "/", simplify = TRUE))
+
+smryOutputList$ageComp <- smryOutputList$ageComp %>%
+                            mutate(model_run = str_split(resDir, pattern = "/", 
+                                                         simplify = TRUE)[, dirsCol],
+                                   iteration = as.integer(str_split(resDir, 
+                                                                    pattern = "/", 
+                                                                    simplify = TRUE)[, dirsCol-1]), 
+                                   scenario = str_split(resDir, pattern = "/",
+                                                        simplify = TRUE)[, dirsCol-2])
+
+smryOutputList$lenComp <- smryOutputList$lenComp %>%
+                            mutate(model_run = str_split(resDir, pattern = "/", 
+                                                         simplify = TRUE)[, dirsCol],
+                                   iteration = as.integer(str_split(resDir, 
+                                                                    pattern = "/", 
+                                                                    simplify = TRUE)[, dirsCol-1]), 
+                                   scenario = str_split(resDir, pattern = "/",
+                                                        simplify = TRUE)[, dirsCol-2])
+smryOutputList$ageComp <- smryOutputList$ageComp %>% 
+  mutate(HCR = sub(pattern = ".*Rec_","", scenario),
+         recScen = sub(pattern = "_HCR.*","", scenario)) %>%
+  mutate(recScen = sub(pattern = ".*example_","", recScen))
+smryOutputList$lenComp <- smryOutputList$lenComp %>% 
+  mutate(HCR = sub(pattern = ".*Rec_","", scenario),
+         recScen = sub(pattern = "_HCR.*","", scenario)) %>%
+  mutate(recScen = sub(pattern = ".*example_","", recScen))
+
 performanceList <- CalcPerformance(smryOutputList)
 
 metricsTbl <- performanceList$perfomanceMetrics
-# parse out HCR and recruitment scenario
-metricsTbl <- metricsTbl %>% mutate(HCR = sub(pattern = ".*Rec","", scenario),
-                                    recScen = sub(pattern = "HCR.*","", scenario)) %>%
-                mutate(recScen = sub(pattern = ".*EM_","", recScen))
 metricsTbl
 ```
 
@@ -254,3 +303,134 @@ smryOutputList$sclSmry %>% mutate(emYear = as.numeric(regmatches(model_run,
     ggplot2::theme_classic() + 
   labs(x = "Year", y = "B0 (Unfished SSB)")
 ```
+
+# Main Workflows
+These files and functions were used to 1) run the MSE scenarios, 2) evaluate model diagnostics, and 3) extract performance metrics for publication. NOTE: All final model runs and output were processed with code on the server branch of the GitHub repository; some functionality may differ between branches.
+
+## Run MSE Scenarios
+Code to set up recruitment scenarios, run the MSEs, and save output
+```{r, include=FALSE}
+mse <- grViz("digraph {
+            
+              graph [layout = dot, rankdir = TB]
+              
+              node [shape = rectangle]
+              
+              recdev [label = 'Generate Recruitment Deviations\n ExploreRecruitIndices\n CalculatePDOindex\n CalculateSSTindex']
+              devOut [label = 'recdevPDOclim2101.csv\n recdevPDOnoclim2120.csv\n recdevMICE2100.csv\n recdevSST2070.csv']
+              mse [label = '*OM_*EM_<scenario>_MSE']
+              hcr [label = 'MS_sar_<HCR>']
+              smry [label = 'SS_summary_all()']
+              out [label = 'Summaries in Run Folders']
+              
+              recdev -> devOut -> mse -> smry -> out
+              hcr -> mse
+        }")
+
+mse %>%
+    export_svg() %>%
+    charToRaw %>% 
+    rsvg_png(file = "svgMSE.png")
+
+# include_graphics("svgMSE.svg")
+```
+![](C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/svgMSE.png)
+
+## Primary Diagnostic Summaries
+Code to collate and save summary output and diagnostic plots
+```{r, include=FALSE}
+diag <- grViz("digraph {
+      
+              graph [layout = dot, rankdir = TB]
+              
+              node [shape = rectangle]
+              
+              output [label = 'PullOutput']
+              outFxn [label = 'GetSumryOutput()']
+              results [label = 'server<scenarios>_<HCRs>_*Results']
+              smry [label = 'SummarizeSardineMSE']
+              perfMet [label = 'CalcPerformance()']
+              termTS [label = 'CalcTermTS()']
+              
+              outFxn -> output -> results -> smry
+              perfMet -> smry
+              termTS -> smry
+        }")
+
+diag %>%
+    export_svg() %>%
+    charToRaw %>% 
+    rsvg_png(file = "svgDiag.png")
+
+```
+![](C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/svgDiag.png)
+
+## Post-Processing and Visualization
+Code to calculate performance metrics and create summary plots
+```{r, include=FALSE}
+postViz <- grViz("digraph {
+      
+                  graph [layout = dot, rankdir = TB]
+                  
+                  node [shape = rectangle]
+                  
+                  results [label = 'server<scenarios>_<HCRs>_*Results']
+                  suppl [label = 'SardineMSE_SupplInfo.Rmd']
+                  plots [label = 'ManuscriptPlots']
+                  comps [label = 'compDiagPlots()']
+                  calcs [label = 'CalcPerformance()\nCalcTermTS()\nCalcRelMetric()\nCalcRebuildTime()\nCalcRelErr()']
+                  
+                  {results calcs} -> suppl
+                  {results calcs} -> plots
+                  comps -> suppl
+            }")
+
+postViz %>%
+    export_svg() %>%
+    charToRaw %>% 
+    rsvg_png(file = "svgPostViz.png")
+```
+![](C:/Users/r.wildermuth/Documents/FutureSeas/SardineMSE/svgPostViz.png)
+
+# Additional Support Functions and Code
+Run batch code for multiple scenarios or iterations while insuring recdevs are the same 
+
+* batchSardineMSE 
+* RunAdditionalHCRs 
+* RunInverseScenarios 
+
+Diagnostics for estimation model convergence 
+
+* CheckConvrg2001EM.Rmd 
+  * bDiagPlots() 
+  * compDiagPlots() 
+  * recrDiagPlots() 
+  * catchDiagPlots() 
+  * age1plusDiagPlots() 
+  * FmsyDiagPlots() 
+  
+Demonstrations of code, HCRs, or scenarios 
+
+* start1981Example 
+* S_R_fit_example 
+* PlotRecruitmentScenarios 
+* PlotExampleHCRs 
+
+Testing code and functions 
+
+* CheckHCR5 
+* CheckSumryOutput 
+* compareRecDevFormulations 
+* DebugExample[_parallel] 
+* EvaluateMSApplication.Rmd 
+* EvaluateOMDynamics 
+* PlotEMAnnualEsts() 
+* PracticeSSMSE 
+* recruitmentARanalysis 
+* ServerDebug 
+* SetupOMandEM 
+* TestMakeRecruitDevs 
+* TestNsampTiming 
+* TestOMdatainEM 
+* TestSardineHCR 
+* tuningShortEM 
