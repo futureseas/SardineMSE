@@ -375,6 +375,7 @@ compsPlots <- compDiagPlots(dir = file.path(mseDir, "addlRuns"),
                             iters = itSamp[itSamp < 400], surveyInx = 4)
 compsPlots[[1]] + labs(x = "Length")#, caption = "Figure S9: Length compositions as a proportion of biomass in the\n final simulation year of the EM (left) and OM (right). Compositions are from\n the Autocorrelated recruitment scenario applying the PFMCFSST HCR for a sample of iterations (rows).")
 ```
+
 ```{r, compCompare2, fig.cap= "Figure S10: Age compositions as a proportion of biomass in the final simulation year of the EM (left) and OM (right). Compositions are from the Autocorrelated recruitment scenario applying the PFMCFSST HCR for a sample of iterations (rows)."}
 compsPlots[[2]] + labs(x = "Age")#, caption = "Figure S10: Age compositions as a proportion of biomass in the final simulation year\n of the EM (left) and OM (right). Compositions are from the Autocorrelated recruitment\n scenario applying the PFMCFSST HCR for a sample of iterations (rows).")
 
@@ -462,13 +463,15 @@ annualRE %>% filter(plotGroup != "non-convrg", HCR == "HCR2") %>%
 ```
 
 EM convergence statistics
+
+Table S2: Maximum and minimum frequency of non-converged EM fits for each HCR and recruitment scenario.
 ```{r, cnvrg}
 kable(x = metricsTbl %>% filter(!is.na(frqNonConvg)) %>% 
             group_by(HCR, recScen) %>%
             summarize(maxNonConvrg = max(frqNonConvg, na.rm = TRUE), 
                       minNonConvrg = min(frqNonConvg, na.rm = TRUE)),
       digits = 3,
-      caption = "Table S2: Maximum and minimum frequency of non-converged EM fits for each HCR and recruitment scenario.",
+      # caption = "Table S2: Maximum and minimum frequency of non-converged EM fits for each HCR and recruitment scenario.",
       longtable = TRUE)
 ```
 
@@ -626,18 +629,20 @@ annualRelBioCat %>%
 
 Tradeoff plot 
 ```{r, bioCatTradeoff, fig.height=7, fig.cap="Figure S16: Interaction between annual catch and annual age 1+ biomass under each HCR (colored points) in each recruitment scenario."}
-annualRelBioCat %>% filter(model_run == omName, year > 2019) %>%
-  slice_sample(prop = 0.3, replace = FALSE) %>%
-  ggplot(aes(x = relBio_smryMean, y = reltotCatchMean, color = HCR)) +
-  geom_point(alpha = 0.1) +
-  facet_wrap(~recScen, scales = "free_y") + 
-  theme_minimal() +
-  scale_color_manual(values = hcrPal, labels = hcrLabels) +
-  labs(y = "Catch:Mean", x = "Age1+ Biomass:Mean",
-       title = "Annual Biomass x Annual Catch") +
-       #caption = "Figure S16: Interaction between annual catch and annual age 1+ biomass under each HCR (colored points)\n in each recruitment scenario.") +
-  theme(plot.caption = element_text(hjust = 0),
-        plot.caption.position = "plot") 
+knitr::include_graphics("J:/Desiree/Sardine/CatchSmryBioTradeoff.jpg")
+
+# annualRelBioCat %>% filter(model_run == omName, year > 2019) %>%
+#   slice_sample(prop = 0.3, replace = FALSE) %>%
+#   ggplot(aes(x = relBio_smryMean, y = reltotCatchMean, color = HCR)) +
+#   geom_point(alpha = 0.1) +
+#   facet_wrap(~recScen, scales = "free_y") +
+#   theme_minimal() +
+#   scale_color_manual(values = hcrPal, labels = hcrLabels) +
+#   labs(y = "Catch:Mean", x = "Age1+ Biomass:Mean",
+#        title = "Annual Biomass x Annual Catch") +
+#        #caption = "Figure S16: Interaction between annual catch and annual age 1+ biomass under each HCR (colored points)\n in each recruitment scenario.") +
+#   theme(plot.caption = element_text(hjust = 0),
+#         plot.caption.position = "plot")
 ```
 
 Other metrics 
@@ -951,6 +956,7 @@ kable(x = metricsTbl %>% full_join(y = annualRelBioCat,
 
 \newpage
 ### Comparison of PFMC control rules by scenario
+
 ```{r, PFMCMetrics, fig.height=8, fig.cap="Figure S24: Annual age 1+ biomass (left) and catch (right) relative to the mean within each recruitment scenario for the two PFMC HCRs. The horizontal bar indicates the median value and whiskers are the central 95th percentiles among samples for each metric."}
 # Compare performance of HCR2 among scenarios -----------------------------
 
