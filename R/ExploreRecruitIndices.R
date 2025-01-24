@@ -421,3 +421,13 @@ datMICE %>% mutate(exLogRec = BH_lin(fitMICE2$par, ssb)) %>%
   geom_line(aes(x = ssb, y = exLogRec), linewidth = 1) +
   theme_classic() +
   labs(y = "Recruits (log)", x = "SSB")
+
+ssbrecsMICE %>% filter(GCM %in% c("RA", "gcmMEAN")) %>%
+  mutate(exLogRec = BH_lin(fitMICE2$par, ensembleSSB)) %>%
+  ggplot() +
+  geom_point(aes(x = ensembleSSB, y = log(ensembleRec), color = GCM)) +
+  geom_line(aes(x = ensembleSSB, y = exLogRec), linewidth = 1) +
+  theme_classic() +
+  scale_color_manual(values = c("steelblue", "black"), 
+                    labels = c("Projected", "Historical"), name = "") +
+  labs(y = "Recruits (log)", x = "SSB")
