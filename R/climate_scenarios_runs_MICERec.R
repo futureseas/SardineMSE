@@ -11,12 +11,13 @@
 #also a climate informed catchability scenario (Q_climate) could be developed from the SDMs if one was to use an EM, not done
 
 #scenarios:
-sample_struct_list <- list("MG_Climate" = sample_struct,
-                           "R_climate" = sample_struct,
-                           "M_climate" = sample_struct,
-                           "G_climate" = sample_struct,
-                           "Q_climate" = sample_struct,
-                           "G_climate2" = sample_struct)
+#sample_struct_list <- list("MG_Climate" = sample_struct,
+                          # "R_climate" = sample_struct,
+                          # "M_climate" = sample_struct,
+                          # "G_climate" = sample_struct,
+                          # "Q_climate" = sample_struct,
+                          # "G_climate2" = sample_struct)
+wdir <- getwd()
 
 #instead of loading SSMSE package load local modified package available at https://github.com/detommas/SSMSEsar
 #modifications were done to use latest version of r4ss no matter what the colum headers are
@@ -32,8 +33,8 @@ library(foreach) #if using run_parallel = TRUE
 library(doParallel) #if using run_parallel = TRUE
 
 #set working directory
-setwd("C:/Users/desiree.tommasi/Documents/CAFA/Synthesis/SardineMSE-main")
-wdir <- getwd()
+#setwd("C:/Users/desiree.tommasi/Documents/CAFA/Synthesis/SardineMSE-main")
+setwd(wdir)
 
 # directory for MSE output
 mseOutputPath <- "C:/Users/desiree.tommasi/Documents/CAFA/Synthesis/OM_outputs"
@@ -187,12 +188,22 @@ procDiff <- proc.time() - ptm
 
 ################M SCENARIO###################################
 #Still define custom rec devs based on MICE output since Atlantis was run with MICE Recs
+#add the change in M
 #the modified OMs are on https://github.com/futureseas/SardineMSE/tree/main/scenarioModels/start2001 
+#specifies M changes from 0.585 to 0.635 in projection period, note we apply to all the scenario, but then only pick the M one
 
-envt_dev_list2 <- envt_dev_list
+m_change <- envt_dev_list[[1]]
+m_change$pars <- "NatM_p_1_Fem_GP_1"
+m_change$input$value <- 0.635
+m_change$input$par <- "NatM_p_1_Fem_GP_1"
+
+r_change <-envt_dev_list[[1]]
+envt_dev_list2 <- list(r_change,m_change)
+
+#only select the M scenario
 envt_dev_list2[[1]]$input <- envt_dev_list2[[1]]$input %>% filter(scen %in% scenName[3])
+envt_dev_list2[[2]]$input <- envt_dev_list2[[2]]$input %>% filter(scen %in% scenName[3])
 
-#but refers to another OM folder with M changed from 0.585 to 0.635
 seedNum <- 1104
 startTime <- Sys.time()
 ptm <- proc.time()
@@ -201,7 +212,7 @@ outMclim <- run_SSMSE(scen_name_vec = scenName[3], # name of the scenario
                       out_dir_scen_vec = mseOutputPath, # directory in which to run the scenario
                       iter_vec = rep(iters, times = length(scenName[3])), # run with 5 iterations for now
                       OM_name_vec = NULL, # specify directories instead
-                      OM_in_dir_vec = file.path(OMmodelPath, "Mclimate_OM"), #rep(OMmodelPath, times = length(scenName)), # OM files
+                      OM_in_dir_vec = file.path(OMmodelPath, "constGrowthMidSteepNewSelex_OM"), #rep(OMmodelPath, times = length(scenName)), # OM files
                       MS_vec = "no_catch", 
                       use_SS_boot_vec = TRUE, # use the SS bootstrap module for sampling
                       nyrs_vec = nyrs,        # Years to project OM forward
@@ -214,12 +225,31 @@ endTime <- Sys.time()
 procDiff <- proc.time() - ptm
 
 ################G SCENARIO Hadley###################################
-#Still define custom rec devs based on MICE output since Atlantis was run with MICE Recs
+#Still define custom rec devs based on MICE output 
+Lmin_change <- envt_dev_list[[1]]
+Lmin_change$pars <- "L_at_Amin_Fem_GP_1"
+Lmin_change$input$value <- 12.8993
+Lmin_change$input$par <- "L_at_Amin_Fem_GP_1"
 
-envt_dev_list2 <- envt_dev_list
+Lmax_change <- envt_dev_list[[1]]
+Lmax_change$pars <- "L_at_Amax_Fem_GP_1"
+Lmax_change$input$value <- 23.8012
+Lmax_change$input$par <- "L_at_Amax_Fem_GP_1"
+
+k_change <- envt_dev_list[[1]]
+k_change$pars <- "VonBert_K_Fem_GP_1"
+k_change$input$value <- 0.288621
+k_change$input$par <- "VonBert_K_Fem_GP_1"
+
+r_change <-envt_dev_list[[1]]
+envt_dev_list2 <- list(r_change,Lmin_change,Lmax_change,k_change)
+
+#only select the Ghad scenario
 envt_dev_list2[[1]]$input <- envt_dev_list2[[1]]$input %>% filter(scen %in% scenName[4])
+envt_dev_list2[[2]]$input <- envt_dev_list2[[2]]$input %>% filter(scen %in% scenName[4])
+envt_dev_list2[[3]]$input <- envt_dev_list2[[3]]$input %>% filter(scen %in% scenName[4])
+envt_dev_list2[[4]]$input <- envt_dev_list2[[4]]$input %>% filter(scen %in% scenName[4])
 
-#but refers to another OM folder with M changed from 0.585 to 0.635
 seedNum <- 1104
 startTime <- Sys.time()
 ptm <- proc.time()
@@ -228,7 +258,7 @@ outGclim <- run_SSMSE(scen_name_vec = scenName[4], # name of the scenario
                       out_dir_scen_vec = mseOutputPath, # directory in which to run the scenario
                       iter_vec = rep(iters, times = length(scenName[4])), # run with 5 iterations for now
                       OM_name_vec = NULL, # specify directories instead
-                      OM_in_dir_vec = file.path(OMmodelPath, "Ghadclimate_OM"), #rep(OMmodelPath, times = length(scenName)), # OM files
+                      OM_in_dir_vec = file.path(OMmodelPath, "constGrowthMidSteepNewSelex_OM"), #rep(OMmodelPath, times = length(scenName)), # OM files
                       MS_vec = "no_catch", 
                       use_SS_boot_vec = TRUE, # use the SS bootstrap module for sampling
                       nyrs_vec = nyrs,        # Years to project OM forward
@@ -241,10 +271,31 @@ endTime <- Sys.time()
 procDiff <- proc.time() - ptm
 
 ################G SCENARIO GFDL###################################
-#Still define custom rec devs based on MICE output since Atlantis was run with MICE Recs
+#Still define custom rec devs based on MICE output 
+Lmin_change <- envt_dev_list[[1]]
+Lmin_change$pars <- "L_at_Amin_Fem_GP_1"
+Lmin_change$input$value <- 13.555178
+Lmin_change$input$par <- "L_at_Amin_Fem_GP_1"
 
-envt_dev_list2 <- envt_dev_list
+Lmax_change <- envt_dev_list[[1]]
+Lmax_change$pars <- "L_at_Amax_Fem_GP_1"
+Lmax_change$input$value <- 26.029151
+Lmax_change$input$par <- "L_at_Amax_Fem_GP_1"
+
+k_change <- envt_dev_list[[1]]
+k_change$pars <- "VonBert_K_Fem_GP_1"
+k_change$input$value <- 0.263917
+k_change$input$par <- "VonBert_K_Fem_GP_1"
+
+r_change <-envt_dev_list[[1]]
+envt_dev_list2 <- list(r_change,Lmin_change,Lmax_change,k_change)
+
+#only select the Ggfd scenario
 envt_dev_list2[[1]]$input <- envt_dev_list2[[1]]$input %>% filter(scen %in% scenName[6])
+envt_dev_list2[[2]]$input <- envt_dev_list2[[2]]$input %>% filter(scen %in% scenName[6])
+envt_dev_list2[[3]]$input <- envt_dev_list2[[3]]$input %>% filter(scen %in% scenName[6])
+envt_dev_list2[[4]]$input <- envt_dev_list2[[4]]$input %>% filter(scen %in% scenName[6])
+
 
 #but refers to another OM folder with M changed from 0.585 to 0.635
 seedNum <- 1104
@@ -255,7 +306,7 @@ outG2clim <- run_SSMSE(scen_name_vec = scenName[6], # name of the scenario
                       out_dir_scen_vec = mseOutputPath, # directory in which to run the scenario
                       iter_vec = rep(iters, times = length(scenName[6])), # run with 5 iterations for now
                       OM_name_vec = NULL, # specify directories instead
-                      OM_in_dir_vec = file.path(OMmodelPath, "Ggfdclimate_OM"), #rep(OMmodelPath, times = length(scenName)), # OM files
+                      OM_in_dir_vec = file.path(OMmodelPath, "constGrowthMidSteepNewSelex_OM"), #rep(OMmodelPath, times = length(scenName)), # OM files
                       MS_vec = "no_catch", 
                       use_SS_boot_vec = TRUE, # use the SS bootstrap module for sampling
                       nyrs_vec = nyrs,        # Years to project OM forward
@@ -268,15 +319,38 @@ endTime <- Sys.time()
 procDiff <- proc.time() - ptm
 
 ################M and G SCENARIO Hadley and M###################################
-#Still define custom rec devs based on MICE output since Atlantis was run with MICE Recs
+#Still define custom rec devs based on MICE output 
+Lmin_change <- envt_dev_list[[1]]
+Lmin_change$pars <- "L_at_Amin_Fem_GP_1"
+Lmin_change$input$value <- 12.8993
+Lmin_change$input$par <- "L_at_Amin_Fem_GP_1"
 
-envt_dev_list2 <- envt_dev_list
+Lmax_change <- envt_dev_list[[1]]
+Lmax_change$pars <- "L_at_Amax_Fem_GP_1"
+Lmax_change$input$value <- 23.8012
+Lmax_change$input$par <- "L_at_Amax_Fem_GP_1"
+
+k_change <- envt_dev_list[[1]]
+k_change$pars <- "VonBert_K_Fem_GP_1"
+k_change$input$value <- 0.288621
+k_change$input$par <- "VonBert_K_Fem_GP_1"
+
+m_change <- envt_dev_list[[1]]
+m_change$pars <- "NatM_p_1_Fem_GP_1"
+m_change$input$value <- 0.635
+m_change$input$par <- "NatM_p_1_Fem_GP_1"
+
+r_change <-envt_dev_list[[1]]
+envt_dev_list2 <- list(r_change,m_change,Lmin_change,Lmax_change,k_change)
+
+#only select the Ghad and M scenario
 envt_dev_list2[[1]]$input <- envt_dev_list2[[1]]$input %>% filter(scen %in% scenName[1])
+envt_dev_list2[[2]]$input <- envt_dev_list2[[2]]$input %>% filter(scen %in% scenName[1])
+envt_dev_list2[[3]]$input <- envt_dev_list2[[3]]$input %>% filter(scen %in% scenName[1])
+envt_dev_list2[[4]]$input <- envt_dev_list2[[4]]$input %>% filter(scen %in% scenName[1])
+envt_dev_list2[[5]]$input <- envt_dev_list2[[5]]$input %>% filter(scen %in% scenName[1])
 
-#but refers to another OM folder with M changed from 0.585 to 0.635 and von bertalannfy parameters changed to 
-#Linf = 23.4844373 
-#L1 = 12.8204896 
-#K =  0.2943888  
+
 seedNum <- 1104
 startTime <- Sys.time()
 ptm <- proc.time()
@@ -285,7 +359,7 @@ outMGclim <- run_SSMSE(scen_name_vec = scenName[1], # name of the scenario
                       out_dir_scen_vec = mseOutputPath, # directory in which to run the scenario
                       iter_vec = rep(iters, times = length(scenName[1])), # run with 5 iterations for now
                       OM_name_vec = NULL, # specify directories instead
-                      OM_in_dir_vec = file.path(OMmodelPath, "MGhadclimate_OM"), #rep(OMmodelPath, times = length(scenName)), # OM files
+                      OM_in_dir_vec = file.path(OMmodelPath, "constGrowthMidSteepNewSelex_OM"), #rep(OMmodelPath, times = length(scenName)), # OM files
                       MS_vec = "no_catch", 
                       use_SS_boot_vec = TRUE, # use the SS bootstrap module for sampling
                       nyrs_vec = nyrs,        # Years to project OM forward
