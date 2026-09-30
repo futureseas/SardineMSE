@@ -1,8 +1,8 @@
 #created by D. Tommasi starting on 4/23/2026
 #Code to run Wildermuth's et al.2024 MSE under no catch for 100 iterations with DynaMICE recruitment plus process error 
-#runs each of the climate infomred OM scenarios informed by ecological model output
+#runs each of the climate informed OM scenarios informed by ecological model output
 #the base operating model used is the constant growth model starting in 2001 used by Wildermuth's et al.2024
-#this was modified to use DynaMICe recruitment (R_climate scenario) as well as
+#For the forward simulation, as in Wildermuth's et al.2024, recruitment used DynaMICe recruitment (R_climate scenario) as well as:
 
 #M modified to use the one informed by Atlantis - M-climate
 #Linf, K, and L1 modified to use the one informed by IBM under GFDL - G_climate2
@@ -20,12 +20,11 @@
 wdir <- getwd()
 
 #instead of loading SSMSE package load local modified package available at https://github.com/detommas/SSMSEsar
-#modifications were done to use latest version of r4ss no matter what the colum headers are
+#modifications were done to use latest version of r4ss no matter what the column headers are
 setwd("C:/Users/desiree.tommasi/Documents/SSMSEsar-main/R")
 #source all the SSMSE functions
 file.sources = list.files()
 sapply(file.sources,source,.GlobalEnv)
-
 
 library(dplyr)
 library(r4ss)
@@ -33,7 +32,6 @@ library(foreach) #if using run_parallel = TRUE
 library(doParallel) #if using run_parallel = TRUE
 
 #set working directory
-#setwd("C:/Users/desiree.tommasi/Documents/CAFA/Synthesis/SardineMSE-main")
 setwd(wdir)
 
 # directory for MSE output
@@ -189,7 +187,6 @@ procDiff <- proc.time() - ptm
 ################M SCENARIO###################################
 #Still define custom rec devs based on MICE output since Atlantis was run with MICE Recs
 #add the change in M
-#the modified OMs are on https://github.com/futureseas/SardineMSE/tree/main/scenarioModels/start2001 
 #specifies M changes from 0.585 to 0.635 in projection period, note we apply to all the scenario, but then only pick the M one
 
 m_change <- envt_dev_list[[1]]
@@ -225,7 +222,9 @@ endTime <- Sys.time()
 procDiff <- proc.time() - ptm
 
 ################G SCENARIO Hadley###################################
-#Still define custom rec devs based on MICE output 
+#Still define custom rec devs based on MICE output
+#for projections, changes the growth parameters to those from the IBM forced by the Hadley ESM 
+
 Lmin_change <- envt_dev_list[[1]]
 Lmin_change$pars <- "L_at_Amin_Fem_GP_1"
 Lmin_change$input$value <- 12.8993
@@ -272,6 +271,8 @@ procDiff <- proc.time() - ptm
 
 ################G SCENARIO GFDL###################################
 #Still define custom rec devs based on MICE output 
+#for projections, changes the growth parameters to those from the IBM forced by the GFDL ESM 
+
 Lmin_change <- envt_dev_list[[1]]
 Lmin_change$pars <- "L_at_Amin_Fem_GP_1"
 Lmin_change$input$value <- 13.555178
@@ -296,8 +297,6 @@ envt_dev_list2[[2]]$input <- envt_dev_list2[[2]]$input %>% filter(scen %in% scen
 envt_dev_list2[[3]]$input <- envt_dev_list2[[3]]$input %>% filter(scen %in% scenName[6])
 envt_dev_list2[[4]]$input <- envt_dev_list2[[4]]$input %>% filter(scen %in% scenName[6])
 
-
-#but refers to another OM folder with M changed from 0.585 to 0.635
 seedNum <- 1104
 startTime <- Sys.time()
 ptm <- proc.time()
@@ -320,6 +319,8 @@ procDiff <- proc.time() - ptm
 
 ################M and G SCENARIO Hadley and M###################################
 #Still define custom rec devs based on MICE output 
+#For projections, M from Atlantis and growth pars from IBM
+
 Lmin_change <- envt_dev_list[[1]]
 Lmin_change$pars <- "L_at_Amin_Fem_GP_1"
 Lmin_change$input$value <- 12.8993
@@ -349,7 +350,6 @@ envt_dev_list2[[2]]$input <- envt_dev_list2[[2]]$input %>% filter(scen %in% scen
 envt_dev_list2[[3]]$input <- envt_dev_list2[[3]]$input %>% filter(scen %in% scenName[1])
 envt_dev_list2[[4]]$input <- envt_dev_list2[[4]]$input %>% filter(scen %in% scenName[1])
 envt_dev_list2[[5]]$input <- envt_dev_list2[[5]]$input %>% filter(scen %in% scenName[1])
-
 
 seedNum <- 1104
 startTime <- Sys.time()
